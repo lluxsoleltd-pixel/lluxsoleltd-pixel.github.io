@@ -52,7 +52,14 @@
 
   <div id="map"></div>
   <p class="muted">ຕຳແໜ່ງໄຣເດີອັບເດດທຸກ 10 ວິນາທີ ເມື່ອໄຣເດີເປີດແອັບຢູ່</p>
-  <a href="order.html?service=rider" style="display:block;text-align:center;margin-top:12px;padding:14px;border-radius:12px;background:var(--btn);color:#fff;text-decoration:none;font-size:16px;">ສັ່ງອໍເດີໃໝ່</a>
+  <div style="display:flex;gap:10px;margin-top:12px;">
+    <a href="order.html?service=rider" style="flex:1;text-align:center;padding:14px;border-radius:12px;background:var(--btn);color:#fff;text-decoration:none;font-size:16px;">ສັ່ງອໍເດີໃໝ່</a>
+    <button id="btnClose" type="button" style="flex:1;padding:14px;border:0;border-radius:12px;background:var(--line);color:var(--text);font-size:16px;cursor:pointer;">ປິດ</button>
+  </div>
+  <div id="thanks" class="card hidden" style="text-align:center;margin-top:12px;">
+    <h2>ຂອບໃຈທີ່ໃຊ້ບໍລິການ LLUX-e</h2>
+    <p class="muted">ທ່ານສາມາດປິດໜ້ານີ້ໄດ້ເລີຍ</p>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -201,6 +208,12 @@
       $("netMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້ ກຳລັງລອງໃໝ່...";
     }
   }
+
+  // ປຸ່ມປິດ: ພະຍາຍາມປິດແທັບກ່ອນ ຖ້າປິດບໍ່ໄດ້ ສະແດງຂໍ້ຄວາມຂອບໃຈ
+  $("btnClose").onclick = function () {
+    try { window.close(); } catch (e) {}
+    setTimeout(function () { $("thanks").classList.remove("hidden"); }, 300);
+  };
 
   // ລູກຄ້າກົດວ່າໂອນເງິນແລ້ວ
   $("btnPaid").onclick = async function () {
