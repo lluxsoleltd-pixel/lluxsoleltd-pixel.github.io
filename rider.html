@@ -24,7 +24,9 @@
   button { width:100%; padding:14px; border:0; border-radius:12px; font-size:20px; font-weight:700; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
   button.secondary { background:#2f8a5a; width:auto; padding:8px 12px; margin:0; font-size:16px; }
   button.green { background:#0369a1; }
-  button[data-act="accept"] { background:#d62828; }
+  button[data-act="accept"] { background:#d62828; transition:transform .15s ease, box-shadow .15s ease; }
+  /* ປຸ່ມຮັບງານຂະຫຍາຍຕາມເສຽງເຕືອນ (ເພີ່ມ class pulse ໃຫ້ body ຕອນດັງ) */
+  body.pulse button[data-act="accept"] { transform:scale(1.08); box-shadow:0 0 0 6px rgba(255,255,255,.75); }
   button:disabled { opacity:.5; cursor:default; }
   .tabs { display:flex; gap:8px; margin-bottom:12px; }
   .tabs button { margin:0; background:var(--line); color:var(--text); }
@@ -240,6 +242,9 @@
     } catch (e) {}
   }
   function beepOnce() {
+    // ປຸ່ມຮັບງານກະພິບຕາມເສຽງ ແຕ່ລະຄັ້ງທີ່ດັງ
+    document.body.classList.add("pulse");
+    setTimeout(function () { document.body.classList.remove("pulse"); }, 300);
     if (!audioCtx) return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -252,7 +257,7 @@
     ensureAudio(); beepOnce();
     beepTimer = setInterval(beepOnce, 900);
   }
-  function stopAlarm() { clearInterval(beepTimer); beepTimer = null; }
+  function stopAlarm() { clearInterval(beepTimer); beepTimer = null; document.body.classList.remove("pulse"); }
   function updateAlarm() {
     const hasAvail = tab === "avail" && jobs.length > 0;
     if (hasAvail) startAlarm(); else stopAlarm();
