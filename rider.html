@@ -213,6 +213,12 @@
     if (tab === "avail") {
       return '<button data-act="accept" data-row="' + o.row + '">ຮັບງານ</button>';
     }
+    // ລູກຄ້າແຈ້ງໂອນແລ້ວ ໄຣເດີຕ້ອງກົດຢືນຢັນວ່າໄດ້ຮັບເງິນ
+    if (o.serviceType !== "buy" && o.paymentStatus === "claimed" && o.status !== "delivered") {
+      return '<p class="muted">ລູກຄ້າແຈ້ງໂອນແລ້ວ ກະລຸນາກວດເງິນ</p>' +
+        '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບເງິນແລ້ວ</button>' +
+        (o.status === "ready" ? '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>' : '');
+    }
     if (o.status === "ready") {
       return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>';
     }
@@ -312,6 +318,9 @@
       if (act === "accept") {
         res = await post({ type: "accept", riderName: session.riderName, pin: session.pin, row: row });
         if (!res.ok) { alert(res.reason === "taken" ? "ງານນີ້ມີຄົນຮັບແລ້ວ" : "ຮັບງານບໍ່ໄດ້"); }
+      } else if (act === "paid") {
+        res = await post({ type: "payconfirm", riderName: session.riderName, pin: session.pin, row: row });
+        if (!res.ok) { alert("ຢືນຢັນການຮັບເງິນບໍ່ໄດ້ ລອງໃໝ່"); }
       } else {
         const newStatus = act;
         res = await post({ type: "status", riderName: session.riderName, pin: session.pin, row: row, newStatus: newStatus });

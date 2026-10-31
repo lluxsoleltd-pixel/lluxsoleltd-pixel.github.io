@@ -45,6 +45,8 @@
     <div id="payBox" class="hidden">
       <h2 style="margin-top:12px;">ສະແກນ QR ເພື່ອຈ່າຍຄ່າສົ່ງ</h2>
       <img id="rQr" class="qr" alt="QR ໄຣເດີ">
+      <p id="payNote" class="muted" style="text-align:center;"></p>
+      <button id="btnPaid" class="hidden" style="width:100%;padding:14px;border:0;border-radius:12px;font-size:16px;background:var(--ok);color:#fff;cursor:pointer;">ຂ້ອຍໂອນແລ້ວ</button>
     </div>
   </div>
 
@@ -138,7 +140,8 @@
     if (o.dropLat && o.dropLng) { dropMarker.setLatLng([o.dropLat, o.dropLng]).addTo(map); pts.push([o.dropLat, o.dropLng]); }
 
     // ແສດງໄຣເດີ ຖ້າອັບເດດພາຍໃນ 3 ນາທີລ່າສຸດ
-    const fresh = rider && rider.lat && rider.locAt && (Date.now() - new Date(rider.locAt).getTime()) < 3 * 60 * 1000;
+    // ສະແດງຕຳແໜ່ງໄຣເດີ ເມື່ອໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວເທົ່ານັ້ນ
+    const fresh = o.paymentStatus === 'confirmed' && rider && rider.lat && rider.locAt && (Date.now() - new Date(rider.locAt).getTime()) < 3 * 60 * 1000;
     if (fresh) {
       const me = [rider.lat, rider.lng];
       pts.push(me);
@@ -185,12 +188,41 @@
         const showPay = o.status !== "delivered" && rider.qrImageUrl;
         $("payBox").classList.toggle("hidden", !showPay);
         if (showPay) $("rQr").src = rider.qrImageUrl;
+        // ປຸ່ມ "ຂ້ອຍໂອນແລ້ວ" ແລະ ສະຖານະການຢືນຢັນ
+        const canClaim = o.serviceType !== "buy" && o.status !== "delivered" && o.paymentStatus === "unpaid";
+        $("btnPaid").classList.toggle("hidden", !canClaim);
+        const noteTxt = o.paymentStatus === "claimed" ? "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນການຮັບເງິນ"
+          : (o.paymentStatus === "confirmed" ? "ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ" : "");
+        $("payNote").textContent = noteTxt;
       }
       drawMap(o, rider);
     } catch (e) {
       $("netMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້ ກຳລັງລອງໃໝ່...";
     }
   }
+
+  // ລູກຄ້າກົດວ່າໂອນເງິນແລ້ວ
+  $("btnPaid").onclick = async function () {
+    if (!orderId) return;
+    $("btnPaid").disabled = true;
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ type: "paymark", orderId: orderId })
+      });
+      const j = await r.json();
+      if (j.ok) {
+        $("btnPaid").classList.add("hidden");
+        $("payNote").textContent = "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນການຮັບເງິນ";
+      } else {
+        alert("ແຈ້ງບໍ່ໄດ້ ກະລຸນາລອງໃໝ່");
+      }
+    } catch (e) {
+      alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້ ລອງໃໝ່");
+    }
+    $("btnPaid").disabled = false;
+  };
 
   refresh();
   setInterval(refresh, 10 * 1000);
