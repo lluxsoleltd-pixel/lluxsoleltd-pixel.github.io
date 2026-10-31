@@ -63,6 +63,14 @@
       </div>
     </div>
 
+    <div class="card">
+      <div class="tabs" style="margin:0 0 8px;">
+        <button id="btnNotify" class="secondary" style="width:auto;">ເປີດການແຈ້ງເຕືອນ</button>
+        <button id="btnMute" class="secondary" style="width:auto;">ປິດສຽງ</button>
+      </div>
+      <p id="notifyState" class="muted"></p>
+    </div>
+
     <div class="tabs">
       <button id="tabAvail" class="on">ງານລໍຖ້າ</button>
       <button id="tabMine">ງານຂອງຂ້ອຍ</button>
@@ -74,6 +82,7 @@
   </div>
 </div>
 
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 <script>
   // ທີ່ຢູ່ API (Apps Script) ເດີ່ວກັບໜ້າຮ້ານ
   const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
@@ -134,6 +143,7 @@
     $("loginView").classList.add("hidden");
     $("riderView").classList.remove("hidden");
     $("riderTitle").textContent = session.riderName;
+    if (window.riderOneSignal) tagRider(window.riderOneSignal);
     refresh();
     clearInterval(pollTimer);
     pollTimer = setInterval(refresh, POLL_MS);
@@ -143,6 +153,7 @@
 
   function logout() {
     session = null; jobs = [];
+    stopAlarm();
     clearInterval(pollTimer); clearInterval(tickTimer);
     clearSession();
     $("riderView").classList.add("hidden");
@@ -186,9 +197,65 @@
     return '<p class="muted">ລໍຖ້າຮ້ານແພັກສິນຄ້າ</p>';
   }
 
+  // ===== ສຽງເຕືອນ: ດັງວນເມື່ອມີງານລໍຖ້າ (ໜ້າເປີດຢູ່) =====
+  let muted = false, audioCtx = null, beepTimer = null;
+  function ensureAudio() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    } catch (e) {}
+  }
+  function beepOnce() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 880; gain.gain.value = 0.3;
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+  }
+  function startAlarm() {
+    if (muted || beepTimer) return;
+    ensureAudio(); beepOnce();
+    beepTimer = setInterval(beepOnce, 900);
+  }
+  function stopAlarm() { clearInterval(beepTimer); beepTimer = null; }
+  function updateAlarm() {
+    const hasAvail = tab === "avail" && jobs.length > 0;
+    if (hasAvail) startAlarm(); else stopAlarm();
+  }
+  $("btnMute").onclick = function () {
+    muted = !muted;
+    $("btnMute").textContent = muted ? "ເປີດສຽງ" : "ປິດສຽງ";
+    if (muted) stopAlarm(); else updateAlarm();
+  };
+
+  // ===== ແຈ້ງເຕືອນ OneSignal (ເວລາປິດໜ້າ/ຈໍລັອກ) =====
+  const APP_ID = "ab31f26a-4291-45f3-838c-1ae71dfa2fb0";
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function (OneSignal) {
+    try {
+      await OneSignal.init({ appId: APP_ID, allowLocalhostAsSecureOrigin: true });
+      $("notifyState").textContent = OneSignal.Notifications.permission ? "ການແຈ້ງເຕືອນເປີດແລ້ວ" : "ຍັງບໍ່ໄດ້ເປີດການແຈ້ງເຕືອນ";
+      $("btnNotify").onclick = async function () {
+        await OneSignal.Notifications.requestPermission();
+        if (session) tagRider(OneSignal);
+        $("notifyState").textContent = OneSignal.Notifications.permission ? "ການແຈ້ງເຕືອນເປີດແລ້ວ" : "ຍັງບໍ່ໄດ້ເປີດການແຈ້ງເຕືອນ";
+      };
+      window.riderOneSignal = OneSignal;
+      if (session) tagRider(OneSignal);
+    } catch (e) {
+      $("notifyState").textContent = "ລະບົບແຈ້ງເຕືອນຜິດພາດ";
+    }
+  });
+  // ຕິດ tag ໃຫ້ອຸປະກອນນີ້ເປັນໄຣເດີ ເພື່ອຮັບແຈ້ງເຕືອນງານໃໝ່
+  function tagRider(OneSignal) {
+    OneSignal.User.addTags({ role: "rider", rider: session.riderName });
+  }
+
   function render() {
     const box = $("jobs");
     $("emptyMsg").classList.toggle("hidden", jobs.length > 0);
+    updateAlarm();
     box.innerHTML = jobs.map(function (o) {
       const isBuy = o.serviceType === "buy";
       const timer = (tab === "mine" && o.status === "accepted")
