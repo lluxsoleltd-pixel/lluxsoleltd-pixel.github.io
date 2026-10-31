@@ -20,7 +20,9 @@
   .muted { color:var(--muted); font-size:14px; }
   .row { display:flex; justify-content:space-between; gap:8px; padding:4px 0; font-size:15px; }
   .status { font-size:17px; font-weight:600; color:var(--btn); }
+  .eta { font-size:28px; font-weight:700; color:var(--btn); margin:6px 0 2px; }
   #map { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:12px; }
+  #map.big { height:460px; }
   img.qr { display:block; width:220px; max-width:100%; margin:8px auto; border-radius:10px; background:#fff; }
   a { color:var(--btn); }
   .hidden { display:none !important; }
@@ -48,6 +50,14 @@
       <p id="payNote" class="muted" style="text-align:center;"></p>
       <button id="btnPaid" class="hidden" style="width:100%;padding:14px;border:0;border-radius:12px;font-size:16px;background:var(--ok);color:#fff;cursor:pointer;">ຂ້ອຍໂອນແລ້ວ</button>
     </div>
+  </div>
+
+  <div id="confirmBox" class="card hidden">
+    <div id="cfmAmt" class="status"></div>
+    <p class="muted" style="margin:8px 0 0;">ລູກຄ້າສາມາດເບິ່ງການເຄື່ອນໄຫວຕົວຈິງຂອງໄຣເດີເທິງແຜນທີ່ຂ້າງລຸ່ມນີ້.</p>
+    <h2 style="margin-top:12px;">ໄລຍະເວລາທີ່ທ່ານຈະໄດ້ຮັບເຄື່ອງ:</h2>
+    <div id="eta" class="eta">-</div>
+    <div id="etaPhase" class="muted"></div>
   </div>
 
   <div id="map"></div>
@@ -96,7 +106,7 @@
   }
   const riderMarker = L.marker([0, 0], { icon: makeRiderIcon() });
   const routeLine = L.polyline([], { color: "#2563eb", weight: 5, opacity: 0.6 }).addTo(map);
-  let routeCache = { key: "", pts: [], at: 0 };
+  const routeCache = {};
 
   // ທິດທາງ (ອົງສາ) ຈາກຈຸດ a ໄປຈຸດ b
   function bearing(a, b) {
@@ -125,21 +135,65 @@
     return best;
   }
 
-  // ດຶງເສັ້ນທາງຈາກ OSRM (ແຄດໄວ້ 60 ວິນາທີ)
-  async function loadRoute(from, to, key) {
+  // ດຶງເສັ້ນທາງ ແລະ ເວລາຂັບ (ວິນາທີ) ຈາກ OSRM (ແຄດໄວ້ 60 ວິນາທີ)
+  async function fetchRoute(from, to) {
+    const key = from.join(",") + ">" + to.join(",");
     const now = Date.now();
-    if (routeCache.key === key && now - routeCache.at < 60 * 1000) return routeCache.pts;
+    const c = routeCache[key];
+    if (c && now - c.at < 60 * 1000) return c;
     const url = "https://router.project-osrm.org/route/v1/driving/" +
       from[1] + "," + from[0] + ";" + to[1] + "," + to[0] + "?overview=full&geometries=geojson";
+    let res = { pts: [], dur: null, at: now };
     try {
       const r = await fetch(url);
       const j = await r.json();
-      const pts = (j.routes && j.routes[0]) ? j.routes[0].geometry.coordinates.map(function (c) { return [c[1], c[0]]; }) : [];
-      routeCache = { key: key, pts: pts, at: now };
-      return pts;
-    } catch (e) {
-      return [];
+      const rt = j.routes && j.routes[0];
+      if (rt) {
+        res = {
+          pts: rt.geometry.coordinates.map(function (p) { return [p[1], p[0]]; }),
+          dur: rt.duration,
+          at: now
+        };
+      }
+    } catch (e) {}
+    routeCache[key] = res;
+    return res;
+  }
+
+  // ນັບຖອຍຫຼັງເວລາທີ່ເຫຼືອ
+  let etaSecs = null;   // ວິນາທີທີ່ຄຳນວນໄດ້ຄັ້ງລ່າສຸດ
+  let etaAt = 0;        // ເວລາທີ່ຄຳນວນ (ms)
+  let etaPhase = "";
+  function renderEta() {
+    if (etaSecs === null) {
+      $("eta").textContent = "ກຳລັງລໍຖ້າຂໍ້ມູນໄຣເດີ";
+      $("etaPhase").textContent = "";
+      return;
     }
+    const left = Math.max(0, Math.round(etaSecs - (Date.now() - etaAt) / 1000));
+    $("eta").textContent = left <= 0 ? "ໃກ້ຮອດແລ້ວ"
+      : Math.floor(left / 60) + " ນາທີ " + String(left % 60).padStart(2, "0") + " ວິນາທີ";
+    $("etaPhase").textContent = etaPhase;
+  }
+  setInterval(renderEta, 1000);
+
+  async function updateEta(o, me) {
+    if (!o.pickLat || !o.pickLng || !o.dropLat || !o.dropLng) { etaSecs = null; renderEta(); return; }
+    const pick = [o.pickLat, o.pickLng], drop = [o.dropLat, o.dropLng];
+    let secs = null;
+    if (o.status === "picked_up") {
+      // ຮັບສິນຄ້າແລ້ວ = ເຫຼືອແຕ່ເວລາໄປຈຸດສົ່ງ
+      const r = await fetchRoute(me, drop);
+      if (r.dur !== null) { secs = r.dur; etaPhase = "ກຳລັງນຳສົ່ງຫາທ່ານ"; }
+    } else {
+      // ຍັງບໍ່ຮັບ = ເວລາໄປຈຸດຮັບ + ເວລາຈາກຈຸດຮັບໄປຫາທ່ານ
+      const a = await fetchRoute(me, pick);
+      const b = await fetchRoute(pick, drop);
+      if (a.dur !== null && b.dur !== null) { secs = a.dur + b.dur; etaPhase = "ໄປຮັບສິນຄ້າ ແລ້ວນຳສົ່ງຫາທ່ານ"; }
+    }
+    etaSecs = secs;
+    etaAt = Date.now();
+    renderEta();
   }
 
   async function drawMap(o, rider) {
@@ -147,16 +201,14 @@
     if (o.pickLat && o.pickLng) { pickMarker.setLatLng([o.pickLat, o.pickLng]).addTo(map); pts.push([o.pickLat, o.pickLng]); }
     if (o.dropLat && o.dropLng) { dropMarker.setLatLng([o.dropLat, o.dropLng]).addTo(map); pts.push([o.dropLat, o.dropLng]); }
 
-    // ແສດງໄຣເດີ ຖ້າອັບເດດພາຍໃນ 3 ນາທີລ່າສຸດ
-    // ສະແດງຕຳແໜ່ງໄຣເດີ ເມື່ອໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວເທົ່ານັ້ນ
+    // ສະແດງຕຳແໜ່ງໄຣເດີ ເມື່ອໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ ແລະ ອັບເດດພາຍໃນ 3 ນາທີລ່າສຸດ
     const fresh = o.paymentStatus === 'confirmed' && rider && rider.lat && rider.locAt && (Date.now() - new Date(rider.locAt).getTime()) < 3 * 60 * 1000;
     if (fresh) {
       const me = [rider.lat, rider.lng];
       pts.push(me);
       // ຍັງບໍ່ຮັບສິນຄ້າ = ໄປຈຸດຮັບ, ຮັບແລ້ວ = ໄປຈຸດສົ່ງ
       const toward = (o.status === "picked_up") ? [o.dropLat, o.dropLng] : [o.pickLat, o.pickLng];
-      const key = (o.status === "picked_up" ? "drop" : "pick") + ":" + toward.join(",");
-      const route = (toward[0] && toward[1]) ? await loadRoute(me, toward, key) : [];
+      const route = (toward[0] && toward[1]) ? (await fetchRoute(me, toward)).pts : [];
       const snapped = route.length > 1 ? snapToRoute(me, route) : null;
 
       if (!map.hasLayer(riderMarker)) riderMarker.addTo(map);
@@ -169,6 +221,10 @@
       } else {
         riderMarker.setLatLng(me);
       }
+      if (o.status !== "delivered") updateEta(o, me);
+    } else {
+      etaSecs = null;
+      renderEta();
     }
     if (!fitted && pts.length) { map.fitBounds(pts, { padding: [30, 30] }); fitted = true; }
   }
@@ -187,22 +243,28 @@
       $("netMsg").textContent = "";
 
       const rider = o.rider;
+      // ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ = ເຊື່ອງ QR ແລະ ສະແດງຂໍ້ຄວາມ + ແຜນທີ່ໃຫຍ່
+      const isConfirmed = o.paymentStatus === "confirmed" && o.status !== "delivered";
       if (rider) {
         $("riderCard").classList.remove("hidden");
         $("rName").textContent = rider.riderName;
         $("rPlate").textContent = rider.plate || "-";
         $("rPhone").textContent = rider.phone || "-";
         $("rPhone").href = rider.phone ? "tel:" + rider.phone.replace(/\s/g, "") : "#";
-        const showPay = o.status !== "delivered" && rider.qrImageUrl;
+        const showPay = !isConfirmed && o.status !== "delivered" && rider.qrImageUrl;
         $("payBox").classList.toggle("hidden", !showPay);
         if (showPay) $("rQr").src = rider.qrImageUrl;
         // ປຸ່ມ "ຂ້ອຍໂອນແລ້ວ" ແລະ ສະຖານະການຢືນຢັນ
         const canClaim = o.serviceType !== "buy" && o.status !== "delivered" && o.paymentStatus === "unpaid";
         $("btnPaid").classList.toggle("hidden", !canClaim);
-        const noteTxt = o.paymentStatus === "claimed" ? "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນການຮັບເງິນ"
-          : (o.paymentStatus === "confirmed" ? "ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ" : "");
+        const noteTxt = o.paymentStatus === "claimed" ? "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນການຮັບເງິນ" : "";
         $("payNote").textContent = noteTxt;
       }
+      const showConfirm = isConfirmed && !!rider;
+      $("confirmBox").classList.toggle("hidden", !showConfirm);
+      $("cfmAmt").textContent = "ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ ຈຳນວນ: " + Number(o.fee || 0).toLocaleString("en-US") + " LAK";
+      $("map").classList.toggle("big", showConfirm);
+      map.invalidateSize();
       drawMap(o, rider);
     } catch (e) {
       $("netMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້ ກຳລັງລອງໃໝ່...";
