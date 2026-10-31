@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LLUX-e ຕິດຕາມອໍເດີ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#f5f6f8; --card:#ffffff; --text:#1d2330; --muted:#6b7280; --ok:#16a34a; --warn:#d97706; --btn:#2563eb; --line:#e5e7eb; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#0f1218; --card:#1a1f2a; --text:#e8ebf1; --muted:#9aa3b2; --line:#2a3140; }
+  }
+  :root[data-theme="dark"] { --bg:#0f1218; --card:#1a1f2a; --text:#e8ebf1; --muted:#9aa3b2; --line:#2a3140; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:8px 0 12px; }
+  h2 { font-size:16px; margin:0 0 6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .muted { color:var(--muted); font-size:14px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:4px 0; font-size:15px; }
+  .status { font-size:17px; font-weight:600; color:var(--btn); }
+  #map { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:12px; }
+  img.qr { display:block; width:220px; max-width:100%; margin:8px auto; border-radius:10px; background:#fff; }
+  a { color:var(--btn); }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ຕິດຕາມອໍເດີ <span id="oid" class="muted"></span></h1>
+
+  <div class="card">
+    <div id="statusTxt" class="status">ກຳລັງໂຫຼດ...</div>
+    <div class="row"><span class="muted">ຄ່າສົ່ງ</span><span id="fee">-</span></div>
+    <div class="row"><span class="muted">ໄລຍະທາງ</span><span id="km">-</span></div>
+    <div id="netMsg" class="muted"></div>
+  </div>
+
+  <div id="riderCard" class="card hidden">
+    <h2>ໄຣເດີຜູ້ຮັບງານ</h2>
+    <div class="row"><span class="muted">ຊື່</span><span id="rName">-</span></div>
+    <div class="row"><span class="muted">ທະບຽນລົດ</span><span id="rPlate">-</span></div>
+    <div class="row"><span class="muted">ເບີໂທ</span><span><a id="rPhone" href="#">-</a></span></div>
+    <div id="payBox" class="hidden">
+      <h2 style="margin-top:12px;">ສະແກນ QR ເພື່ອຈ່າຍຄ່າສົ່ງ</h2>
+      <img id="rQr" class="qr" alt="QR ໄຣເດີ">
+    </div>
+  </div>
+
+  <div id="map"></div>
+  <p class="muted">ຕຳແໜ່ງໄຣເດີອັບເດດທຸກ 10 ວິນາທີ ເມື່ອໄຣເດີເປີດແອັບຢູ່</p>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const $ = (id) => document.getElementById(id);
+  const orderId = new URLSearchParams(location.search).get("id") || "";
+  const STATUS_TXT = {
+    pending: "ກຳລັງລໍຖ້າໄຣເດີຮັບງານ",
+    accepted: "ໄຣເດີຮັບງານແລ້ວ ກຳລັງໄປຮັບສິນຄ້າ",
+    ready: "ໄຣເດີຮັບງານແລ້ວ ລໍຖ້າຮັບສິນຄ້າ",
+    picked_up: "ກຳລັງນຳສົ່ງຫາທ່ານ",
+    delivered: "ສົ່ງສຳເລັດແລ້ວ"
+  };
+  const money = (n) => Number(n || 0).toLocaleString("en-US") + " ກີບ";
+
+  const map = L.map("map").setView([17.9757, 102.6331], 13); // ວຽງຈັນ
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "&copy; OpenStreetMap"
+  }).addTo(map);
+  const pickMarker = L.circleMarker([0, 0], { radius: 8, color: "#16a34a", fillOpacity: 1 });
+  const dropMarker = L.circleMarker([0, 0], { radius: 8, color: "#dc2626", fillOpacity: 1 });
+  const riderMarker = L.circleMarker([0, 0], { radius: 10, color: "#2563eb", fillOpacity: 1 });
+  let fitted = false;
+
+  function drawMap(o, rider) {
+    const pts = [];
+    if (o.pickLat && o.pickLng) { pickMarker.setLatLng([o.pickLat, o.pickLng]).addTo(map); pts.push([o.pickLat, o.pickLng]); }
+    if (o.dropLat && o.dropLng) { dropMarker.setLatLng([o.dropLat, o.dropLng]).addTo(map); pts.push([o.dropLat, o.dropLng]); }
+    // ແສດງຕຳແໜ່ງໄຣເດີ ຖ້າອັບເດດພາຍໃນ 3 ນາທີລ່າສຸດ
+    const fresh = rider && rider.lat && rider.locAt && (Date.now() - new Date(rider.locAt).getTime()) < 3 * 60 * 1000;
+    if (fresh) { riderMarker.setLatLng([rider.lat, rider.lng]).addTo(map); pts.push([rider.lat, rider.lng]); }
+    if (!fitted && pts.length) { map.fitBounds(pts, { padding: [30, 30] }); fitted = true; }
+  }
+
+  async function refresh() {
+    if (!orderId) { $("statusTxt").textContent = "ບໍ່ພົບເລກອໍເດີ"; return; }
+    try {
+      const r = await fetch(API + "?type=orderstatus&orderId=" + encodeURIComponent(orderId), { cache: "no-store" });
+      const list = await r.json();
+      const o = Array.isArray(list) ? list[0] : null;
+      if (!o) { $("statusTxt").textContent = "ບໍ່ພົບອໍເດີນີ້"; return; }
+      $("oid").textContent = orderId;
+      $("statusTxt").textContent = STATUS_TXT[o.status] || o.status;
+      $("fee").textContent = money(o.fee);
+      $("km").textContent = (o.km || 0) + " ກມ";
+      $("netMsg").textContent = "";
+
+      const rider = o.rider;
+      if (rider) {
+        $("riderCard").classList.remove("hidden");
+        $("rName").textContent = rider.riderName;
+        $("rPlate").textContent = rider.plate || "-";
+        $("rPhone").textContent = rider.phone || "-";
+        $("rPhone").href = rider.phone ? "tel:" + rider.phone.replace(/\s/g, "") : "#";
+        const showPay = o.status !== "delivered" && rider.qrImageUrl;
+        $("payBox").classList.toggle("hidden", !showPay);
+        if (showPay) $("rQr").src = rider.qrImageUrl;
+      }
+      drawMap(o, rider);
+    } catch (e) {
+      $("netMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້ ກຳລັງລອງໃໝ່...";
+    }
+  }
+
+  refresh();
+  setInterval(refresh, 10 * 1000);
+</script>
+</body>
+</html>

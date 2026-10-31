@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLUX-e - ສັ່ງສົ່ງ</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    body { font-family: sans-serif; background: #f5f5f5; margin: 0; padding: 16px; }
+    h1 { font-size: 24px; margin: 0 0 4px; }
+    .sub { color: #666; margin: 0; }
+    .back { font-size: 14px; color: #2563eb; text-decoration: none; }
+    #map { height: 340px; border-radius: 12px; margin-top: 12px; border: 1px solid #ccc; }
+    .box { background: #fff; border-radius: 12px; padding: 16px; margin-top: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .box p { margin: 6px 0; font-size: 16px; }
+    label { display: block; font-size: 15px; margin-top: 8px; }
+    input, select { display: block; width: 100%; box-sizing: border-box; padding: 10px; font-size: 16px; margin-top: 4px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
+    .check { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 15px; }
+    .check input { width: auto; margin: 0; }
+    button { margin-top: 10px; padding: 10px 16px; font-size: 15px; border: none; border-radius: 8px; background: #333; color: #fff; }
+    button:disabled { background: #aaa; }
+    .shop-btn { display: block; width: 100%; text-align: left; background: #fff; color: #1d2330; border: 1px solid #ccc; margin-top: 8px; }
+    .shop-btn.on { border: 2px solid #2563eb; }
+    .shop-btn small { display: block; color: #666; font-size: 13px; }
+    #msg { font-size: 15px; color: #333; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <a class="back" href="services.html">← ເລືອກບໍລິການ</a>
+  <h1 id="title">ສັ່ງສົ່ງເຄື່ອງ</h1>
+  <p class="sub" id="hint">ແຕະແຜນທີ່ເພື່ອປັກຈຸດຮັບເຄື່ອງ</p>
+  <div id="map"></div>
+
+  <div class="box">
+    <p>ໄລຍະທາງ: <b id="dist">-</b></p>
+    <p>ຄ່າສົ່ງ: <b id="fee">-</b></p>
+    <button id="reset">ເລີ່ມໃໝ່</button>
+  </div>
+
+  <!-- ສັ່ງຊື້ ແລະ ສົ່ງ: ເລືອກຮ້ານ -->
+  <div class="box hidden" id="shopBox">
+    <label>ເລືອກຮ້ານ</label>
+    <div id="shopList"><p class="sub">ກຳລັງໂຫຼດຮ້ານ...</p></div>
+  </div>
+
+  <div class="box">
+    <label>ຊື່ຜູ້ສັ່ງ
+      <input id="name" type="text">
+    </label>
+    <label>ເບີໂທ
+      <input id="phone" type="tel">
+    </label>
+
+    <!-- ບໍລິການໄຣເດີ: ສາຂາປາຍທາງ -->
+    <div class="hidden" id="branchBox">
+      <label>ສາຂາປາຍທາງ (ບໍລິສັດຂົນສົ່ງ)
+        <input id="branch" type="text">
+      </label>
+    </div>
+
+    <label>ປະເພດສິນຄ້າ
+      <select id="itemDesc">
+        <option value="">ເລືອກປະເພດສິນຄ້າ</option>
+        <option value="ເອກະສານ">ເອກະສານ</option>
+        <option value="ອາຫານ">ອາຫານ</option>
+        <option value="ເສື້ອຜ້າ">ເສື້ອຜ້າ</option>
+        <option value="ເຄື່ອງໃຊ້ໄຟຟ້າ">ເຄື່ອງໃຊ້ໄຟຟ້າ</option>
+        <option value="ເຄື່ອງໃຊ້ຄົວເຮືອນຕ່າງໆ">ເຄື່ອງໃຊ້ຄົວເຮືອນຕ່າງໆ</option>
+        <option value="ເຄື່ອງສຳອາງ">ເຄື່ອງສຳອາງ</option>
+        <option value="ອື່ນໆ">ອື່ນໆ</option>
+      </select>
+    </label>
+    <label>ນ້ຳໜັກໂດຍປະມານ (ກກ) ຖ້າຮູ້
+      <input id="weight" type="number" min="0" step="0.1">
+    </label>
+    <label>ຂະໜາດສິນຄ້າ
+      <select id="sizeType">
+        <option value="small">ຂະໜາດນ້ອຍ (ມໍເຕີໄຊ)</option>
+        <option value="large">ຂະໜາດໃຫຍ່ (ລົດກະບະ)</option>
+      </select>
+    </label>
+
+    <!-- ບໍລິການໄຣເດີ: ເກັບເງິນປາຍທາງ -->
+    <div class="hidden" id="codBox">
+      <label class="check">
+        <input id="codOn" type="checkbox"> ມີເກັບເງິນປາຍທາງ (COD)
+      </label>
+      <div class="hidden" id="codAmountBox">
+        <label>ຍອດ COD (ກີບ) ຕາມທີ່ສາຂາແຈ້ງ
+          <input id="codAmount" type="number" min="0" step="1000">
+        </label>
+      </div>
+    </div>
+
+    <button id="submit" disabled>ຢືນຢັນການສັ່ງ</button>
+    <p id="msg"></p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec';
+
+    // ຮັບຄ່າບໍລິການຈາກ services.html: buy ຫຼື rider
+    const service = new URLSearchParams(location.search).get('service');
+    if (service !== 'buy' && service !== 'rider') {
+      location.replace('services.html');
+    }
+    const IS_BUY = service === 'buy';
+
+    const map = L.map('map').setView([17.9757, 102.6331], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap'
+    }).addTo(map);
+
+    const $ = id => document.getElementById(id);
+    const hint = $('hint');
+    const distEl = $('dist');
+    const feeEl = $('fee');
+    const nameEl = $('name');
+    const phoneEl = $('phone');
+    const branchEl = $('branch');
+    const itemDescEl = $('itemDesc');
+    const weightEl = $('weight');
+    const sizeEl = $('sizeType');
+    const codOnEl = $('codOn');
+    const codAmountEl = $('codAmount');
+    const submitBtn = $('submit');
+    const msg = $('msg');
+
+    let pickup = null, dropoff = null;
+    let pickupMarker = null, dropMarker = null, line = null;
+    let currentKm = null, currentFee = null;
+    let selectedShop = null;
+
+    // 7 ກມ ທຳອິດ 3,000 ກີບ/ກມ, ເກີນ 7 ຫາ 14 ກມ 2,000 ກີບ/ກມ
+    function calcFee(km) {
+      if (km > 14) return null;
+      const first = Math.min(km, 7) * 3000;
+      const second = km > 7 ? (Math.min(km, 14) - 7) * 2000 : 0;
+      return Math.round((first + second) / 100) * 100;
+    }
+
+    // ຕັ້ງຄ່າ UI ຕາມບໍລິການ
+    $('title').textContent = IS_BUY ? 'ສັ່ງຊື້ ແລະ ສົ່ງ' : 'ບໍລິການໄຣເດີ';
+    if (IS_BUY) {
+      $('shopBox').classList.remove('hidden');
+      hint.textContent = 'ເລືອກຮ້ານກ່ອນ ແລ້ວແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ';
+    } else {
+      $('branchBox').classList.remove('hidden');
+      $('codBox').classList.remove('hidden');
+    }
+
+    function clearMapLayers() {
+      if (pickupMarker) map.removeLayer(pickupMarker);
+      if (dropMarker) map.removeLayer(dropMarker);
+      if (line) map.removeLayer(line);
+      pickupMarker = dropMarker = line = null;
+    }
+
+    function updateSubmit() {
+      const codOk = !codOnEl.checked || Number(codAmountEl.value) > 0;
+      const shopOk = !IS_BUY || selectedShop !== null;
+      const branchOk = IS_BUY || branchEl.value.trim();
+      submitBtn.disabled = !(
+        pickup && dropoff && currentFee !== null &&
+        nameEl.value.trim() && phoneEl.value.trim() && itemDescEl.value &&
+        codOk && shopOk && branchOk
+      );
+    }
+
+    function drawRoute() {
+      clearMapLayers();
+      if (pickup) pickupMarker = L.marker(pickup).addTo(map).bindPopup(IS_BUY ? 'ຮ້ານ' : 'ຈຸດຮັບເຄື່ອງ');
+      if (dropoff) dropMarker = L.marker(dropoff).addTo(map).bindPopup('ຈຸດສົ່ງ');
+      if (pickup && dropoff) {
+        line = L.polyline([pickup, dropoff], { color: '#333', dashArray: '6 6' }).addTo(map);
+        currentKm = pickup.distanceTo(dropoff) / 1000;
+        currentFee = calcFee(currentKm);
+        distEl.textContent = currentKm.toFixed(2) + ' ກມ';
+        feeEl.textContent = currentFee === null ? 'ເກີນ 14 ກມ' : currentFee.toLocaleString('en-US') + ' ກີບ';
+        hint.textContent = 'ກົດ "ເລີ່ມໃໝ່" ເພື່ອປັກຈຸດໃໝ່';
+      } else {
+        currentKm = null;
+        currentFee = null;
+        distEl.textContent = '-';
+        feeEl.textContent = '-';
+      }
+      updateSubmit();
+    }
+
+    function resetAll() {
+      pickup = dropoff = null;
+      clearMapLayers();
+      currentKm = currentFee = null;
+      distEl.textContent = '-';
+      feeEl.textContent = '-';
+      if (IS_BUY) {
+        hint.textContent = selectedShop
+          ? 'ແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ'
+          : 'ເລືອກຮ້ານກ່ອນ ແລ້ວແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ';
+        if (selectedShop) {
+          pickup = L.latLng(selectedShop.lat, selectedShop.lng);
+          drawRoute();
+        }
+      } else {
+        hint.textContent = 'ແຕະແຜນທີ່ເພື່ອປັກຈຸດຮັບເຄື່ອງ';
+      }
+      updateSubmit();
+    }
+
+    // ແຕະແຜນທີ່
+    map.on('click', function (e) {
+      if (IS_BUY) {
+        if (!selectedShop) {
+          hint.textContent = 'ເລືອກຮ້ານກ່ອນ';
+          return;
+        }
+        dropoff = e.latlng;
+      } else {
+        if (!pickup) {
+          pickup = e.latlng;
+        } else if (!dropoff) {
+          dropoff = e.latlng;
+        }
+      }
+      drawRoute();
+    });
+
+    // ໂຫຼດລາຍຊື່ຮ້ານ (ສັ່ງຊື້ ແລະ ສົ່ງ)
+    if (IS_BUY) {
+      fetch(SCRIPT_URL)
+        .then(r => r.json())
+        .then(shops => {
+          const list = $('shopList');
+          list.textContent = '';
+          if (!Array.isArray(shops) || shops.length === 0) {
+            list.innerHTML = '<p class="sub">ຍັງບໍ່ມີຮ້ານ</p>';
+            return;
+          }
+          shops.forEach(s => {
+            const lat = Number(s.lat), lng = Number(s.lng);
+            if (!lat || !lng) return;
+            const btn = document.createElement('button');
+            btn.className = 'shop-btn';
+            btn.type = 'button';
+            btn.textContent = s.shopName || s.name || 'ຮ້ານ';
+            const small = document.createElement('small');
+            small.textContent = s.address || '';
+            btn.appendChild(small);
+            btn.addEventListener('click', function () {
+              document.querySelectorAll('.shop-btn').forEach(b => b.classList.remove('on'));
+              btn.classList.add('on');
+              selectedShop = { name: btn.firstChild.textContent, lat: lat, lng: lng, address: s.address || '' };
+              map.setView([lat, lng], 15);
+              dropoff = null;
+              pickup = L.latLng(lat, lng);
+              hint.textContent = 'ແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ';
+              drawRoute();
+            });
+            list.appendChild(btn);
+          });
+        })
+        .catch(() => {
+          $('shopList').innerHTML = '<p class="sub">ໂຫຼດຮ້ານບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ</p>';
+        });
+    }
+
+    $('reset').addEventListener('click', resetAll);
+    [nameEl, phoneEl, branchEl, codAmountEl].forEach(el => el.addEventListener('input', updateSubmit));
+    itemDescEl.addEventListener('change', updateSubmit);
+    codOnEl.addEventListener('change', function () {
+      $('codAmountBox').classList.toggle('hidden', !codOnEl.checked);
+      if (!codOnEl.checked) codAmountEl.value = '';
+      updateSubmit();
+    });
+
+    submitBtn.addEventListener('click', function () {
+      const data = {
+        type: 'order',
+        serviceType: IS_BUY ? 'buy' : 'rider',
+        shopName: IS_BUY ? selectedShop.name : '',
+        customerName: nameEl.value.trim(),
+        phone: phoneEl.value.trim(),
+        branchName: IS_BUY ? '' : branchEl.value.trim(),
+        pickLat: pickup.lat,
+        pickLng: pickup.lng,
+        dropLat: dropoff.lat,
+        dropLng: dropoff.lng,
+        distanceKm: Number(currentKm.toFixed(2)),
+        fee: currentFee,
+        itemDesc: itemDescEl.value,
+        weightKg: weightEl.value ? Number(weightEl.value) : '',
+        sizeType: sizeEl.value === 'large' ? 'ໃຫຍ່ (ລົດກະບະ)' : 'ນ້ອຍ (ມໍເຕີໄຊ)',
+        codAmount: (!IS_BUY && codOnEl.checked) ? Number(codAmountEl.value) : 0
+      };
+
+      submitBtn.disabled = true;
+      msg.textContent = 'ກຳລັງສົ່ງ...';
+
+      fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(data)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          // ບໍລິການໄຣເດີ: ໄປໜ້າຕິດຕາມພ້ອມເລກອໍເດີ
+          if (res && res.ok && res.orderId) {
+            location.href = 'track.html?id=' + encodeURIComponent(res.orderId);
+            return;
+          }
+          msg.textContent = 'ສົ່ງຄຳສັ່ງແລ້ວ';
+          nameEl.value = '';
+          phoneEl.value = '';
+          branchEl.value = '';
+          itemDescEl.value = '';
+          weightEl.value = '';
+          sizeEl.value = 'small';
+          codOnEl.checked = false;
+          codAmountEl.value = '';
+          $('codAmountBox').classList.add('hidden');
+          resetAll();
+        })
+        .catch(function () {
+          msg.textContent = 'ສົ່ງບໍ່ສຳເລັດ ລອງໃໝ່ອີກຄັ້ງ';
+          updateSubmit();
+        });
+    });
+  </script>
+</body>
+</html>

@@ -153,7 +153,7 @@
     tickTimer = setInterval(render, 1000); // ອັບເດດນັບຖອຍຫຼັງ
     updateLocation();
     clearInterval(locTimer);
-    locTimer = setInterval(updateLocation, 15 * 60 * 1000); // ອັບເດດຕຳແໜ່ງທຸກ 15 ນາທີ
+    locTimer = setInterval(updateLocation, 12 * 1000); // ສົ່ງຕຳແໜ່ງທຸກ 12 ວິນາທີ
   }
 
   function logout() {
@@ -173,6 +173,8 @@
     $("locState").textContent = "ກຳລັງຫາຕຳແໜ່ງ...";
     navigator.geolocation.getCurrentPosition(function (p) {
       myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      // ສົ່ງຕຳແໜ່ງຂຶ້ນເຊີບເວີ ໃຫ້ລູກຄ້າທີ່ມີງານກັບໄຣເດີເຫັນແບບເຣຍລໄທມ໌
+      if (session) post({ type: "loc", riderName: session.riderName, pin: session.pin, lat: myPos.lat, lng: myPos.lng }).catch(function () {});
       const t = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
       $("locState").textContent = "ອັບເດດຕຳແໜ່ງແລ້ວ ເວລາ " + t;
       refresh();
