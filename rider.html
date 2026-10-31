@@ -8,27 +8,28 @@
 <title>LLUX ໄຣເດີ</title>
 <style>
   /* ໂທນສີ LLUX: ພື້ນຫຼັງເຂຽວອ່ອນ, ຕົວໜັງສືຂາວ, ປຸ່ມ/ເນັ້ນສີແດງ */
-  :root { --bg:#4cb36f; --card:#1e7048; --text:#ffffff; --muted:rgba(255,255,255,.85); --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; --btn:#d62828; --line:#2f8a5a; }
+  :root { --bg:#4cb36f; --card:#1e7048; --text:#ffffff; --muted:#ffffff; --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; --btn:#d62828; --line:#2f8a5a; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; font-size:17px; font-weight:500; text-shadow:0 0 1px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.35); }
   .wrap { max-width:560px; margin:0 auto; padding:16px; }
-  h1 { font-size:20px; margin:8px 0 12px; }
-  h2 { font-size:16px; margin:0 0 6px; }
+  h1 { font-size:25px; font-weight:800; margin:8px 0 12px; }
+  h2 { font-size:19px; font-weight:700; margin:0 0 6px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
   .card.alert { border-color:var(--warn); box-shadow:0 0 0 2px rgba(217,119,6,.25); }
-  .muted { color:var(--muted); font-size:14px; }
-  .row { display:flex; justify-content:space-between; gap:8px; padding:4px 0; font-size:15px; }
+  .muted { color:var(--muted); font-size:16px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:6px 0; font-size:18px; }
   .tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; background:var(--line); }
   .timer { font-weight:600; color:var(--warn); }
   input { width:100%; padding:12px; border:1px solid var(--line); border-radius:10px; font-size:16px; margin:6px 0 10px; background:var(--card); color:var(--text); }
-  button { width:100%; padding:14px; border:0; border-radius:12px; font-size:16px; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
-  button.secondary { background:#2f8a5a; width:auto; padding:8px 12px; margin:0; font-size:14px; }
+  button { width:100%; padding:14px; border:0; border-radius:12px; font-size:18px; font-weight:700; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
+  button.secondary { background:#2f8a5a; width:auto; padding:8px 12px; margin:0; font-size:16px; }
   button.green { background:var(--btn); }
   button:disabled { opacity:.5; cursor:default; }
   .tabs { display:flex; gap:8px; margin-bottom:12px; }
   .tabs button { margin:0; background:var(--line); color:var(--text); }
   .tabs button.on { background:var(--btn); color:#fff; }
-  a { color:#ffffff; font-weight:600; text-decoration:underline; text-underline-offset:3px; }
+  a { color:#ffffff; font-size:17px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
+  .small { font-size:17px; }
   .hidden { display:none !important; }
   .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 </style>
