@@ -67,8 +67,10 @@
       <div class="tabs" style="margin:0 0 8px;">
         <button id="btnNotify" class="secondary" style="width:auto;">ເປີດການແຈ້ງເຕືອນ</button>
         <button id="btnMute" class="secondary" style="width:auto;">ປິດສຽງ</button>
+        <button id="btnLoc" class="secondary" style="width:auto;">ອັບເດດຕຳແໜ່ງ</button>
       </div>
       <p id="notifyState" class="muted"></p>
+      <p id="locState" class="muted"></p>
     </div>
 
     <div class="tabs">
@@ -149,23 +151,44 @@
     pollTimer = setInterval(refresh, POLL_MS);
     clearInterval(tickTimer);
     tickTimer = setInterval(render, 1000); // ອັບເດດນັບຖອຍຫຼັງ
+    updateLocation();
+    clearInterval(locTimer);
+    locTimer = setInterval(updateLocation, 15 * 60 * 1000); // ອັບເດດຕຳແໜ່ງທຸກ 15 ນາທີ
   }
 
   function logout() {
     session = null; jobs = [];
     stopAlarm();
-    clearInterval(pollTimer); clearInterval(tickTimer);
+    clearInterval(pollTimer); clearInterval(tickTimer); clearInterval(locTimer);
     clearSession();
     $("riderView").classList.add("hidden");
     $("loginView").classList.remove("hidden");
     $("riderPin").value = "";
   }
 
+  // ===== ຕຳແໜ່ງຂອງໄຣເດີ (ໃຊ້ຈັດລຽງງານໃກ້ສຸດ, ບໍ່ສົ່ງໃຫ້ໄຣເດີຄົນອື່ນ) =====
+  let myPos = null, locTimer = null;
+  function updateLocation() {
+    if (!navigator.geolocation) { $("locState").textContent = "ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"; return; }
+    $("locState").textContent = "ກຳລັງຫາຕຳແໜ່ງ...";
+    navigator.geolocation.getCurrentPosition(function (p) {
+      myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      const t = new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" });
+      $("locState").textContent = "ອັບເດດຕຳແໜ່ງແລ້ວ ເວລາ " + t;
+      refresh();
+    }, function () {
+      $("locState").textContent = "ບໍ່ສາມາດເຂົ້າຖຶງຕຳແໜ່ງໄດ້ ກະລຸນາອະນຸຍາດການເຂົ້າຖຶງຕຳແໜ່ງ";
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  }
+  $("btnLoc").onclick = updateLocation;
+
   async function refresh() {
     if (!session) return;
     try {
       const type = tab === "avail" ? "orders" : "myorders";
-      const data = await getJson(API + "?type=" + type + "&" + authParams());
+      let url = API + "?type=" + type + "&" + authParams();
+      if (myPos) url += "&lat=" + myPos.lat + "&lng=" + myPos.lng;
+      const data = await getJson(url);
       if (data && data.error === "auth") { logout(); return; }
       jobs = Array.isArray(data) ? data : [];
       $("netMsg").textContent = "";
@@ -266,6 +289,7 @@
       const drop = (o.dropLat && o.dropLng) ? 'https://maps.google.com/?q=' + o.dropLat + ',' + o.dropLng : "";
       return '<div class="card' + (tab === "avail" ? " alert" : "") + '">' +
         '<div class="row"><span class="muted">ເລກອໍເດີ</span><span>' + esc(o.orderId) + '</span></div>' +
+        (tab === "avail" && o.fromMeKm != null ? '<div class="row"><span class="muted">ຫ່າງຈາກທ່ານ</span><span class="ok">' + esc(o.fromMeKm) + ' ກມ</span></div>' : '') +
         '<div class="row"><span class="muted">ຮ້ານ</span><span>' + esc(o.shopName) + '</span></div>' +
         (isBuy ? '<div class="row"><span class="muted">ສິນຄ້າ</span><span>' + esc(o.itemDesc) + '</span></div>' : '') +
         '<div class="row"><span class="muted">ຄ່າສົ່ງ</span><span>' + money(o.fee) + '</span></div>' +
