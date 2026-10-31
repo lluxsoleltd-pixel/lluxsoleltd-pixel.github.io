@@ -168,17 +168,51 @@
       );
     }
 
+    // ດຶງເສັ້ນທາງຕາມຖນນຈາກ OSRM (ຄືກັບໜ້າຕິດຕາມ)
+    async function fetchRoadRoute(a, b) {
+      try {
+        const url = 'https://router.project-osrm.org/route/v1/driving/' +
+          a.lng + ',' + a.lat + ';' + b.lng + ',' + b.lat + '?overview=full&geometries=geojson';
+        const r = await fetch(url);
+        const j = await r.json();
+        if (!j.routes || !j.routes[0]) return null;
+        return {
+          km: j.routes[0].distance / 1000,
+          coords: j.routes[0].geometry.coordinates.map(function (c) { return [c[1], c[0]]; })
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    let routeSeq = 0;
     function drawRoute() {
       clearMapLayers();
+      const seq = ++routeSeq;
       if (pickup) pickupMarker = L.marker(pickup).addTo(map).bindPopup(IS_BUY ? 'ຮ້ານ' : 'ຈຸດຮັບເຄື່ອງ');
       if (dropoff) dropMarker = L.marker(dropoff).addTo(map).bindPopup('ຈຸດສົ່ງ');
       if (pickup && dropoff) {
+        // ລໍຖ້າຄິດໄລ່ໄລຍະທາງຕາມຖນນ
         line = L.polyline([pickup, dropoff], { color: '#333', dashArray: '6 6' }).addTo(map);
-        currentKm = pickup.distanceTo(dropoff) / 1000;
-        currentFee = calcFee(currentKm);
-        distEl.textContent = currentKm.toFixed(2) + ' ກມ';
-        feeEl.textContent = currentFee === null ? 'ເກີນ 14 ກມ' : currentFee.toLocaleString('en-US') + ' ກີບ';
-        hint.textContent = 'ກົດ "ເລີ່ມໃໝ່" ເພື່ອປັກຈຸດໃໝ່';
+        currentKm = null;
+        currentFee = null;
+        distEl.textContent = 'ກຳລັງຄິດໄລ່ເສັ້ນທາງ...';
+        feeEl.textContent = '...';
+        updateSubmit();
+        fetchRoadRoute(pickup, dropoff).then(function (res) {
+          if (seq !== routeSeq) return; // ປັກຈຸດໃໝ່ແລ້ວ ຂ້າມຜົນເກົ່າ
+          const km = res ? res.km : pickup.distanceTo(dropoff) / 1000; // ສຳຮອງເປັນເສັ້ນຊື່
+          if (line) map.removeLayer(line);
+          line = res
+            ? L.polyline(res.coords, { color: '#2563eb', weight: 5, opacity: 0.7 }).addTo(map)
+            : L.polyline([pickup, dropoff], { color: '#333', dashArray: '6 6' }).addTo(map);
+          currentKm = Math.round(km * 100) / 100;
+          currentFee = calcFee(currentKm);
+          distEl.textContent = currentKm.toFixed(2) + ' ກມ' + (res ? '' : ' (ເສັ້ນຊື່)');
+          feeEl.textContent = currentFee === null ? 'ເກີນ 14 ກມ' : currentFee.toLocaleString('en-US') + ' ກີບ';
+          hint.textContent = 'ກົດ "ເລີ່ມໃໝ່" ເພື່ອປັກຈຸດໃໝ່';
+          updateSubmit();
+        });
       } else {
         currentKm = null;
         currentFee = null;
@@ -189,6 +223,7 @@
     }
 
     function resetAll() {
+      routeSeq++; // ຍົກເລີກການຄິດໄລ່ທີ່ຄ້າງຢູ່
       pickup = dropoff = null;
       clearMapLayers();
       currentKm = currentFee = null;
