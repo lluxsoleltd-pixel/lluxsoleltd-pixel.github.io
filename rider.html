@@ -35,6 +35,9 @@
   .small { font-size:19px; }
   .callBtn { display:inline-block; width:auto; margin:8px 8px 0 0; padding:12px 16px; border-radius:12px; background:#0369a1; color:#fff; font-size:18px; font-weight:700; text-decoration:none; text-shadow:none; }
   .phoneBtn { width:auto; margin:0; padding:6px 12px; font-size:18px; background:#0369a1; }
+  /* ໄລຍະຫ່າງຈາກໄຣເດີ: ກະພິບຕາມເສຽງເຕືອນ (body.pulse) */
+  .fromMe { display:inline-block; padding:2px 10px; border-radius:8px; font-weight:800; transition:background .15s ease, color .15s ease; }
+  body.pulse .fromMe { background:#ffffff; color:#d62828; }
   .hidden { display:none !important; }
   .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 </style>
@@ -327,7 +330,7 @@
       const drop = (o.dropLat && o.dropLng) ? 'https://maps.google.com/?q=' + o.dropLat + ',' + o.dropLng : "";
       return '<div class="card' + (tab === "avail" ? " alert" : "") + '">' +
         '<div class="row"><span class="muted">ເລກອໍເດີ</span><span>' + esc(o.orderId) + '</span></div>' +
-        (tab === "avail" && o.fromMeKm != null ? '<div class="row"><span class="muted">ຫ່າງຈາກທ່ານ</span><span class="ok">' + esc(o.fromMeKm) + ' ກມ</span></div>' : '') +
+        (tab === "avail" && o.fromMeKm != null ? '<div class="row"><span class="muted">ຫ່າງຈາກທ່ານ</span><span class="fromMe">' + esc(o.fromMeKm) + ' ກມ</span></div>' : '') +
         '<div class="row"><span class="muted">ຮ້ານ</span><span>' + esc(o.shopName) + '</span></div>' +
         (isBuy ? '<div class="row"><span class="muted">ສິນຄ້າ</span><span>' + esc(o.itemDesc) + '</span></div>' : '') +
         '<div class="row"><span class="muted">ຄ່າສົ່ງ</span><span>' + money(o.fee) + '</span></div>' +
