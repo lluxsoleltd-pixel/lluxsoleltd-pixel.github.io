@@ -212,9 +212,18 @@
     return m + ":" + s;
   }
 
+  // ປະຕິເສດງານ: ຊ່ອນງານນີ້ສະເພາະເຄື່ອງນີ້ ແລະ ປິດສຽງເຕືອນຂອງງານນັ້ນ (ບໍ່ກະທົບໄຣເດີຄົນອື່ນ)
+  function getSkips() { try { return JSON.parse(localStorage.getItem("llux_skip") || "{}"); } catch (e) { return {}; } }
+  function addSkip(id) { const s = getSkips(); s[id] = Date.now(); try { localStorage.setItem("llux_skip", JSON.stringify(s)); } catch (e) {} }
+  function isSkipped(id) { return !!getSkips()[id]; }
+  function visibleJobs() { return tab === "avail" ? jobs.filter(function (o) { return !isSkipped(o.orderId); }) : jobs; }
+
   function actionButtons(o) {
     if (tab === "avail") {
-      return '<button data-act="accept" data-row="' + o.row + '">ຮັບງານ</button>';
+      return '<div style="display:flex;gap:10px;">' +
+        '<button data-act="accept" data-row="' + o.row + '" style="flex:2;">ຮັບງານ</button>' +
+        '<button class="green" data-act="skip" data-id="' + esc(o.orderId) + '" style="flex:1;">ປະຕິເສດ</button>' +
+        '</div>';
     }
     // ງານບໍລິການໄຣເດີ (ບໍ່ມີຮ້ານແພັກ) ກົດຮັບສິນຄ້າໄດ້ທັນທີຫຼັງຮັບງານ
     const canPickup = o.status === "ready" || (o.status === "accepted" && o.serviceType !== "buy");
@@ -259,7 +268,7 @@
   }
   function stopAlarm() { clearInterval(beepTimer); beepTimer = null; document.body.classList.remove("pulse"); }
   function updateAlarm() {
-    const hasAvail = tab === "avail" && jobs.length > 0;
+    const hasAvail = visibleJobs().length > 0;
     if (hasAvail) startAlarm(); else stopAlarm();
   }
   $("btnMute").onclick = function () {
@@ -305,9 +314,10 @@
 
   function render() {
     const box = $("jobs");
-    $("emptyMsg").classList.toggle("hidden", jobs.length > 0);
+    const list = visibleJobs();
+    $("emptyMsg").classList.toggle("hidden", list.length > 0);
     updateAlarm();
-    box.innerHTML = jobs.map(function (o) {
+    box.innerHTML = list.map(function (o) {
       const isBuy = o.serviceType === "buy";
       const timer = (tab === "mine" && o.status === "accepted" && isBuy)
         ? '<div class="row"><span class="muted">ຮ້ານຕ້ອງແພັກໃນ</span><span class="timer">' + esc(remainText(o.riderAcceptedAt)) + '</span></div>'
@@ -382,6 +392,7 @@
   $("jobs").addEventListener("click", function (ev) {
     const b = ev.target.closest("button[data-act]");
     if (!b || b.disabled) return;
+    if (b.dataset.act === "skip") { addSkip(b.dataset.id); render(); return; }
     b.disabled = true;
     doAction(b.dataset.act, Number(b.dataset.row)).finally(function () { b.disabled = false; });
   });
