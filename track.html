@@ -55,6 +55,7 @@
     <h2 style="margin-top:12px;">ໄລຍະເວລາທີ່ທ່ານຈະໄດ້ຮັບເຄື່ອງ:</h2>
     <div id="eta" class="eta">-</div>
     <div id="etaPhase" class="muted"></div>
+    <div id="etaKmTxt" class="muted" style="margin-top:4px;"></div>
   </div>
 
   <div id="map"></div>
@@ -140,7 +141,7 @@
     if (c && now - c.at < 60 * 1000) return c;
     const url = "https://router.project-osrm.org/route/v1/driving/" +
       from[1] + "," + from[0] + ";" + to[1] + "," + to[0] + "?overview=full&geometries=geojson";
-    let res = { pts: [], dur: null, at: now };
+    let res = { pts: [], dur: null, dist: null, at: now };
     try {
       const r = await fetch(url);
       const j = await r.json();
@@ -149,6 +150,7 @@
         res = {
           pts: rt.geometry.coordinates.map(function (p) { return [p[1], p[0]]; }),
           dur: rt.duration,
+          dist: rt.distance,
           at: now
         };
       }
@@ -161,34 +163,40 @@
   let etaSecs = null;   // ວິນາທີທີ່ຄຳນວນໄດ້ຄັ້ງລ່າສຸດ
   let etaAt = 0;        // ເວລາທີ່ຄຳນວນ (ms)
   let etaPhase = "";
+  let etaKm = null;     // ໄລຍະທາງທີ່ເຫຼືອ (ກມ) ຕອນຄຳນວນຄັ້ງລ່າສຸດ
   function renderEta() {
     if (etaSecs === null) {
       $("eta").textContent = "ກຳລັງລໍຖ້າຂໍ້ມູນໄຣເດີ";
       $("etaPhase").textContent = "";
+      $("etaKmTxt").textContent = "";
       return;
     }
     const left = Math.max(0, Math.round(etaSecs - (Date.now() - etaAt) / 1000));
     $("eta").textContent = left <= 0 ? "ໃກ້ຮອດແລ້ວ"
       : Math.floor(left / 60) + " ນາທີ " + String(left % 60).padStart(2, "0") + " ວິນາທີ";
     $("etaPhase").textContent = etaPhase;
+    // ໄລຍະທາງທີ່ເຫຼືອ ລົດລົງຕາມສັດສ່ວນຂອງເວລາທີ່ເຫຼືອ
+    const kmLeft = (etaKm !== null && etaSecs > 0) ? etaKm * (left / etaSecs) : null;
+    $("etaKmTxt").textContent = kmLeft === null ? "" : "ໄລຍະທາງທີ່ເຫຼືອ: " + kmLeft.toFixed(1) + " ກມ";
   }
   setInterval(renderEta, 1000);
 
   async function updateEta(o, me) {
     if (!o.pickLat || !o.pickLng || !o.dropLat || !o.dropLng) { etaSecs = null; renderEta(); return; }
     const pick = [o.pickLat, o.pickLng], drop = [o.dropLat, o.dropLng];
-    let secs = null;
+    let secs = null, km = null;
     if (o.status === "picked_up") {
       // ຮັບສິນຄ້າແລ້ວ = ເຫຼືອແຕ່ເວລາໄປຈຸດສົ່ງ
       const r = await fetchRoute(me, drop);
-      if (r.dur !== null) { secs = r.dur; etaPhase = "ກຳລັງນຳສົ່ງຫາທ່ານ"; }
+      if (r.dur !== null) { secs = r.dur; km = r.dist; etaPhase = "ກຳລັງນຳສົ່ງຫາທ່ານ"; }
     } else {
       // ຍັງບໍ່ຮັບ = ເວລາໄປຈຸດຮັບ + ເວລາຈາກຈຸດຮັບໄປຫາທ່ານ
       const a = await fetchRoute(me, pick);
       const b = await fetchRoute(pick, drop);
-      if (a.dur !== null && b.dur !== null) { secs = a.dur + b.dur; etaPhase = "ໄປຮັບສິນຄ້າ ແລ້ວນຳສົ່ງຫາທ່ານ"; }
+      if (a.dur !== null && b.dur !== null) { secs = a.dur + b.dur; km = a.dist + b.dist; etaPhase = "ໄປຮັບສິນຄ້າ ແລ້ວນຳສົ່ງຫາທ່ານ"; }
     }
     etaSecs = secs;
+    etaKm = (km === null) ? null : km / 1000;
     etaAt = Date.now();
     renderEta();
   }
