@@ -72,16 +72,93 @@
   }).addTo(map);
   const pickMarker = L.circleMarker([0, 0], { radius: 8, color: "#16a34a", fillOpacity: 1 });
   const dropMarker = L.circleMarker([0, 0], { radius: 8, color: "#dc2626", fillOpacity: 1 });
-  const riderMarker = L.circleMarker([0, 0], { radius: 10, color: "#2563eb", fillOpacity: 1 });
   let fitted = false;
 
-  function drawMap(o, rider) {
+  // ໄອຄອນມໍເຕີໄຊໄຟຟ້າ (ຫັນຕາມທິດທາງໄດ້). ຖ້າຮູບຫັນຜິດທິດ ປັບ ICON_OFFSET
+  const ICON_OFFSET = 0;
+  function makeRiderIcon() {
+    return L.divIcon({
+      className: "",
+      html: '<div style="font-size:28px;line-height:28px;text-align:center;transition:transform .8s linear;">🛵</div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+  }
+  const riderMarker = L.marker([0, 0], { icon: makeRiderIcon() });
+  const routeLine = L.polyline([], { color: "#2563eb", weight: 5, opacity: 0.6 }).addTo(map);
+  let routeCache = { key: "", pts: [], at: 0 };
+
+  // ທິດທາງ (ອົງສາ) ຈາກຈຸດ a ໄປຈຸດ b
+  function bearing(a, b) {
+    const toR = Math.PI / 180;
+    const y = Math.sin((b[1] - a[1]) * toR) * Math.cos(b[0] * toR);
+    const x = Math.cos(a[0] * toR) * Math.sin(b[0] * toR) - Math.sin(a[0] * toR) * Math.cos(b[0] * toR) * Math.cos((b[1] - a[1]) * toR);
+    return (Math.atan2(y, x) / toR + 360) % 360;
+  }
+
+  // ຈຸດທີ່ໃກ້ທີ່ສຸດບນເສັ້ນທາງ
+  function snapToRoute(p, pts) {
+    let best = null;
+    const k = Math.cos(p[0] * Math.PI / 180);
+    for (let i = 0; i < pts.length - 1; i++) {
+      const a = pts[i], b = pts[i + 1];
+      const ax = a[1] * k, ay = a[0], bx = b[1] * k, by = b[0];
+      const px = p[1] * k, py = p[0];
+      const dx = bx - ax, dy = by - ay;
+      const len2 = dx * dx + dy * dy;
+      let t = len2 ? ((px - ax) * dx + (py - ay) * dy) / len2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const qx = ax + dx * t, qy = ay + dy * t;
+      const d = Math.hypot(px - qx, py - qy);
+      if (!best || d < best.d) best = { d: d, q: [qy, qx / k], a: a, b: b };
+    }
+    return best;
+  }
+
+  // ດຶງເສັ້ນທາງຈາກ OSRM (ແຄດໄວ້ 60 ວິນາທີ)
+  async function loadRoute(from, to, key) {
+    const now = Date.now();
+    if (routeCache.key === key && now - routeCache.at < 60 * 1000) return routeCache.pts;
+    const url = "https://router.project-osrm.org/route/v1/driving/" +
+      from[1] + "," + from[0] + ";" + to[1] + "," + to[0] + "?overview=full&geometries=geojson";
+    try {
+      const r = await fetch(url);
+      const j = await r.json();
+      const pts = (j.routes && j.routes[0]) ? j.routes[0].geometry.coordinates.map(function (c) { return [c[1], c[0]]; }) : [];
+      routeCache = { key: key, pts: pts, at: now };
+      return pts;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  async function drawMap(o, rider) {
     const pts = [];
     if (o.pickLat && o.pickLng) { pickMarker.setLatLng([o.pickLat, o.pickLng]).addTo(map); pts.push([o.pickLat, o.pickLng]); }
     if (o.dropLat && o.dropLng) { dropMarker.setLatLng([o.dropLat, o.dropLng]).addTo(map); pts.push([o.dropLat, o.dropLng]); }
-    // ແສດງຕຳແໜ່ງໄຣເດີ ຖ້າອັບເດດພາຍໃນ 3 ນາທີລ່າສຸດ
+
+    // ແສດງໄຣເດີ ຖ້າອັບເດດພາຍໃນ 3 ນາທີລ່າສຸດ
     const fresh = rider && rider.lat && rider.locAt && (Date.now() - new Date(rider.locAt).getTime()) < 3 * 60 * 1000;
-    if (fresh) { riderMarker.setLatLng([rider.lat, rider.lng]).addTo(map); pts.push([rider.lat, rider.lng]); }
+    if (fresh) {
+      const me = [rider.lat, rider.lng];
+      pts.push(me);
+      // ຍັງບໍ່ຮັບສິນຄ້າ = ໄປຈຸດຮັບ, ຮັບແລ້ວ = ໄປຈຸດສົ່ງ
+      const toward = (o.status === "picked_up") ? [o.dropLat, o.dropLng] : [o.pickLat, o.pickLng];
+      const key = (o.status === "picked_up" ? "drop" : "pick") + ":" + toward.join(",");
+      const route = (toward[0] && toward[1]) ? await loadRoute(me, toward, key) : [];
+      const snapped = route.length > 1 ? snapToRoute(me, route) : null;
+
+      if (!map.hasLayer(riderMarker)) riderMarker.addTo(map);
+      if (snapped && snapped.d < 0.0015) {          // ບໍ່ໄກຈາກຖນນເກີນ ~160 ມ.
+        routeLine.setLatLngs(route);
+        riderMarker.setLatLng(snapped.q);
+        const deg = bearing(snapped.a, snapped.b) + ICON_OFFSET;
+        const el = riderMarker.getElement();
+        if (el) { const inner = el.querySelector("div"); if (inner) inner.style.transform = "rotate(" + deg + "deg)"; }
+      } else {
+        riderMarker.setLatLng(me);
+      }
+    }
     if (!fitted && pts.length) { map.fitBounds(pts, { padding: [30, 30] }); fitted = true; }
   }
 
