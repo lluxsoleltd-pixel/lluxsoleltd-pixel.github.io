@@ -213,13 +213,15 @@
     if (tab === "avail") {
       return '<button data-act="accept" data-row="' + o.row + '">ຮັບງານ</button>';
     }
+    // ງານບໍລິການໄຣເດີ (ບໍ່ມີຮ້ານແພັກ) ກົດຮັບສິນຄ້າໄດ້ທັນທີຫຼັງຮັບງານ
+    const canPickup = o.status === "ready" || (o.status === "accepted" && o.serviceType !== "buy");
     // ລູກຄ້າແຈ້ງໂອນແລ້ວ ໄຣເດີຕ້ອງກົດຢືນຢັນວ່າໄດ້ຮັບເງິນ
     if (o.serviceType !== "buy" && o.paymentStatus === "claimed" && o.status !== "delivered") {
       return '<p class="muted">ລູກຄ້າແຈ້ງໂອນແລ້ວ ກະລຸນາກວດເງິນ</p>' +
         '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບເງິນແລ້ວ</button>' +
-        (o.status === "ready" ? '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>' : '');
+        (canPickup ? '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>' : '');
     }
-    if (o.status === "ready") {
+    if (canPickup) {
       return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>';
     }
     if (o.status === "picked_up") {
@@ -289,10 +291,10 @@
     updateAlarm();
     box.innerHTML = jobs.map(function (o) {
       const isBuy = o.serviceType === "buy";
-      const timer = (tab === "mine" && o.status === "accepted")
+      const timer = (tab === "mine" && o.status === "accepted" && isBuy)
         ? '<div class="row"><span class="muted">ຮ້ານຕ້ອງແພັກໃນ</span><span class="timer">' + esc(remainText(o.riderAcceptedAt)) + '</span></div>'
         : "";
-      const stateTxt = o.status === "accepted" ? "ຮ້ານກຳລັງແພັກ" : (o.status === "ready" ? "ແພັກແລ້ວ ພ້ອມຮັບ" : (o.status === "picked_up" ? "ກຳລັງສົ່ງ" : ""));
+      const stateTxt = o.status === "accepted" ? (isBuy ? "ຮ້ານກຳລັງແພັກ" : "ກຳລັງໄປຮັບສິນຄ້າ") : (o.status === "ready" ? "ແພັກແລ້ວ ພ້ອມຮັບ" : (o.status === "picked_up" ? "ກຳລັງສົ່ງ" : ""));
       const pick = (o.pickLat && o.pickLng) ? 'https://maps.google.com/?q=' + o.pickLat + ',' + o.pickLng : "";
       const drop = (o.dropLat && o.dropLng) ? 'https://maps.google.com/?q=' + o.dropLat + ',' + o.dropLng : "";
       return '<div class="card' + (tab === "avail" ? " alert" : "") + '">' +
