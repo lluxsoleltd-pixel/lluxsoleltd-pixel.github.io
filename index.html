@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LLUX ຮ້ານ">
+<title>LLUX ຮ້ານຄ້າ</title>
+<style>
+  /* ສີຫຼັກຂອງໜ້າ */
+  :root { --bg:#f5f6f8; --card:#ffffff; --text:#1d2330; --muted:#6b7280; --ok:#16a34a; --warn:#d97706; --bad:#dc2626; --btn:#2563eb; --line:#e5e7eb; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg:#0f1218; --card:#1a1f2a; --text:#e8ebf1; --muted:#9aa3b2; --line:#2a3140; }
+  }
+  :root[data-theme="dark"] { --bg:#0f1218; --card:#1a1f2a; --text:#e8ebf1; --muted:#9aa3b2; --line:#2a3140; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:20px; margin:4px 0 12px; }
+  h2 { font-size:16px; margin:0 0 6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card.alert { border-color:var(--warn); box-shadow:0 0 0 2px rgba(217,119,6,.25); }
+  .muted { color:var(--muted); font-size:14px; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:4px 0; font-size:15px; }
+  .tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; background:var(--line); }
+  .ok { color:var(--ok); } .warn { color:var(--warn); } .bad { color:var(--bad); }
+  input, select { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:16px; margin-top:6px; }
+  button { width:100%; padding:13px; border:0; border-radius:12px; font-size:16px; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
+  button.secondary { background:#6b7280; }
+  button.danger { background:var(--bad); }
+  button.good { background:var(--ok); }
+  button:disabled { opacity:.5; cursor:default; }
+  .btns { display:flex; gap:8px; }
+  .btns button { margin-top:8px; }
+  .slip { display:inline-block; margin-top:6px; font-size:15px; }
+  .hidden { display:none !important; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .small { font-size:13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ໜ້າເຂົ້າສູ່ລະບົບຮ້ານ -->
+  <div id="loginView" class="card">
+    <h1>ເຂົ້າສູ່ລະບົບຮ້ານ</h1>
+    <label class="muted">ເລືອກຮ້ານ</label>
+    <select id="shopSelect"><option value="">ກຳລັງໂຫຼດ...</option></select>
+    <label class="muted">ລະຫັດ PIN ຂອງຮ້ານ</label>
+    <input id="pinInput" type="password" inputmode="numeric" placeholder="ປ້ອນ PIN">
+    <button id="btnLogin">ເຂົ້າສູ່ລະບົບ</button>
+    <p id="loginMsg" class="muted small"></p>
+  </div>
+
+  <!-- ໜ້າຫຼັກຂອງຮ້ານ -->
+  <div id="shopView" class="hidden">
+    <div class="card">
+      <div class="topbar">
+        <div>
+          <div class="muted small">ຮ້ານ</div>
+          <h2 id="shopTitle">-</h2>
+        </div>
+        <button id="btnLogout" class="secondary" style="width:auto;padding:8px 12px;margin:0;">ອອກ</button>
+      </div>
+      <div class="btns">
+        <button id="btnNotify" class="secondary">ເປີດການແຈ້ງເຕືອນ</button>
+        <button id="btnMute" class="secondary">ປິດສຽງ</button>
+      </div>
+      <p id="notifyState" class="muted small"></p>
+    </div>
+
+    <p id="emptyMsg" class="muted hidden">ຍັງບໍ່ມີອໍເດີໃໝ່</p>
+    <div id="orders"></div>
+    <p id="netMsg" class="muted small"></p>
+  </div>
+</div>
+
+<!-- SDK ແຈ້ງເຕືອນ OneSignal -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  // ການຕັ້ງຄ່າ
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const APP_ID = "ab31f26a-4291-45f3-838c-1ae71dfa2fb0";
+  const POLL_MS = 8000;          // ດຶງອໍເດີໃໝ່ທຸກ 8 ວິນາທີ
+  const RIDER_LIMIT_MS = 5 * 60 * 1000; // ຮ້ານຕ້ອງແພັກໃຫ້ໄຣເດີພາຍໃນ 5 ນາທີ
+
+  const $ = (id) => document.getElementById(id);
+
+  // ສະຖານະ ທີ່ແປເປັນພາສາລາວ
+  const STATUS_TXT = {
+    shop_pending: "ລໍຖ້າຮ້ານຮັບອໍເດີ",
+    awaiting_payment: "ລໍຖ້າລູກຄ້າຊຳລະເງິນ",
+    open_for_rider: "ຮ້ານຢືນຢັນການຊຳລະແລ້ວ ກຳລັງຫາໄຣເດີ",
+    accepted: "ໄຣເດີຮັບງານແລ້ວ ກະລຸນາແພັກສິນຄ້າ",
+    ready: "ແພັກແລ້ວ ລໍຖ້າໄຣເດີມາຮັບ",
+    picked_up: "ໄຣເດີຮັບສິນຄ້າແລ້ວ",
+    delivered: "ສົ່ງສຳເລັດ",
+    shop_rejected: "ຮ້ານປະຕິເສດແລ້ວ"
+  };
+  const ERR_TXT = {
+    auth: "PIN ບໍ່ຖືກຕ້ອງ",
+    state: "ສະຖານະປ່ຽນແລ້ວ ກະລຸນາລອງໃໝ່",
+    notyours: "ອໍເດີນີ້ບໍ່ແມ່ນຂອງຮ້ານນີ້",
+    row: "ບໍ່ພົບອໍເດີ"
+  };
+
+  // ສະຖານະໃນຫນ່ວຍຄວາມຈຳ
+  let session = null;      // { shopName, pin }
+  let orders = [];
+  let muted = false;
+  let audioCtx = null;
+  let beepTimer = null;
+  let pollTimer = null;
+  const seenNew = new Set(); // ອໍເດີໃໝ່ທີ່ເຄີຍແຈ້ງແລ້ວ
+
+  // ເຣັດ HTML ປ້ອງກັນ ຂໍ້ຄວາມທີ່ມາຈາກລູກຄ້າ
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+
+  // ເອີ້ນ API ດ້ວຍ GET
+  async function apiGet(params) {
+    const url = SCRIPT_URL + "?" + new URLSearchParams(params).toString();
+    const res = await fetch(url);
+    return res.json();
+  }
+  // ເອີ້ນ API ດ້ວຍ POST (text/plain ເພື່ອຫຼີກເລີ່ງ preflight)
+  async function apiPost(obj) {
+    const res = await fetch(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(obj)
+    });
+    return res.json();
+  }
+
+  // ສຽງເຕືອນ (ສ້າງດ້ວຍ Web Audio ບໍ່ຕ້ອງມີໄຟລ໌)
+  function ensureAudio() {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    } catch (e) { /* ບາງເບຣາວເຊີ */ }
+  }
+  function beepOnce() {
+    if (!audioCtx) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.frequency.value = 880;
+    gain.gain.value = 0.3;
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.4);
+  }
+  function startAlarm() {
+    if (muted || beepTimer) return;
+    ensureAudio();
+    beepOnce();
+    beepTimer = setInterval(beepOnce, 900);
+  }
+  function stopAlarm() {
+    clearInterval(beepTimer);
+    beepTimer = null;
+  }
+
+  // ອໍເດີທີ່ຮ້ານຕ້ອງດຳເນີນການ
+  function needsAction(o) {
+    if (o.status === "shop_pending") return true;
+    if (o.status === "awaiting_payment" && o.paymentStatus === "slip_uploaded") return true;
+    if (o.status === "accepted") return true;
+    return false;
+  }
+
+  // ແຈ້ງເຕືອນເມື່ອມີອໍເດີໃໝ່ (ໃຊ້ໄດ້ເມື່ອໜ້ານີ້ເປີດຢູ່)
+  function notifyNew(o) {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("ອໍເດີໃໝ່ " + o.orderId, { body: STATUS_TXT[o.status] || "" });
+    }
+  }
+
+  // ດຶງອໍເດີຂອງຮ້ານ
+  async function refresh() {
+    if (!session) return;
+    try {
+      const data = await apiGet({ type: "shoporders", shopName: session.shopName, pin: session.pin });
+      if (data && data.error === "auth") { logout(); $("loginMsg").textContent = ERR_TXT.auth; return; }
+      orders = Array.isArray(data) ? data : [];
+      $("netMsg").textContent = "";
+      // ກວດອໍເດີໃໝ່
+      let alarmNeeded = false;
+      orders.forEach(function (o) {
+        const key = o.row + ":" + o.status + ":" + o.paymentStatus;
+        if (needsAction(o)) alarmNeeded = true;
+        if (!seenNew.has(key) && needsAction(o)) {
+          seenNew.add(key);
+          notifyNew(o);
+        }
+      });
+      if (alarmNeeded) startAlarm(); else stopAlarm();
+      render();
+    } catch (e) {
+      $("netMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້ ກຳລັງລອງໃໝ່...";
+    }
+  }
+
+  // ສົ່ງຄຳສັ່ງຂອງຮ້ານ (accept/reject/confirm_payment/ready)
+  async function act(row, action) {
+    try {
+      const res = await apiPost({ type: "shop", shopName: session.shopName, pin: session.pin, row: row, action: action });
+      if (!res.ok) alert(ERR_TXT[res.reason] || "ເກີດຂໍ້ຜິດພາດ");
+    } catch (e) {
+      alert("ສົ່ງຄຳສັ່ງບໍ່ໄດ້ ກະລຸນາລອງໃໝ່");
+    }
+    stopAlarm();
+    refresh();
+  }
+
+  // ສະແດງຜົນ
+  function render() {
+    const box = $("orders");
+    $("emptyMsg").classList.toggle("hidden", orders.length > 0);
+    box.innerHTML = orders.map(orderCard).join("");
+  }
+
+  function orderCard(o) {
+    const alert = needsAction(o) ? " alert" : "";
+    let body = "";
+    body += '<div class="row"><span>ເລກອໍເດີ</span><span>' + esc(o.orderId) + '</span></div>';
+    body += '<div class="row"><span>ລູກຄ້າ</span><span>' + esc(o.customerName) + ' · <a href="tel:' + esc(o.phone) + '">' + esc(o.phone) + '</a></span></div>';
+    body += '<div class="row"><span>ລາຍການ</span><span>' + esc(o.itemDesc) + '</span></div>';
+    body += '<div class="row"><span>ມູນຄ່າສິນຄ້າ</span><span>' + money(o.goodsTotal) + '</span></div>';
+
+    // ການຊຳລະ
+    if (o.status === "awaiting_payment") {
+      const paid = o.paymentStatus === "slip_uploaded"
+        ? '<span class="ok">ລູກຄ້າອັບໂຫຼດສລິບແລ້ວ</span>'
+        : '<span class="warn">ລູກຄ້າຍັງບໍ່ໄດ້ອັບໂຫຼດສລິບ</span>';
+      body += '<div class="row"><span>ການຊຳລະ</span>' + paid + '</div>';
+      if (o.slipUrl) body += '<a class="slip" href="' + esc(o.slipUrl) + '" target="_blank" rel="noopener">ເບິ່ງສລິບ</a>';
+    }
+
+    // ໄຣເດີ + ນັບເວລາ 5 ນາທີ
+    if (o.riderName) body += '<div class="row"><span>ໄຣເດີ</span><span>' + esc(o.riderName) + '</span></div>';
+    if (o.status === "accepted" && o.riderAcceptedAt) {
+      const deadline = new Date(o.riderAcceptedAt).getTime() + RIDER_LIMIT_MS;
+      body += '<div class="row"><span>ເວລາທີ່ເຫຼືອ</span><span class="countdown" data-deadline="' + deadline + '">-</span></div>';
+    }
+
+    // ສະຖານະ
+    body += '<p class="muted small" style="margin:8px 0 0;">' + esc(STATUS_TXT[o.status] || o.status) + '</p>';
+
+    // ປຸ່ມຕາມສະຖານະ
+    let btns = "";
+    if (o.status === "shop_pending") {
+      btns = '<div class="btns"><button class="good" data-act="accept" data-row="' + o.row + '">ຮັບອໍເດີ</button>' +
+             '<button class="danger" data-act="reject" data-row="' + o.row + '">ປະຕິເສດ</button></div>';
+    } else if (o.status === "awaiting_payment") {
+      btns = '<button class="good" data-act="confirm_payment" data-row="' + o.row + '">ຢືນຢັນວ່າໄດ້ຮັບເງິນແລ້ວ</button>';
+    } else if (o.status === "accepted") {
+      btns = '<button class="good" data-act="ready" data-row="' + o.row + '">ແພັກແລ້ວ ພ້ອມໃຫ້ໄຣເດີມາຮັບ</button>';
+    }
+
+    return '<div class="card' + alert + '">' + body + btns + '</div>';
+  }
+
+  // ນັບຖອຍຫຼັງ 5 ນາທີ ທຸກ 1 ວິນາທີ
+  function tickCountdown() {
+    const now = Date.now();
+    document.querySelectorAll(".countdown").forEach(function (el) {
+      const left = Number(el.dataset.deadline) - now;
+      if (left <= 0) {
+        el.textContent = "ເກີນເວລາແລ້ວ";
+        el.className = "bad";
+      } else {
+        const m = Math.floor(left / 60000);
+        const s = Math.floor((left % 60000) / 1000);
+        el.textContent = m + ":" + String(s).padStart(2, "0");
+        el.className = left < 60000 ? "warn" : "";
+      }
+    });
+  }
+
+  // ເຂົ້າສູ່ລະບົບ
+  async function login() {
+    ensureAudio(); // ປົດລັອກສຽງດ້ວຍການກົດ
+    const shopName = $("shopSelect").value;
+    const pin = $("pinInput").value.trim();
+    if (!shopName || !pin) { $("loginMsg").textContent = "ເລືອກຮ້ານ ແລະ ປ້ອນ PIN"; return; }
+    $("loginMsg").textContent = "ກຳລັງກວດ...";
+    try {
+      const data = await apiGet({ type: "shoporders", shopName: shopName, pin: pin });
+      if (data && data.error === "auth") { $("loginMsg").textContent = ERR_TXT.auth; return; }
+      session = { shopName: shopName, pin: pin };
+      try { localStorage.setItem("llux_shop", JSON.stringify(session)); } catch (e) {}
+      afterLogin();
+    } catch (e) {
+      $("loginMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້";
+    }
+  }
+
+  function afterLogin() {
+    $("loginView").classList.add("hidden");
+    $("shopView").classList.remove("hidden");
+    $("shopTitle").textContent = session.shopName;
+    refresh();
+    clearInterval(pollTimer);
+    pollTimer = setInterval(refresh, POLL_MS);
+    // ຕັ້ງ tag ໃຫ້ OneSignal ເພື່ອໃຊ້ສົ່ງແຈ້ງເຕືອນໄປຫາຮ້ານນີ້ໃນອະນາຄົດ
+    if (window.OneSignalReady) window.OneSignalReady(session.shopName);
+  }
+
+  function logout() {
+    session = null;
+    orders = [];
+    stopAlarm();
+    clearInterval(pollTimer);
+    try { localStorage.removeItem("llux_shop"); } catch (e) {}
+    $("shopView").classList.add("hidden");
+    $("loginView").classList.remove("hidden");
+    $("pinInput").value = "";
+  }
+
+  // ໂຫຼດລາຍຊື່ຮ້ານ
+  async function loadShops() {
+    try {
+      const shops = await apiGet({});
+      const sel = $("shopSelect");
+      sel.innerHTML = '<option value="">ເລືອກຮ້ານ</option>' +
+        shops.map(function (s) { return '<option value="' + esc(s.shopName) + '">' + esc(s.shopName) + '</option>'; }).join("");
+    } catch (e) {
+      $("shopSelect").innerHTML = '<option value="">ໂຫຼດລາຍຊື່ຮ້ານບໍ່ໄດ້</option>';
+    }
+  }
+
+  // ປຸ່ມຕ່າງໆ
+  $("btnLogin").onclick = login;
+  $("btnLogout").onclick = logout;
+  $("btnMute").onclick = function () {
+    muted = !muted;
+    $("btnMute").textContent = muted ? "ເປີດສຽງ" : "ປິດສຽງ";
+    if (muted) stopAlarm(); else refresh();
+  };
+  $("orders").addEventListener("click", function (ev) {
+    const b = ev.target.closest("button[data-act]");
+    if (!b) return;
+    act(Number(b.dataset.row), b.dataset.act);
+  });
+
+  // ປຸ່ມເປີດການແຈ້ງເຕືອນ (OneSignal)
+  $("btnNotify").onclick = async function () {
+    ensureAudio();
+    try {
+      await window.OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.Notifications.requestPermission();
+      });
+    } catch (e) { /* ປະຕິເສດ */ }
+    if ("Notification" in window && Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch (e) {}
+    }
+    updateNotifyState();
+  };
+  function updateNotifyState() {
+    const ok = "Notification" in window && Notification.permission === "granted";
+    $("notifyState").textContent = ok ? "ການແຈ້ງເຕືອນເປີດແລ້ວ" : "ຍັງບໍ່ໄດ້ເປີດການແຈ້ງເຕືອນ";
+    $("notifyState").className = ok ? "ok small" : "warn small";
+  }
+
+  // ຕັ້ງຄ່າ OneSignal ແລະ tag ຮ້ານ
+  window.OneSignalReady = null;
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function (OneSignal) {
+    try {
+      await OneSignal.init({ appId: APP_ID, allowLocalhostAsSecureOrigin: true });
+      window.OneSignalReady = function (shopName) {
+        OneSignal.User.addTag("shop", shopName);
+      };
+      if (session) window.OneSignalReady(session.shopName);
+    } catch (e) {
+      $("notifyState").textContent = "ລະບົບແຈ້ງເຕືອນໃຊ້ບໍ່ໄດ້";
+    }
+  });
+
+  // ເລີ່ມຕົ້ນ
+  setInterval(tickCountdown, 1000);
+  updateNotifyState();
+  loadShops();
+  try {
+    const saved = JSON.parse(localStorage.getItem("llux_shop") || "null");
+    if (saved && saved.shopName && saved.pin) {
+      session = saved;
+      afterLogin();
+    }
+  } catch (e) { /* ບໍ່ມີຂໍ້ມູນທີ່ບັນທຶກໄວ້ */ }
+</script>
+</body>
+</html>
