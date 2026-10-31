@@ -102,10 +102,9 @@
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec';
 
     // ຮັບຄ່າບໍລິການຈາກ services.html: buy ຫຼື rider
-    const service = new URLSearchParams(location.search).get('service');
-    if (service !== 'buy' && service !== 'rider') {
-      location.replace('services.html');
-    }
+    // ຖ້າບໍ່ມີຄ່າ service ໃຫ້ໃຊ້ rider ເປັນຄ່າເລີ່ມຕົ້ນ (ຍັງບໍ່ມີໜ້າ services.html)
+    let service = new URLSearchParams(location.search).get('service');
+    if (service !== 'buy' && service !== 'rider') service = 'rider';
     const IS_BUY = service === 'buy';
 
     const map = L.map('map').setView([17.9757, 102.6331], 13);
