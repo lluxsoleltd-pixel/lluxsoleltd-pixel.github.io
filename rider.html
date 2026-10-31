@@ -30,6 +30,8 @@
   .tabs button.on { background:var(--btn); color:#fff; }
   a { color:#9be7ff; font-size:19px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
   .small { font-size:19px; }
+  .callBtn { display:inline-block; width:auto; margin:8px 8px 0 0; padding:12px 16px; border-radius:12px; background:#2f8a5a; color:#fff; font-size:18px; font-weight:700; text-decoration:none; text-shadow:none; }
+  .phoneBtn { width:auto; margin:0; padding:6px 12px; font-size:18px; background:#2f8a5a; }
   .hidden { display:none !important; }
   .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 </style>
@@ -283,6 +285,18 @@
     OneSignal.User.addTags({ role: "rider", rider: session.riderName });
   }
 
+  // ເປີດ/ປິດ ທາງເລືອກໂທ (ຈື່ສະຖານະໄວ້ ເພາະ render ເຮັດທຸກ 1 ວິນາທີ)
+  let openCall = {};
+  // ລິ້ງໂທສາຍກົງ (tel:)
+  function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
+  // ລິ້ງ WhatsApp: ປ່ຽນເບີລາວ 0xx... ເປັນ 856xx...
+  function waHref(p) {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.charAt(0) === "0") d = d.slice(1);
+    if (d.indexOf("856") !== 0) d = "856" + d;
+    return "https://wa.me/" + d;
+  }
+
   function render() {
     const box = $("jobs");
     $("emptyMsg").classList.toggle("hidden", jobs.length > 0);
@@ -302,7 +316,12 @@
         (isBuy ? '<div class="row"><span class="muted">ສິນຄ້າ</span><span>' + esc(o.itemDesc) + '</span></div>' : '') +
         '<div class="row"><span class="muted">ຄ່າສົ່ງ</span><span>' + money(o.fee) + '</span></div>' +
         (isBuy ? '<div class="row"><span class="muted">ມູນຄ່າສິນຄ້າ</span><span>' + money(o.goodsTotal) + '</span></div>' : '') +
-        '<div class="row"><span class="muted">ລູກຄ້າ</span><span>' + esc(o.customerName) + ' · ' + esc(o.phone) + '</span></div>' +
+        '<div class="row"><span class="muted">ລູກຄ້າ</span><span>' + esc(o.customerName) + '</span></div>' +
+        '<div class="row"><span class="muted">ເບີໂທ</span><button class="phoneBtn" data-phone-toggle="' + esc(o.row) + '">' + esc(o.phone) + '</button></div>' +
+        '<div class="callOpts' + (openCall[o.row] ? '' : ' hidden') + '">' +
+          '<a class="callBtn" href="' + esc(telHref(o.phone)) + '">ໂທສາຍກົງ</a>' +
+          '<a class="callBtn" href="' + esc(waHref(o.phone)) + '" target="_blank">WhatsApp</a>' +
+        '</div>' +
         (pick ? '<p class="small"><a href="' + pick + '" target="_blank">ເປີດແຜນທີ່ຮັບສິນຄ້າ</a></p>' : '') +
         (drop ? '<p class="small"><a href="' + drop + '" target="_blank">ເປີດແຜນທີ່ສົ່ງສິນຄ້າ</a></p>' : '') +
         (stateTxt ? '<p class="muted">' + stateTxt + '</p>' : '') +
@@ -340,6 +359,15 @@
     render();
     refresh();
   }
+
+  // ກົດເບີໂທລູກຄ້າ = ສະແດງ/ປິດ ທາງເລືອກໂທ
+  $("jobs").addEventListener("click", function (ev) {
+    const t = ev.target.closest("[data-phone-toggle]");
+    if (!t) return;
+    const key = t.dataset.phoneToggle;
+    openCall[key] = !openCall[key];
+    render();
+  });
 
   $("btnLogin").onclick = login;
   $("btnLogout").onclick = logout;
