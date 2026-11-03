@@ -28,6 +28,7 @@
   .btn { display: block; width: 100%; text-align: center; padding: 13px; border: 0; border-radius: 12px; font-size: 15px; background: var(--red); color: #fff; text-decoration: none; cursor: pointer; margin-top: 8px; }
   .btn.ghost { background: #eef1f5; color: var(--ink); }
   .btn:disabled { background: #d1d5db; cursor: default; }
+  .btn.danger { background: #b42318; }
   .hidden { display: none !important; }
   .msg { color: var(--mute); text-align: center; font-size: 13px; }
   #map { height: 280px; border-radius: 14px; margin-bottom: 12px; }
@@ -36,10 +37,12 @@
 <body>
 <div class="top">
   <a href="products.html">‹ ກັບໄປໜ້າສິນຄ້າ</a>
+  <a href="myorders.html" style="margin-left:14px">ອໍເດີຂອງຂ້ອຍ</a>
   <h1 id="oid">ກຳລັງໂຫຼດ...</h1>
 </div>
 <div class="wrap">
   <div class="card" id="sumCard"></div>
+  <div id="cancelBox"></div>
   <div id="map" class="hidden"></div>
   <div id="shops"></div>
   <p class="msg" id="msg"></p>
@@ -66,8 +69,19 @@
     ready: ["ແພັກສິນຄ້າແລ້ວ · ລໍຖ້າໄຣເດີ", "wait"],
     accepted: ["ໄຣເດີຮັບງານແລ້ວ", "ok"],
     picked_up: ["ກຳລັງຈັດສົ່ງ", "ok"],
-    delivered: ["ສົ່ງສຳເລັດ ✔", "ok"]
+    delivered: ["ສົ່ງສຳເລັດ ✔", "ok"],
+    cancelled_by_customer: ["ທ່ານຍົກເລີກອໍເດີແລ້ວ", ""]
   };
+  const CANCELABLE = ["shop_pending", "awaiting_payment", "pending"];
+
+  // ຈື່ເລກອໍເດີໄວ້ໃນເຄື່ອງນີ້ ເພື່ອໃຫ້ເບິ່ງໄດ້ໃນໜ້າ "ອໍເດີຂອງຂ້ອຍ"
+  function rememberOrder(id) {
+    try {
+      const a = JSON.parse(localStorage.getItem("llux_orders") || "[]");
+      const b = [id].concat(a.filter(function (x) { return x !== id; })).slice(0, 30);
+      localStorage.setItem("llux_orders", JSON.stringify(b));
+    } catch (e) {}
+  }
   function statusOf(o) {
     if (o.status === "awaiting_payment" && o.paymentStatus === "claimed") return ["ແຈ້ງໂອນແລ້ວ · ລໍຖ້າຮ້ານກວດຍອດ", "wait"];
     if (o.status === "awaiting_payment" && o.paymentStatus === "slip_uploaded") return ["ອັບສລິບແລ້ວ · ລໍຖ້າຮ້ານກວດຍອດ", "wait"];
@@ -167,7 +181,12 @@
       const list = Array.isArray(rows) ? rows : [];
       if (!list.length) { setMsg("ບໍ່ພົບອໍເດີນີ້"); return; }
       $("oid").textContent = "ອໍເດີ " + ID;
+      rememberOrder(ID);
       summary(list);
+      const canCancel = list.every(function (o) { return CANCELABLE.indexOf(o.status) >= 0; });
+      $("cancelBox").innerHTML = canCancel
+        ? '<button class="btn danger" data-cancel="1">ຍົກເລີກອໍເດີນີ້</button>'
+        : "";
       $("shops").innerHTML = list.map(shopCard).join("");
       drawMap(list);
       setMsg("");
@@ -215,6 +234,16 @@
   });
 
   document.addEventListener("click", async function (e) {
+    const x = e.target.closest("[data-cancel]");
+    if (x) {
+      if (x.disabled || !confirm("ຍົກເລີກອໍເດີນີ້ແທ້ບໍ?")) return;
+      x.disabled = true;
+      const res = await post({ type: "buycancel", orderId: ID }).catch(function () { return null; });
+      setMsg(res && res.ok ? "ຍົກເລີກອໍເດີແລ້ວ" : "ຍົກເລີກບໍ່ໄດ້ ຮ້ານອາດກຳລັງດຳເນີນການແລ້ວ");
+      x.disabled = false;
+      load();
+      return;
+    }
     const c = e.target.closest("[data-claim]");
     if (c) {
       if (c.disabled) return;

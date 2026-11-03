@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ອໍເດີຂອງຂ້ອຍ · LLUX</title>
+<style>
+  :root { --red:#d62828; --red2:#ff5a36; --ink:#1d2330; --mute:#6b7280; --bg:#f5f5f6; --ok:#16a34a; }
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; background: var(--bg); margin: 0; color: var(--ink); padding-bottom: 40px; }
+  .top { background: linear-gradient(180deg, var(--red), var(--red2)); color: #fff; padding: 14px 16px; }
+  .top a { color: #fff; text-decoration: none; font-size: 14px; }
+  .top h1 { font-size: 18px; margin: 6px 0 0; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 12px; }
+  .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .card h2 { font-size: 15px; margin: 0 0 6px; word-break: break-all; }
+  .row { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; padding: 4px 0; }
+  .muted { color: var(--mute); font-size: 13px; }
+  .st { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #fee2e2; color: var(--red); }
+  .st.wait { background: #fef3c7; color: #92400e; }
+  .st.ok { background: #dcfce7; color: var(--ok); }
+  .btn { display: block; width: 100%; text-align: center; padding: 12px; border: 0; border-radius: 12px; font-size: 15px; background: var(--red); color: #fff; text-decoration: none; cursor: pointer; margin-top: 8px; }
+  .btn.ghost { background: #eef1f5; color: var(--ink); }
+  .btn.danger { background: #b42318; }
+  .btn:disabled { background: #d1d5db; cursor: default; }
+  .msg { text-align: center; color: var(--mute); }
+</style>
+</head>
+<body>
+<div class="top">
+  <a href="products.html">‹ ກັບໄປໜ້າສິນຄ້າ</a>
+  <h1>ອໍເດີຂອງຂ້ອຍ</h1>
+</div>
+<div class="wrap">
+  <p class="msg" id="msg">ກຳລັງໂຫຼດ...</p>
+  <div id="list"></div>
+</div>
+
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const CANCELABLE = ["shop_pending", "awaiting_payment", "pending"];
+  const LABEL = {
+    shop_pending: ["ລໍຖ້າຮ້ານຢືນຢັນ", "wait"],
+    shop_rejected: ["ຮ້ານປະຕິເສດ", ""],
+    awaiting_payment: ["ລໍຖ້າໂອນຄ່າສິນຄ້າ", "wait"],
+    open_for_rider: ["ຊຳລະແລ້ວ · ກຳລັງແພັກ", "wait"],
+    ready: ["ແພັກແລ້ວ · ລໍຖ້າໄຣເດີ", "wait"],
+    accepted: ["ໄຣເດີຮັບງານແລ້ວ", "ok"],
+    picked_up: ["ກຳລັງຈັດສົ່ງ", "ok"],
+    delivered: ["ສົ່ງສຳເລັດ ✔", "ok"],
+    cancelled_by_customer: ["ຍົກເລີກແລ້ວ", ""]
+  };
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function setMsg(t) { document.getElementById("msg").textContent = t || ""; }
+
+  function getIds() {
+    try { return JSON.parse(localStorage.getItem("llux_orders") || "[]"); } catch (e) { return []; }
+  }
+  function saveIds(ids) {
+    try { localStorage.setItem("llux_orders", JSON.stringify(ids)); } catch (e) {}
+  }
+
+  function statusOf(o) {
+    if (o.status === "awaiting_payment" && o.paymentStatus === "claimed") return ["ແຈ້ງໂອນແລ້ວ · ລໍຖ້າຮ້ານກວດຍອດ", "wait"];
+    if (o.status === "awaiting_payment" && o.paymentStatus === "slip_uploaded") return ["ອັບສລິບແລ້ວ · ລໍຖ້າຮ້ານກວດຍອດ", "wait"];
+    return LABEL[o.status] || [o.status || "-", ""];
+  }
+
+  // ສະຫຼຸບອໍເດີໜຶ່ງ (ອາດມີຫຼາຍຮ້ານ) ຈາກແຖວທັງໝົດ
+  function groupCard(oid, rows) {
+    const cancelable = rows.every(function (o) { return CANCELABLE.indexOf(o.status) >= 0; });
+    const shops = rows.map(function (o) {
+      const st = statusOf(o);
+      return '<div class="row"><span>' + esc(o.shopName) + '</span><span class="st ' + st[1] + '">' + esc(st[0]) + '</span></div>';
+    }).join("");
+    const goods = rows.reduce(function (s, o) { return s + (Number(o.goodsTotal) || 0); }, 0);
+    const delivery = rows[0].deliveryType === "ship" ? "ໄປຕ່າງແຂວງ" : "ສົ່ງດ່ວນ";
+    return '<div class="card">' +
+      '<h2>' + esc(oid) + '</h2>' +
+      '<div class="muted">' + esc(delivery) + ' · ລວມຄ່າສິນຄ້າ ' + money(goods) + '</div>' +
+      '<div style="margin-top:8px">' + shops + '</div>' +
+      '<a class="btn" href="buyorder.html?id=' + encodeURIComponent(oid) + '">ເບິ່ງ / ດຳເນີນຕໍ່</a>' +
+      (cancelable ? '<button class="btn danger" data-cancel="' + esc(oid) + '">ຍົກເລີກອໍເດີ</button>' : '') +
+      '</div>';
+  }
+
+  async function fetchOne(oid) {
+    try {
+      const r = await fetch(API + "?type=orderstatus&orderId=" + encodeURIComponent(oid), { cache: "no-store" });
+      const rows = await r.json();
+      return Array.isArray(rows) && rows.length ? { oid: oid, rows: rows } : null;
+    } catch (e) { return { oid: oid, error: true }; }
+  }
+
+  async function load() {
+    const ids = getIds();
+    if (!ids.length) {
+      setMsg("ຍັງບໍ່ມີອໍເດີໃນເຄື່ອງນີ້");
+      document.getElementById("list").innerHTML = "";
+      return;
+    }
+    setMsg("ກຳລັງໂຫຼດ...");
+    const results = await Promise.all(ids.map(fetchOne));
+    const found = results.filter(function (x) { return x && x.rows; });
+    const failed = results.filter(function (x) { return x && x.error; });
+    // ອໍເດີທີ່ຫາບໍ່ເຈີ ຈະບໍ່ລຶບອອກ (ອາດເປັນເນັດຂັດ)
+    document.getElementById("list").innerHTML = found.map(function (x) { return groupCard(x.oid, x.rows); }).join("");
+    if (!found.length) setMsg(failed.length ? "ໂຫຼດບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ" : "ບໍ່ພົບອໍເດີ");
+    else setMsg(failed.length ? "ບາງອໍເດີໂຫຼດບໍ່ໄດ້" : "");
+  }
+
+  document.addEventListener("click", async function (e) {
+    const b = e.target.closest("[data-cancel]");
+    if (!b || b.disabled) return;
+    const oid = b.dataset.cancel;
+    if (!confirm("ຍົກເລີກອໍເດີ " + oid + " ແທ້ບໍ?")) return;
+    b.disabled = true;
+    let res = null;
+    try {
+      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ type: "buycancel", orderId: oid }) });
+      res = await r.json();
+    } catch (err) {}
+    setMsg(res && res.ok ? "ຍົກເລີກອໍເດີແລ້ວ" : "ຍົກເລີກບໍ່ໄດ້ ຮ້ານອາດກຳລັງດຳເນີນການແລ້ວ");
+    load();
+  });
+
+  load();
+  setInterval(load, 20000);
+</script>
+</body>
+</html>

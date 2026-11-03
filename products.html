@@ -621,7 +621,17 @@
       return;
     }
     setCart([]);
+    rememberOrder(res.orderId);
     showOrderResult(res);
+  }
+
+  // ຈື່ເລກອໍເດີໄວ້ໃນເຄື່ອງນີ້ ເພື່ອເບິ່ງຄືນ/ດຳເນີນຕໍ່ໃນໜ້າ "ອໍເດີຂອງຂ້ອຍ"
+  function rememberOrder(id) {
+    try {
+      const a = JSON.parse(localStorage.getItem("llux_orders") || "[]");
+      const b = [id].concat(a.filter(function (x) { return x !== id; })).slice(0, 30);
+      localStorage.setItem("llux_orders", JSON.stringify(b));
+    } catch (e) {}
   }
 
   function orderErr(res) {
@@ -736,6 +746,7 @@
       '<label class="lbl">ຊື່</label><input id="meName" class="inp" value="' + esc(me.name || "") + '">' +
       '<label class="lbl">ເບີໂທ</label><input id="mePhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
       '<button class="btn" id="meSave">ບັນທຶກ</button>' +
+      '<a class="btn ghost" href="myorders.html" style="display:block;text-align:center;text-decoration:none">ອໍເດີຂອງຂ້ອຍ</a>' +
       '<button class="btn ghost" id="meTrack">ຕິດຕາມອໍເດີ</button>' +
       '<button class="btn ghost" id="meChat">ແຊັດກັບ LLUX</button>' +
       '<button class="btn ghost" id="meClose">ປິດ</button>';

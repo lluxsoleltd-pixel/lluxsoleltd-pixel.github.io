@@ -369,7 +369,8 @@
       btns = '<div class="btns"><button class="good" data-act="accept" data-row="' + o.row + '">ຮັບອໍເດີ</button>' +
              '<button class="danger" data-act="reject" data-row="' + o.row + '">ປະຕິເສດ</button></div>';
     } else if (o.status === "awaiting_payment") {
-      btns = '<button class="good" data-act="confirm_payment" data-row="' + o.row + '">ໄດ້ຮັບຍອດໂອນແລ້ວ · ໃຫ້ຈັດຂອງເລີຍ</button>';
+      btns = '<div class="btns"><button class="good" data-act="confirm_payment" data-row="' + o.row + '">ໄດ້ຮັບຍອດໂອນແລ້ວ · ໃຫ້ຈັດຂອງເລີຍ</button>' +
+             '<button class="danger" data-act="reject" data-row="' + o.row + '">ຍົກເລີກອໍເດີ</button></div>';
     } else if (o.status === "accepted" || o.status === "open_for_rider") {
       btns = '<button class="good" data-act="ready" data-row="' + o.row + '">ແພັກແລ້ວ ພ້ອມໃຫ້ໄຣເດີມາຮັບ</button>';
     }
@@ -457,6 +458,7 @@
   $("orders").addEventListener("click", function (ev) {
     const b = ev.target.closest("button[data-act]");
     if (!b) return;
+    if (b.dataset.act === "reject" && !confirm("ຍົກເລີກອໍເດີນີ້ແທ້ບໍ?")) return;
     act(Number(b.dataset.row), b.dataset.act);
   });
 
