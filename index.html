@@ -97,6 +97,11 @@
         <select id="mCat"></select>
         <label class="muted small">ລາຍລະອຽດ</label>
         <input id="mDesc" type="text">
+        <label class="muted small">ນ້ຳໜັກຫຼັງແພັກ (ກກ)</label>
+        <input id="mWeight" type="number" min="0" step="0.01" inputmode="decimal">
+        <label class="muted small">ຂະໜາດຫຼັງແພັກ (CBM)</label>
+        <input id="mCbm" type="number" min="0" step="0.001" inputmode="decimal">
+        <p class="muted small">ຄິດໄລ່: ກວ້າງ × ຍາວ × ສູງ (ມ) ເຊັ່ນ 0.5 × 0.4 × 0.3 = 0.06 CBM</p>
         <label class="muted small">ຮູບສິນຄ້າ</label>
         <input id="mImg" type="file" accept="image/*">
         <img id="mPreview" class="hidden" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px;">
@@ -499,6 +504,7 @@
       return '<div class="card mitem">' + img +
         '<div class="mtxt"><b>' + esc(it.itemName) + '</b>' +
         '<span class="muted small">' + esc(it.category) + ' · ' + money(it.price) + '</span>' +
+        '<span class="muted small">ນ້ຳໜັກ ' + (it.weightKg ? it.weightKg + ' ກກ' : 'ຍັງບໍ່ລະບຸ') + ' · ' + (it.cbm ? it.cbm + ' CBM' : 'ຍັງບໍ່ລະບຸ') + '</span>' +
         (soldout ? ' <span class="bad small">ໝົດແລ້ວ</span>' : '') +
         '<div class="mbtns">' +
           '<button class="secondary" data-m="edit" data-row="' + it.row + '">ແກ້ໄຂ</button>' +
@@ -536,6 +542,8 @@
     $("mName").value = "";
     $("mPrice").value = "";
     $("mDesc").value = "";
+    $("mWeight").value = "";
+    $("mCbm").value = "";
     $("mImg").value = "";
     $("mPreview").classList.add("hidden");
     $("mPreview").removeAttribute("src");
@@ -550,6 +558,8 @@
     $("mPrice").value = it.price;
     $("mCat").value = catOf(it) || MENU_CATS[0];
     $("mDesc").value = it.description || "";
+    $("mWeight").value = it.weightKg || "";
+    $("mCbm").value = it.cbm || "";
     $("menuFormTitle").textContent = "ແກ້ໄຂສິນຄ້າ";
     $("mCancel").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -575,9 +585,12 @@
       itemName: $("mName").value.trim(),
       price: Number($("mPrice").value),
       category: $("mCat").value,
-      description: $("mDesc").value.trim()
+      description: $("mDesc").value.trim(),
+      weightKg: Number($("mWeight").value),
+      cbm: Number($("mCbm").value)
     };
     if (!item.itemName || !(item.price > 0)) { $("mMsg").textContent = "ໃສ່ຊື່ ແລະ ລາຄາໃຫ້ຄົບ"; return; }
+    if (!(item.weightKg > 0) || !(item.cbm > 0)) { $("mMsg").textContent = "ໃສ່ນ້ຳໜັກ ແລະ ຂະໜາດ (CBM) ໃຫ້ຄົບ"; return; }
     $("mSave").disabled = true;
     $("mMsg").textContent = "ກຳລັງບັນທຶກ...";
 

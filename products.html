@@ -218,7 +218,7 @@
     const c = getCart();
     const f = c.find(function (x) { return x.shopName === item.shopName && x.itemName === item.itemName; });
     if (f) f.qty = Math.min(99, f.qty + qty);
-    else c.push({ shopName: item.shopName, itemName: item.itemName, price: item.price, imageUrl: item.imageUrl || "", qty: qty });
+    else c.push({ shopName: item.shopName, itemName: item.itemName, price: item.price, imageUrl: item.imageUrl || "", weightKg: item.weightKg || 0, cbm: item.cbm || 0, qty: qty });
     setCart(c);
     toast("ເພີ່ມເຂົ້າຕະກ້າແລ້ວ");
   }
@@ -343,6 +343,7 @@
       '<div class="r"><b style="color:var(--red)">' + money(i.price) + '</b></div>' +
       '<div class="r">ຮ້ານ: ' + esc(i.shopName) + '</div>' +
       (i.cat ? '<div class="r">ໝວດ: ' + esc(i.cat) + '</div>' : '') +
+      '<div class="r">ນ້ຳໜັກ: ' + (i.weightKg ? esc(i.weightKg) + ' ກກ' : 'ຍັງບໍ່ລະບຸ') + ' · ຂະໜາດ: ' + (i.cbm ? esc(i.cbm) + ' CBM' : 'ຍັງບໍ່ລະບຸ') + '</div>' +
       (i.origin ? '<div class="r">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
       (i.importer ? '<div class="r">ຜູ້ນຳເຂົ້າ: ' + esc(i.importer) + '</div>' : '') +
       (i.description ? '<div class="r">' + esc(i.description) + '</div>' : '') +
@@ -381,7 +382,10 @@
                 '<button class="rm" data-rm="' + r.idx + '">ລຶບ</button></div></div></div>';
           }).join("") + '</div>';
       }).join("");
+      const sumW = c.reduce(function (s, x) { return s + (Number(x.weightKg) || 0) * x.qty; }, 0);
+      const sumC = c.reduce(function (s, x) { return s + (Number(x.cbm) || 0) * x.qty; }, 0);
       $("sheetCart").innerHTML = '<h2>ຕະກ້າ</h2>' + html +
+        '<p class="note">ນ້ຳໜັກລວມ ' + sumW.toFixed(2) + ' ກກ · ປະລິມາດລວມ ' + sumC.toFixed(3) + ' CBM (ໃຊ້ເລືອກປະເພດໄຣເດີ)</p>' +
         '<div class="total"><span>ລວມຄ່າສິນຄ້າ</span><span>' + money(total) + '</span></div>' +
         '<p class="note">ຄ່າສົ່ງຈະຄິດຕາມທີ່ຢູ່ຂອງທ່ານ ແລະ ຈ່າຍເປັນຍອດດຽວ. ຈ່າຍເງິນແຕ່ລະຮ້ານແຍກກັນ.</p>' +
         '<button class="btn ghost" id="btnClose">ປິດ</button>';
