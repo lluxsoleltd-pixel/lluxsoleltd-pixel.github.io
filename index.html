@@ -278,7 +278,7 @@
   // ອໍເດີທີ່ຮ້ານຕ້ອງດຳເນີນການ
   function needsAction(o) {
     if (o.status === "shop_pending") return true;
-    if (o.status === "awaiting_payment" && o.paymentStatus === "slip_uploaded") return true;
+    if (o.status === "awaiting_payment" && (o.paymentStatus === "slip_uploaded" || o.paymentStatus === "claimed")) return true;
     if (o.status === "accepted") return true;
     return false;
   }
@@ -346,7 +346,9 @@
     if (o.status === "awaiting_payment") {
       const paid = o.paymentStatus === "slip_uploaded"
         ? '<span class="ok">ລູກຄ້າອັບໂຫຼດສລິບແລ້ວ</span>'
-        : '<span class="warn">ລູກຄ້າຍັງບໍ່ໄດ້ອັບໂຫຼດສລິບ</span>';
+        : o.paymentStatus === "claimed"
+          ? '<span class="ok">ລູກຄ້າແຈ້ງວ່າໂອນແລ້ວ</span>'
+          : '<span class="warn">ລູກຄ້າຍັງບໍ່ໄດ້ແຈ້ງການໂອນ</span>';
       body += '<div class="row"><span>ການຊຳລະ</span>' + paid + '</div>';
       if (o.slipUrl) body += '<a class="slip" href="' + esc(o.slipUrl) + '" target="_blank" rel="noopener">ເບິ່ງສລິບ</a>';
     }
@@ -367,8 +369,8 @@
       btns = '<div class="btns"><button class="good" data-act="accept" data-row="' + o.row + '">ຮັບອໍເດີ</button>' +
              '<button class="danger" data-act="reject" data-row="' + o.row + '">ປະຕິເສດ</button></div>';
     } else if (o.status === "awaiting_payment") {
-      btns = '<button class="good" data-act="confirm_payment" data-row="' + o.row + '">ຢືນຢັນວ່າໄດ້ຮັບເງິນແລ້ວ</button>';
-    } else if (o.status === "accepted") {
+      btns = '<button class="good" data-act="confirm_payment" data-row="' + o.row + '">ໄດ້ຮັບຍອດໂອນແລ້ວ · ໃຫ້ຈັດຂອງເລີຍ</button>';
+    } else if (o.status === "accepted" || o.status === "open_for_rider") {
       btns = '<button class="good" data-act="ready" data-row="' + o.row + '">ແພັກແລ້ວ ພ້ອມໃຫ້ໄຣເດີມາຮັບ</button>';
     }
 
