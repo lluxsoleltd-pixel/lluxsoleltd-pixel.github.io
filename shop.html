@@ -75,6 +75,12 @@
   </section>
 
   <section class="box">
+    <h2>ສິນຄ້າຂອງຮ້ານ</h2>
+    <div class="grid" id="prods"></div>
+    <p class="empty" id="prodMsg"></p>
+  </section>
+
+  <section class="box">
     <h2>ແນະນຳຮ້ານ</h2>
     <p class="desc" id="desc"></p>
   </section>
@@ -87,12 +93,6 @@
   <section class="box">
     <h2>ເອກະສານ</h2>
     <div id="docs"></div>
-  </section>
-
-  <section class="box">
-    <h2>ສິນຄ້າຂອງຮ້ານ</h2>
-    <div class="grid" id="prods"></div>
-    <p class="empty" id="prodMsg"></p>
   </section>
 
 </div>
@@ -145,7 +145,7 @@
       const isPdf = String(d.url).indexOf("drive.google.com") >= 0;
       const thumb = isPdf ? '<div class="pdf">PDF</div>' : '<img src="' + esc(d.url) + '" alt="">';
       return '<div class="doc">' + thumb +
-        '<div class="dt">' + esc(DOC[d.type] || d.type) + (d.name ? '<br><span class="muted">' + esc(d.name) + '</span>' : '') + '</div>' +
+        '<div class="dt">' + esc(DOC[d.type] || d.type) + '</div>' +
         '<a href="' + esc(d.url) + '" target="_blank" rel="noopener">ເປີດ ›</a></div>';
     }).join("");
   }
