@@ -235,6 +235,7 @@
       const r = await fetch(API + "?type=products", { cache: "no-store" });
       const data = await r.json();
       items = Array.isArray(data) ? data : [];
+      items.forEach(function (i) { i.cat = catOf(i); });
     } catch (e) {
       $("msg").textContent = "ໂຫຼດສິນຄ້າບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ";
       return;
@@ -301,7 +302,7 @@
   function render() {
     const q = $("q").value.trim().toLowerCase();
     shown = items.filter(function (i) {
-      if (cat !== ALL && i.category !== cat) return false;
+      if (cat !== ALL && i.cat !== cat) return false;
       if (!q) return true;
       return (i.itemName + " " + i.shopName + " " + i.category + " " + i.description).toLowerCase().indexOf(q) >= 0;
     });
@@ -341,7 +342,7 @@
       '<h2>' + esc(i.itemName) + '</h2>' +
       '<div class="r"><b style="color:var(--red)">' + money(i.price) + '</b></div>' +
       '<div class="r">ຮ້ານ: ' + esc(i.shopName) + '</div>' +
-      (i.category ? '<div class="r">ໝວດ: ' + esc(i.category) + '</div>' : '') +
+      (i.cat ? '<div class="r">ໝວດ: ' + esc(i.cat) + '</div>' : '') +
       (i.origin ? '<div class="r">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
       (i.importer ? '<div class="r">ຜູ້ນຳເຂົ້າ: ' + esc(i.importer) + '</div>' : '') +
       (i.description ? '<div class="r">' + esc(i.description) + '</div>' : '') +
@@ -453,7 +454,7 @@
   // ===== ໜ້າຕ່າງທົ່ວໄປ =====
   function openCategories() {
     const counts = {};
-    items.forEach(function (i) { if (i.category) counts[i.category] = (counts[i.category] || 0) + 1; });
+    items.forEach(function (i) { if (i.cat) counts[i.cat] = (counts[i.cat] || 0) + 1; });
     const rows = [
       '<button class="cr' + (cat === ALL ? " on" : "") + '" data-pick="' + esc(ALL) + '"><span>🛍️ ' + esc(ALL) + '</span><small>' + items.length + '</small></button>'
     ].concat(LLUX_CATEGORIES.map(function (x) { const n = x.name;

@@ -548,7 +548,7 @@
     editingRow = it.row;
     $("mName").value = it.itemName;
     $("mPrice").value = it.price;
-    $("mCat").value = it.category || MENU_CATS[0];
+    $("mCat").value = catOf(it) || MENU_CATS[0];
     $("mDesc").value = it.description || "";
     $("menuFormTitle").textContent = "ແກ້ໄຂສິນຄ້າ";
     $("mCancel").classList.remove("hidden");
