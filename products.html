@@ -86,6 +86,7 @@
   .sheet { background: #fff; width: 100%; max-width: 620px; max-height: 88vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 16px; }
   .sheet .main { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; background: #eee; display: block; }
   .sheet h2 { font-size: 19px; margin: 12px 0 6px; }
+  .shoplink { color: var(--red); font-weight: 600; text-decoration: none; }
   .sheet .r { margin: 6px 0; font-size: 15px; color: #374151; }
   .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; }
   .thumbs img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eee; }
@@ -196,6 +197,11 @@
     return "📦";
   }
   const RIDER_KMH = 30;
+
+  // ລິ້ງຊື່ຮ້ານ ໄປໜ້າໂປຣໄຟລ໌ຮ້ານ (ຢຸດບໍ່ໃຫ້ການກົດເປີດລາຍລະອຽດສິນຄ້າ)
+  function shopLink(n) {
+    return '<a class="shoplink" href="shop.html?shop=' + encodeURIComponent(n) + '" onclick="event.stopPropagation()">' + esc(n) + ' ›</a>';
+  }
 
   let items = [];          // ສິນຄ້າທັງໝົດ
   let shops = {};          // ຂໍ້ມູນຮ້ານ: ຊື່ -> { km, eta }
@@ -358,7 +364,7 @@
           '<p class="name">' + esc(i.itemName) + '</p>' +
           '<div class="price">' + money(i.price) + '</div>' +
           '<div class="meta">' + meta + '</div>' +
-          '<div class="row2"><span class="meta">' + esc(i.shopName) + '</span>' +
+          '<div class="row2"><span class="meta">' + shopLink(i.shopName) + '</span>' +
             '<button class="add" data-add="' + idx + '"' + (isOut ? ' disabled' : '') + '>+</button></div>' +
         '</div></div>';
     }).join("");
@@ -373,7 +379,7 @@
       (thumbs.length ? '<div class="thumbs">' + thumbs.map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join("") + '</div>' : '') +
       '<h2>' + esc(i.itemName) + '</h2>' +
       '<div class="r"><b style="color:var(--red)">' + money(i.price) + '</b></div>' +
-      '<div class="r">ຮ້ານ: ' + esc(i.shopName) + '</div>' +
+      '<div class="r">ຮ້ານ: ' + shopLink(i.shopName) + '</div>' +
       (i.cat ? '<div class="r">ໝວດ: ' + esc(i.cat) + '</div>' : '') +
       '<div class="r">ນ້ຳໜັກ: ' + (i.weightKg ? esc(i.weightKg) + ' ກກ' : 'ຍັງບໍ່ລະບຸ') + ' · ຂະໜາດ: ' + (i.cbm ? esc(i.cbm) + ' CBM' : 'ຍັງບໍ່ລະບຸ') + '</div>' +
       (i.origin ? '<div class="r">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
@@ -405,7 +411,7 @@
         const rows = groups[shop];
         const sub = rows.reduce(function (s, r) { return s + r.x.price * r.x.qty; }, 0);
         total += sub;
-        return '<div class="cgroup"><div class="gh"><span>' + esc(shop) + '</span><span>' + money(sub) + '</span></div>' +
+        return '<div class="cgroup"><div class="gh"><span>' + shopLink(shop) + '</span><span>' + money(sub) + '</span></div>' +
           rows.map(function (r) {
             return '<div class="citem">' +
               (r.x.imageUrl ? '<img src="' + esc(r.x.imageUrl) + '" alt="">' : '<div style="width:56px;height:56px;border-radius:8px;background:#eee"></div>') +

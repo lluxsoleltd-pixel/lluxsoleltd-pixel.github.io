@@ -142,6 +142,39 @@
       </div>
 
       <div class="card">
+        <label class="muted small">ປະເພດຮ້ານ</label>
+        <select id="sBiz">
+          <option value="individual">ບຸກຄົນ / ຮ້ານເລັກ</option>
+          <option value="company">ບໍລິສັດ</option>
+          <option value="factory">ໂຮງງານ / ຜູ້ຜະລິດ</option>
+        </select>
+        <label class="muted small">ມີໜ້າຮ້ານ / ສຳນັກງານຈິງ</label>
+        <select id="sHasStore">
+          <option value="no">ບໍ່ມີ</option>
+          <option value="yes">ມີ</option>
+        </select>
+        <label class="muted small">ຈຳນວນພະນັກງານ (ຄົນ)</label>
+        <input id="sEmp" type="number" inputmode="numeric" min="0">
+        <label class="muted small">ແນະນຳຮ້ານ / ບໍລິສັດ (ສູງສຸດ 1000 ຕົວອັກສອນ)</label>
+        <textarea id="sDesc" rows="4" maxlength="1000"></textarea>
+        <button id="sProfileSave">ບັນທຶກໂປຣໄຟລ໌</button>
+        <p id="sProfileMsg" class="muted small"></p>
+      </div>
+
+      <div class="card">
+        <label class="muted small">ເອກະສານ (ບັງຄັບສຳລັບບໍລິສັດ / ໂຮງງານ / ຮ້ານທີ່ມີໜ້າຮ້ານ · ຮູບ ຫຼື PDF ບໍ່ເກີນ 5MB)</label>
+        <p id="sDocNote" class="small" style="margin:4px 0;"></p>
+        <label class="muted small">ໃບທະບຽນວິສາຫະກິດ</label>
+        <input id="sDocRegistration" type="file" accept="image/*,application/pdf">
+        <label class="muted small">ໃບອະນຸຍາດດຳເນີນທຸລະກິດ</label>
+        <input id="sDocLicense" type="file" accept="image/*,application/pdf">
+        <label class="muted small">ເອກະສານອື່ນ (ເພີ່ມໄດ້ຫຼາຍໄຟລ໌)</label>
+        <input id="sDocOther" type="file" accept="image/*,application/pdf" multiple>
+        <div id="sDocList"></div>
+        <p id="sDocMsg" class="muted small"></p>
+      </div>
+
+      <div class="card">
         <a id="sAdmin" class="hidden" target="_blank" rel="noopener" href="#" style="display:block;text-align:center;background:#0369a1;color:#fff;padding:12px;border-radius:10px;text-decoration:none;">ຕິດຕໍ່ແອດມິນ LLUX ດ່ວນ</a>
       </div>
     </div>
@@ -676,7 +709,122 @@
     } catch (e) {
       $("sMsg").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້";
     }
+    loadProfile();
   }
+
+  // ===== ໂປຣໄຟລ໌ຮ້ານ ແລະ ເອກະສານ =====
+  const DOC_LABEL = { registration: "ໃບທະບຽນວິສາຫະກິດ", license: "ໃບອະນຸຍາດດຳເນີນທຸລະກິດ", other: "ເອກະສານອື່ນ" };
+  const DOC_MAX = 5 * 1024 * 1024;
+  let profileComplete = false;
+  let docsCache = [];
+
+  function escH(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function needsDocs() {
+    return $("sBiz").value !== "individual" || $("sHasStore").value === "yes";
+  }
+  function renderDocNote() {
+    if (!needsDocs()) { $("sDocNote").textContent = "ຮ້ານນີ້ບໍ່ບັງຄັບເອກະສານ (ອັບໂຫຼດເພີ່ມໄດ້ຖ້າຕ້ອງການ)"; return; }
+    $("sDocNote").textContent = profileComplete ? "✔ ເອກະສານບັງຄັບຄົບແລ້ວ" : "⚠ ຍັງຂາດເອກະສານບັງຄັບ: ໃບທະບຽນ ແລະ ໃບອະນຸຍາດ";
+  }
+  function renderDocs(docs) {
+    docsCache = docs;
+    $("sDocList").innerHTML = docs.length ? docs.map(function (x, i) {
+      return '<div class="docrow" style="margin:6px 0;"><a href="' + escH(x.url) + '" target="_blank" rel="noopener">' +
+        escH(DOC_LABEL[x.type] || x.type) + (x.name ? ' · ' + escH(x.name) : '') + '</a> ' +
+        '<button class="secondary" data-del="' + i + '">ລຶບ</button></div>';
+    }).join("") : '<p class="muted small">ຍັງບໍ່ມີເອກະສານ</p>';
+  }
+  async function loadProfile() {
+    if (!session) return;
+    try {
+      const d = await apiGet({ type: "shopprofile", shop: session.shopName });
+      if (!d || !d.ok) return;
+      $("sBiz").value = d.bizType || "individual";
+      $("sHasStore").value = d.hasStore ? "yes" : "no";
+      $("sEmp").value = d.employees || "";
+      $("sDesc").value = d.description || "";
+      profileComplete = !!d.complete;
+      renderDocs(d.docs || []);
+      renderDocNote();
+    } catch (e) {}
+  }
+
+  $("sProfileSave").onclick = async function () {
+    $("sProfileSave").disabled = true;
+    $("sProfileMsg").textContent = "ກຳລັງບັນທຶກ...";
+    let res = null;
+    try {
+      res = await apiPost({
+        type: "profilesave", shopName: session.shopName, pin: session.pin,
+        bizType: $("sBiz").value, hasStore: $("sHasStore").value === "yes",
+        employees: $("sEmp").value, description: $("sDesc").value.trim()
+      });
+    } catch (e) {}
+    $("sProfileSave").disabled = false;
+    if (!res || !res.ok) {
+      const reasons = { auth: "PIN ບໍ່ຖືກຕ້ອງ", employees: "ກະລຸນາໃສ່ຈຳນວນພະນັກງານ", description: "ແນະນຳຮ້ານຍາວເກີນໄປ", bizType: "ປະເພດບໍ່ຖືກຕ້ອງ" };
+      $("sProfileMsg").textContent = reasons[res && res.reason] || "ບັນທຶກບໍ່ໄດ້ ລອງໃໝ່";
+      return;
+    }
+    profileComplete = !!res.complete;
+    renderDocNote();
+    $("sProfileMsg").textContent = profileComplete ? "ບັນທຶກແລ້ວ" : "ບັນທຶກແລ້ວ ແຕ່ຍັງຂາດເອກະສານບັງຄັບ";
+  };
+
+  function readB64(file) {
+    return new Promise(function (resolve, reject) {
+      const r = new FileReader();
+      r.onerror = reject;
+      r.onload = function () { resolve(String(r.result).split(",")[1]); };
+      r.readAsDataURL(file);
+    });
+  }
+  async function uploadDoc(docType, file) {
+    if (file.size > DOC_MAX) return "ໄຟລ໌ໃຫຍ່ເກີນ 5MB";
+    let b64, mime;
+    try {
+      if (file.type === "application/pdf") { b64 = await readB64(file); mime = "application/pdf"; }
+      else { b64 = await shrinkImage(file); mime = "image/jpeg"; }
+    } catch (e) { return "ອ່ານໄຟລ໌ບໍ່ໄດ້"; }
+    let res = null;
+    try {
+      res = await apiPost({ type: "shopdoc", shopName: session.shopName, pin: session.pin, docType: docType, mime: mime, fileName: file.name, fileBase64: b64 });
+    } catch (e) {}
+    if (!res || !res.ok) return "ອັບໂຫຼດບໍ່ໄດ້ (" + ((res && res.reason) || "error") + ")";
+    return null;
+  }
+  ["sDocRegistration", "sDocLicense", "sDocOther"].forEach(function (id) {
+    $(id).onchange = async function () {
+      const files = Array.from(this.files || []);
+      this.value = "";
+      if (!files.length || !session) return;
+      const docType = id === "sDocRegistration" ? "registration" : (id === "sDocLicense" ? "license" : "other");
+      $("sDocMsg").textContent = "ກຳລັງອັບໂຫຼດ...";
+      let err = null;
+      for (const f of files) {
+        const e = await uploadDoc(docType, f);
+        if (e) err = e;
+      }
+      $("sDocMsg").textContent = err || "ອັບໂຫຼດແລ້ວ";
+      await loadProfile();
+    };
+  });
+  $("sDocList").addEventListener("click", async function (e) {
+    const b = e.target.closest("[data-del]");
+    if (!b || !session) return;
+    const doc = docsCache[Number(b.dataset.del)];
+    if (!doc || !confirm("ລຶບເອກະສານນີ້?")) return;
+    let res = null;
+    try {
+      res = await apiPost({ type: "shopdocdel", shopName: session.shopName, pin: session.pin, docUrl: doc.url });
+    } catch (err) {}
+    $("sDocMsg").textContent = res && res.ok ? "ລຶບແລ້ວ" : "ລຶບບໍ່ໄດ້";
+    await loadProfile();
+  });
 
   $("sPhoto").onchange = function () {
     const f = $("sPhoto").files[0];
