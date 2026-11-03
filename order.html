@@ -24,7 +24,10 @@
     .shop-btn small { display: block; color: #666; font-size: 13px; }
     #msg { font-size: 15px; color: #333; }
     .hidden { display: none; }
-  </style>
+    .cat-bar { display:flex; gap:8px; overflow-x:auto; padding:4px 0 10px; -webkit-overflow-scrolling:touch; }
+  .cat-btn { flex:0 0 auto; padding:8px 14px; border-radius:999px; border:1px solid #d1d5db; background:#ffffff; color:#1d2330; font-size:16px; white-space:nowrap; cursor:pointer; }
+  .cat-btn.on { background:#d62828; border-color:#d62828; color:#ffffff; }
+</style>
 </head>
 <body>
   <a class="back" href="services.html">← ເລືອກບໍລິການ</a>
@@ -41,6 +44,7 @@
   <!-- ສັ່ງຊື້ ແລະ ສົ່ງ: ເລືອກຮ້ານ -->
   <div class="box hidden" id="shopBox">
     <label>ເລືອກຮ້ານ</label>
+    <div id="catBar" class="cat-bar"></div>
     <div id="shopList"><p class="sub">ກຳລັງໂຫຼດຮ້ານ...</p></div>
   </div>
 
@@ -263,37 +267,62 @@
 
     // ໂຫຼດລາຍຊື່ຮ້ານ (ສັ່ງຊື້ ແລະ ສົ່ງ)
     if (IS_BUY) {
+      // ໝວດສິນຄ້າ: ກອງຮ້ານຕາມ sellerType ໃນຊີດ (ຮ້ານທີ່ບໍ່ມີໝວດ ຖືເປັນ "ທົ່ວໄປ")
+      let allShops = [], curCat = 'ທັງໝົດ';
+      const CATS = ['ທັງໝົດ', 'ທົ່ວໄປ', 'ອາຫານດ່ວນ', 'ແຟຊັ່ນ', 'ເຄື່ອງສຳອາງ', 'ເຄື່ອງໃຊ້ໄຟຟ້າ', 'ເຄື່ອງໃຊ້ໃນຄົວເຮືອນ', 'ວັດສະດຸກໍ່ສ້າງ', 'ເຄື່ອງມືຊ່າງ'];
+      const catOf = s => String(s.sellerType || '').trim() || 'ທົ່ວໄປ';
+
+      function renderCatBar() {
+        const bar = $('catBar');
+        bar.textContent = '';
+        CATS.forEach(c => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'cat-btn' + (c === curCat ? ' on' : '');
+          b.textContent = c;
+          b.addEventListener('click', () => { curCat = c; renderShopList(); });
+          bar.appendChild(b);
+        });
+      }
+
+      function renderShopList() {
+        renderCatBar();
+        const list = $('shopList');
+        list.textContent = '';
+        const shown = allShops.filter(s => curCat === 'ທັງໝົດ' || catOf(s) === curCat);
+        if (shown.length === 0) {
+          list.innerHTML = '<p class="sub">ຍັງບໍ່ມີຮ້ານໃນໝວດນີ້</p>';
+          return;
+        }
+        shown.forEach(s => {
+          const lat = Number(s.lat), lng = Number(s.lng);
+          if (!lat || !lng) return;
+          const btn = document.createElement('button');
+          btn.className = 'shop-btn';
+          btn.type = 'button';
+          btn.textContent = s.shopName || s.name || 'ຮ້ານ';
+          const small = document.createElement('small');
+          small.textContent = s.address || '';
+          btn.appendChild(small);
+          btn.addEventListener('click', function () {
+            document.querySelectorAll('.shop-btn').forEach(b => b.classList.remove('on'));
+            btn.classList.add('on');
+            selectedShop = { name: btn.firstChild.textContent, lat: lat, lng: lng, address: s.address || '' };
+            map.setView([lat, lng], 15);
+            dropoff = null;
+            pickup = L.latLng(lat, lng);
+            hint.textContent = 'ແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ';
+            drawRoute();
+          });
+          list.appendChild(btn);
+        });
+      }
+
       fetch(SCRIPT_URL)
         .then(r => r.json())
         .then(shops => {
-          const list = $('shopList');
-          list.textContent = '';
-          if (!Array.isArray(shops) || shops.length === 0) {
-            list.innerHTML = '<p class="sub">ຍັງບໍ່ມີຮ້ານ</p>';
-            return;
-          }
-          shops.forEach(s => {
-            const lat = Number(s.lat), lng = Number(s.lng);
-            if (!lat || !lng) return;
-            const btn = document.createElement('button');
-            btn.className = 'shop-btn';
-            btn.type = 'button';
-            btn.textContent = s.shopName || s.name || 'ຮ້ານ';
-            const small = document.createElement('small');
-            small.textContent = s.address || '';
-            btn.appendChild(small);
-            btn.addEventListener('click', function () {
-              document.querySelectorAll('.shop-btn').forEach(b => b.classList.remove('on'));
-              btn.classList.add('on');
-              selectedShop = { name: btn.firstChild.textContent, lat: lat, lng: lng, address: s.address || '' };
-              map.setView([lat, lng], 15);
-              dropoff = null;
-              pickup = L.latLng(lat, lng);
-              hint.textContent = 'ແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ';
-              drawRoute();
-            });
-            list.appendChild(btn);
-          });
+          allShops = Array.isArray(shops) ? shops : [];
+          renderShopList();
         })
         .catch(() => {
           $('shopList').innerHTML = '<p class="sub">ໂຫຼດຮ້ານບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ</p>';
