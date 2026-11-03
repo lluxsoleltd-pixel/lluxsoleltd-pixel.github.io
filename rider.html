@@ -241,7 +241,7 @@
         '</div>';
     }
     // ງານບໍລິການໄຣເດີ (ບໍ່ມີຮ້ານແພັກ) ກົດຮັບສິນຄ້າໄດ້ທັນທີຫຼັງຮັບງານ
-    const canPickup = o.status === "ready" || (o.status === "accepted" && o.serviceType !== "buy");
+    const canPickup = o.status === "ready" || o.status === "accepted";
     // ລູກຄ້າແຈ້ງໂອນແລ້ວ ໄຣເດີຕ້ອງກົດຢືນຢັນວ່າໄດ້ຮັບເງິນ
     if (o.serviceType !== "buy" && o.paymentStatus === "claimed" && o.status !== "delivered") {
       return '<p class="muted">ລູກຄ້າແຈ້ງໂອນແລ້ວ ກະລຸນາກວດເງິນ</p>' +
