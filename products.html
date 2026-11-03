@@ -37,9 +37,9 @@
   /* ===== ແບນເນີ ===== */
   .banner { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 12px 12px 0; border-radius: 14px; }
   .banner::-webkit-scrollbar { display: none; }
-  .slide { flex: 0 0 100%; scroll-snap-align: start; position: relative; aspect-ratio: 16 / 8; background: linear-gradient(135deg, #ffb199, var(--red)); overflow: hidden; }
-  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .slide .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 14px 12px; background: linear-gradient(transparent, rgba(0,0,0,.6)); color: #fff; }
+  .slide { flex: 0 0 100%; scroll-snap-align: start; position: relative; aspect-ratio: 16 / 8; background: #fff; overflow: hidden; }
+  .slide img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .slide .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 10px 14px; background: rgba(255,255,255,.93); color: var(--ink); }
   .slide .cap b { display: block; font-size: 16px; }
   .slide .cap span { font-size: 14px; }
   .dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
@@ -103,6 +103,11 @@
   .note { font-size: 13px; color: var(--mute); line-height: 1.5; }
   .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
   .toast.on { opacity: 1; }
+  .cr { display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 12px; margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; background: #fff; font-size: 15px; cursor: pointer; text-align: left; color: var(--ink); }
+  .cr.on { border-color: var(--red); color: var(--red); font-weight: 700; }
+  .cr small { color: var(--mute); font-size: 13px; }
+  .inp { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--line); border-radius: 10px; margin-top: 6px; }
+  .lbl { display: block; font-size: 14px; color: var(--mute); margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -146,6 +151,7 @@
   <button id="tCat"><span class="e">🗂️</span>ໝວດໝູ່</button>
   <button id="tCart"><span class="e">🛒</span>ຕະກ້າ<span class="badge" id="badgeTab">0</span></button>
   <button id="tTrack"><span class="e">📦</span>ຕິດຕາມ</button>
+  <button id="tMe"><span class="e">👤</span>ຂ້ອຍ</button>
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -154,12 +160,26 @@
 <div class="overlay" id="ovDetail"><div class="sheet" id="sheetDetail"></div></div>
 <!-- ຕະກ້າ -->
 <div class="overlay" id="ovCart"><div class="sheet" id="sheetCart"></div></div>
+<!-- ໜ້າຕ່າງທົ່ວໄປ: ໝວດໝູ່ / ຕິດຕາມ / ບັນຊີ -->
+<div class="overlay" id="ovInfo"><div class="sheet" id="sheetInfo"></div></div>
 
 <script>
   const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
   const ADMIN_WA = "8562023949789";
   const ALL = "ທັງໝົດ";
-  const ICONS = ["👕", "📱", "🏠", "🧴", "🎁", "📦", "🍜", "💄", "🧸", "🖨️"];
+  // ໄອຄອນຕາມຊື່ໝວດ (ບໍ່ໃຊ້ລຳດັບ)
+  function iconFor(name) {
+    const n = String(name || "");
+    if (n.indexOf("ເຈ້ຍ") >= 0 || /a4/i.test(n)) return "📄";
+    if (n.indexOf("ນໍ້າມັນ") >= 0) return "🫒";
+    if (n.indexOf("ລ້າງຈານ") >= 0) return "🍽️";
+    if (n.indexOf("ຊັກ") >= 0) return "🧺";
+    if (n.indexOf("ນໍ້າຢາ") >= 0 || n.indexOf("ລ້າງ") >= 0) return "🧴";
+    if (n.indexOf("ເສື້ອ") >= 0 || n.indexOf("ຜ້າ") >= 0) return "👕";
+    if (n.indexOf("ໂທລະສັບ") >= 0 || n.indexOf("ມືຖື") >= 0) return "📱";
+    if (n.indexOf("ເຄື່ອງ") >= 0 || n.indexOf("ບ້ານ") >= 0) return "🏠";
+    return "📦";
+  }
   const RIDER_KMH = 30;
 
   let items = [];          // ສິນຄ້າທັງໝົດ
@@ -249,7 +269,7 @@
     const names = [ALL];
     items.forEach(function (i) { if (i.category && names.indexOf(i.category) < 0) names.push(i.category); });
     $("cats").innerHTML = names.map(function (c, idx) {
-      const icon = c === ALL ? "🛍️" : ICONS[(idx - 1) % ICONS.length];
+      const icon = c === ALL ? "🛍️" : iconFor(c);
       return '<button class="cat' + (c === cat ? " on" : "") + '" data-cat="' + esc(c) + '">' +
         '<div class="ic">' + icon + '</div><span>' + esc(c) + '</span></button>';
     }).join("");
@@ -378,6 +398,7 @@
   function closeAll() {
     $("ovDetail").classList.remove("on");
     $("ovCart").classList.remove("on");
+    $("ovInfo").classList.remove("on");
   }
 
   // ===== ເຫດການ =====
@@ -386,6 +407,7 @@
     const b = e.target.closest("[data-cat]");
     if (!b) return;
     cat = b.dataset.cat;
+    $("secTitle").scrollIntoView({ behavior: "smooth", block: "start" });
     renderCats();
     render();
   });
@@ -401,16 +423,78 @@
   });
   $("ovDetail").addEventListener("click", function (e) { if (e.target.id === "ovDetail") closeAll(); });
   $("ovCart").addEventListener("click", function (e) { if (e.target.id === "ovCart") closeAll(); });
+  $("ovInfo").addEventListener("click", function (e) { if (e.target.id === "ovInfo") closeAll(); });
+  $("sheetInfo").addEventListener("click", function (e) {
+    const p = e.target.closest("[data-pick]");
+    if (!p) return;
+    cat = p.dataset.pick;
+    renderCats();
+    render();
+    closeAll();
+    $("secTitle").scrollIntoView({ behavior: "smooth", block: "start" });
+  });
 
   $("btnChat").onclick = function () { window.open("https://wa.me/" + ADMIN_WA, "_blank"); };
   $("btnCartTop").onclick = openCart;
   $("tCart").onclick = openCart;
-  $("tTrack").onclick = function () { location.href = "track.html"; };
+  $("tTrack").onclick = openTrack;
   $("tHome").onclick = function () { window.scrollTo({ top: 0, behavior: "smooth" }); setTab("tHome"); };
-  $("tCat").onclick = function () { $("cats").scrollIntoView({ behavior: "smooth" }); setTab("tCat"); };
+  $("tCat").onclick = openCategories;
+  $("tMe").onclick = openMe;
 
   function setTab(id) {
     ["tHome", "tCat"].forEach(function (k) { $(k).classList.toggle("on", k === id); });
+  }
+
+  // ===== ໜ້າຕ່າງທົ່ວໄປ =====
+  function openCategories() {
+    const counts = {};
+    items.forEach(function (i) { if (i.category) counts[i.category] = (counts[i.category] || 0) + 1; });
+    const rows = [
+      '<button class="cr' + (cat === ALL ? " on" : "") + '" data-pick="' + esc(ALL) + '"><span>🛍️ ' + esc(ALL) + '</span><small>' + items.length + '</small></button>'
+    ].concat(Object.keys(counts).map(function (n) {
+      return '<button class="cr' + (cat === n ? " on" : "") + '" data-pick="' + esc(n) + '"><span>' + iconFor(n) + ' ' + esc(n) + '</span><small>' + counts[n] + '</small></button>';
+    }));
+    $("sheetInfo").innerHTML = '<h2>ໝວດໝູ່</h2>' + (items.length ? rows.join("") : '<p class="note">ຍັງບໍ່ມີສິນຄ້າ</p>') +
+      '<button class="btn ghost" id="infoClose">ປິດ</button>';
+    $("infoClose").onclick = closeAll;
+    $("ovInfo").classList.add("on");
+  }
+
+  function openTrack() {
+    $("sheetInfo").innerHTML = '<h2>ຕິດຕາມອໍເດີ</h2>' +
+      '<p class="note">ໃສ່ເລກອໍເດີ ທີ່ຂຶ້ນຕົ້ນດ້ວຍ LX</p>' +
+      '<input id="trkId" class="inp" placeholder="ເລກອໍເດີ">' +
+      '<button class="btn" id="trkGo">ຕິດຕາມ</button>' +
+      '<button class="btn ghost" id="trkClose">ປິດ</button>';
+    $("trkGo").onclick = function () {
+      const v = $("trkId").value.trim();
+      if (!v) { toast("ໃສ່ເລກອໍເດີກ່ອນ"); return; }
+      location.href = "track.html?id=" + encodeURIComponent(v);
+    };
+    $("trkClose").onclick = closeAll;
+    $("ovInfo").classList.add("on");
+  }
+
+  function getMe() { try { return JSON.parse(localStorage.getItem("llux_me") || "{}"); } catch (e) { return {}; } }
+  function openMe() {
+    const me = getMe();
+    $("sheetInfo").innerHTML = '<h2>ບັນຊີຂອງຂ້ອຍ</h2>' +
+      '<p class="note">ຂໍ້ມູນນີ້ຈະໃຊ້ຕອນສັ່ງຊື້ ແລະ ເກັບໄວ້ໃນເຄື່ອງນີ້</p>' +
+      '<label class="lbl">ຊື່</label><input id="meName" class="inp" value="' + esc(me.name || "") + '">' +
+      '<label class="lbl">ເບີໂທ</label><input id="mePhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
+      '<button class="btn" id="meSave">ບັນທຶກ</button>' +
+      '<button class="btn ghost" id="meTrack">ຕິດຕາມອໍເດີ</button>' +
+      '<button class="btn ghost" id="meChat">ແຊັດກັບ LLUX</button>' +
+      '<button class="btn ghost" id="meClose">ປິດ</button>';
+    $("meSave").onclick = function () {
+      try { localStorage.setItem("llux_me", JSON.stringify({ name: $("meName").value.trim(), phone: $("mePhone").value.trim() })); } catch (e) {}
+      toast("ບັນທຶກແລ້ວ");
+    };
+    $("meTrack").onclick = openTrack;
+    $("meChat").onclick = function () { window.open("https://wa.me/" + ADMIN_WA, "_blank"); };
+    $("meClose").onclick = closeAll;
+    $("ovInfo").classList.add("on");
   }
 
   updateBadges();
