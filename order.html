@@ -364,8 +364,10 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(data)
       })
-        .then(function (r) { return r.json(); })
-        .then(function (res) {
+        .then(function (r) { return r.text(); })
+        .then(function (text) {
+          let res = null;
+          try { res = JSON.parse(text); } catch (e) { res = null; }
           // ບໍລິການໄຣເດີ: ໄປໜ້າຕິດຕາມພ້ອມເລກອໍເດີ
           if (res && res.ok && res.orderId) {
             location.href = 'track.html?id=' + encodeURIComponent(res.orderId);
@@ -384,7 +386,9 @@
           resetAll();
         })
         .catch(function () {
-          msg.textContent = 'ສົ່ງບໍ່ສຳເລັດ ລອງໃໝ່ອີກຄັ້ງ';
+          // ອາດຈະບັນທຶກແລ້ວ ແຕ່ອ່ານຜົນບໍ່ໄດ້: ໃຫ້ກວດກ່ອນສົ່ງຊ້ຳ
+          msg.textContent = 'ອາດສົ່ງແລ້ວ ກະລຸນາລໍຖ້າ 1 ນາທີ ແລ້ວກວດກັບໄຣເດີ ຫຼື ຕິດຕໍ່ 020 23 949 789 ກ່ອນສັ່ງຊ້ຳ';
+          submitBtn.disabled = false;
           updateSubmit();
         });
     });
