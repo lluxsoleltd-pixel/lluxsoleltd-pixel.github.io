@@ -36,6 +36,14 @@
   .hidden { display:none !important; }
   .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
   .small { font-size:13px; }
+  .tabs2 { display:flex; gap:8px; margin:4px 0 12px; }
+  .tabs2 button { margin-top:0; width:auto; flex:1; }
+  .mitem { display:flex; gap:12px; align-items:center; }
+  .mitem img { width:64px; height:64px; object-fit:cover; border-radius:10px; background:var(--line); flex:0 0 64px; }
+  .mitem .mtxt { flex:1; min-width:0; }
+  .mitem .mtxt b { display:block; font-size:16px; }
+  .mitem .mbtns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .mitem .mbtns button { width:auto; margin:0; padding:6px 10px; font-size:14px; }
 </style>
 </head>
 <body>
@@ -70,6 +78,33 @@
     </div>
 
     <p id="emptyMsg" class="muted hidden">ຍັງບໍ່ມີອໍເດີໃໝ່</p>
+    <div class="tabs2">
+      <button id="tabOrders" class="good">ອໍເດີ</button>
+      <button id="tabMenu" class="secondary">ເມນູສິນຄ້າ</button>
+    </div>
+
+    <!-- ໜ້າເມນູສິນຄ້າຂອງຮ້ານ -->
+    <div id="menuView" class="hidden">
+      <div class="card">
+        <h2 id="menuFormTitle">ເພີ່ມສິນຄ້າໃໝ່</h2>
+        <label class="muted small">ຊື່ສິນຄ້າ</label>
+        <input id="mName" type="text">
+        <label class="muted small">ລາຄາ (ກີບ)</label>
+        <input id="mPrice" type="number" min="1" step="100" inputmode="numeric">
+        <label class="muted small">ໝວດສິນຄ້າ</label>
+        <select id="mCat"></select>
+        <label class="muted small">ລາຍລະອຽດ</label>
+        <input id="mDesc" type="text">
+        <label class="muted small">ຮູບສິນຄ້າ</label>
+        <input id="mImg" type="file" accept="image/*">
+        <img id="mPreview" class="hidden" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px;">
+        <button id="mSave">ບັນທຶກສິນຄ້າ</button>
+        <button id="mCancel" class="secondary hidden">ຍົກເລີກການແກ້ໄຂ</button>
+        <p id="mMsg" class="muted small"></p>
+      </div>
+      <div id="menuList"></div>
+    </div>
+
     <div id="orders"></div>
     <p id="netMsg" class="muted small"></p>
   </div>
@@ -221,7 +256,7 @@
   // ສະແດງຜົນ
   function render() {
     const box = $("orders");
-    $("emptyMsg").classList.toggle("hidden", orders.length > 0);
+    $("emptyMsg").classList.toggle("hidden", activeTab === "menu" || orders.length > 0);
     box.innerHTML = orders.map(orderCard).join("");
   }
 
@@ -384,6 +419,177 @@
   });
 
   // ເລີ່ມຕົ້ນ
+  // ===== ເມນູສິນຄ້າຂອງຮ້ານ =====
+  const MENU_CATS = ['ທົ່ວໄປ', 'ອາຫານດ່ວນ', 'ແຟຊັ່ນ', 'ເຄື່ອງສຳອາງ', 'ເຄື່ອງໃຊ້ໄຟຟ້າ', 'ເຄື່ອງໃຊ້ໃນຄົວເຮືອນ', 'ວັດສະດຸກໍ່ສ້າງ', 'ເຄື່ອງມືຊ່າງ'];
+  let activeTab = "orders";
+  let menuItems = [];
+  let editingRow = null;
+
+  function fillCats() {
+    $("mCat").innerHTML = MENU_CATS.map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+    }).join("");
+  }
+
+  function showTab(which) {
+    activeTab = which;
+    const isMenu = which === "menu";
+    $("tabOrders").className = isMenu ? "secondary" : "good";
+    $("tabMenu").className = isMenu ? "good" : "secondary";
+    $("menuView").classList.toggle("hidden", !isMenu);
+    $("orders").classList.toggle("hidden", isMenu);
+    if (isMenu) { $("emptyMsg").classList.add("hidden"); loadMenu(); } else render();
+  }
+
+  async function loadMenu() {
+    if (!session) return;
+    try {
+      const data = await apiGet({ type: "mymenu", shopName: session.shopName, pin: session.pin });
+      if (data && data.error === "auth") { logout(); return; }
+      menuItems = Array.isArray(data) ? data : [];
+      renderMenu();
+    } catch (e) {
+      $("mMsg").textContent = "ໂຫຼດເມນູບໍ່ໄດ້";
+    }
+  }
+
+  function renderMenu() {
+    $("menuList").innerHTML = menuItems.map(function (it) {
+      const soldout = it.status === "soldout";
+      const img = it.imageUrl ? '<img src="' + esc(it.imageUrl) + '" alt="">' : '';
+      return '<div class="card mitem">' + img +
+        '<div class="mtxt"><b>' + esc(it.itemName) + '</b>' +
+        '<span class="muted small">' + esc(it.category) + ' · ' + money(it.price) + '</span>' +
+        (soldout ? ' <span class="bad small">ໝົດແລ້ວ</span>' : '') +
+        '<div class="mbtns">' +
+          '<button class="secondary" data-m="edit" data-row="' + it.row + '">ແກ້ໄຂ</button>' +
+          '<button class="' + (soldout ? 'good' : 'secondary') + '" data-m="soldout" data-row="' + it.row + '" data-soldout="' + (soldout ? '0' : '1') + '">' +
+            (soldout ? 'ມີສິນຄ້າແລ້ວ' : 'ໝົດແລ້ວ') + '</button>' +
+          '<button class="danger" data-m="delete" data-row="' + it.row + '">ລົບ</button>' +
+        '</div></div></div>';
+    }).join("") || '<p class="muted small">ຍັງບໍ່ມີສິນຄ້າ</p>';
+  }
+
+  // ຫຍໍ້ຮູບໃນເບຣາວເຊີ (ສູງສຸດ 800px) ເພື່ອໃຫ້ສົ່ງໄວ ແລະ ໄຟລ໌ເລັກ
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          const scale = Math.min(1, 800 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * scale);
+          c.height = Math.round(img.height * scale);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function resetForm() {
+    editingRow = null;
+    $("mName").value = "";
+    $("mPrice").value = "";
+    $("mDesc").value = "";
+    $("mImg").value = "";
+    $("mPreview").classList.add("hidden");
+    $("mPreview").removeAttribute("src");
+    $("menuFormTitle").textContent = "ເພີ່ມສິນຄ້າໃໝ່";
+    $("mCancel").classList.add("hidden");
+    $("mSave").disabled = false;
+  }
+
+  function startEdit(it) {
+    editingRow = it.row;
+    $("mName").value = it.itemName;
+    $("mPrice").value = it.price;
+    $("mCat").value = it.category || MENU_CATS[0];
+    $("mDesc").value = it.description || "";
+    $("menuFormTitle").textContent = "ແກ້ໄຂສິນຄ້າ";
+    $("mCancel").classList.remove("hidden");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  async function menuCall(extra) {
+    try {
+      return await apiPost(Object.assign({ type: "menusave", shopName: session.shopName, pin: session.pin }, extra));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  $("mImg").onchange = function () {
+    const f = $("mImg").files[0];
+    if (!f) { $("mPreview").classList.add("hidden"); return; }
+    $("mPreview").src = URL.createObjectURL(f);
+    $("mPreview").classList.remove("hidden");
+  };
+
+  $("mSave").onclick = async function () {
+    const item = {
+      itemName: $("mName").value.trim(),
+      price: Number($("mPrice").value),
+      category: $("mCat").value,
+      description: $("mDesc").value.trim()
+    };
+    if (!item.itemName || !(item.price > 0)) { $("mMsg").textContent = "ໃສ່ຊື່ ແລະ ລາຄາໃຫ້ຄົບ"; return; }
+    $("mSave").disabled = true;
+    $("mMsg").textContent = "ກຳລັງບັນທຶກ...";
+
+    const res = editingRow
+      ? await menuCall({ action: "update", row: editingRow, item: item })
+      : await menuCall({ action: "add", item: item });
+    if (!res || !res.ok) {
+      $("mMsg").textContent = "ບັນທຶກບໍ່ໄດ້ ລອງໃໝ່";
+      $("mSave").disabled = false;
+      return;
+    }
+
+    let msgTxt = "ບັນທຶກແລ້ວ";
+    const row = editingRow || res.row;
+    const file = $("mImg").files[0];
+    if (file) {
+      try {
+        const b64 = await shrinkImage(file);
+        const up = await apiPost({ type: "menuimage", shopName: session.shopName, pin: session.pin, row: row, imageBase64: b64 });
+        if (!up || !up.ok) msgTxt = "ບັນທຶກສິນຄ້າແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້";
+      } catch (e) {
+        msgTxt = "ບັນທຶກສິນຄ້າແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້";
+      }
+    }
+    resetForm();
+    await loadMenu();
+    $("mMsg").textContent = msgTxt;
+  };
+
+  $("mCancel").onclick = resetForm;
+
+  $("menuList").addEventListener("click", async function (ev) {
+    const b = ev.target.closest("button[data-m]");
+    if (!b) return;
+    const row = Number(b.dataset.row);
+    const it = menuItems.find(function (x) { return x.row === row; });
+    if (!it) return;
+    if (b.dataset.m === "edit") { startEdit(it); return; }
+    if (b.dataset.m === "delete") {
+      if (!confirm("ລົບ " + it.itemName + " ແທ້ບໍ?")) return;
+      await menuCall({ action: "delete", row: row });
+    } else if (b.dataset.m === "soldout") {
+      await menuCall({ action: "soldout", row: row, soldOut: b.dataset.soldout === "1" });
+    }
+    await loadMenu();
+  });
+
+  $("tabOrders").onclick = function () { showTab("orders"); };
+  $("tabMenu").onclick = function () { showTab("menu"); };
+  fillCats();
+
   setInterval(tickCountdown, 1000);
   updateNotifyState();
   loadShops();
