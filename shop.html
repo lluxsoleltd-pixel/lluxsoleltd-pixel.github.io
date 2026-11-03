@@ -150,10 +150,14 @@
     }).join("");
   }
 
+  let waitingDocs = false;
+
   function renderProducts() {
     if (!prodList.length) {
       $("prods").innerHTML = "";
-      $("prodMsg").textContent = "ຮ້ານນີ້ຍັງບໍ່ມີສິນຄ້າໃນລະບົບ";
+      $("prodMsg").textContent = waitingDocs
+        ? "ຮ້ານນີ້ກຳລັງລໍຖ້າກວດເອກະສານ ສິນຄ້າຈະສະແດງເມື່ອເອກະສານຄົບ"
+        : "ຮ້ານນີ້ຍັງບໍ່ມີສິນຄ້າໃນລະບົບ";
       return;
     }
     $("prodMsg").textContent = "";
@@ -190,6 +194,7 @@
       $("prodMsg").textContent = "";
       return;
     }
+    waitingDocs = !!p.needsDocs && !p.complete;
     document.title = p.name + " · LLUX";
     $("ttl").textContent = p.name;
     $("name").textContent = p.name;
@@ -226,8 +231,9 @@
     $("name").textContent = "ບໍ່ພົບຮ້ານນີ້";
     $("prodMsg").textContent = "";
   } else {
-    loadProfile().catch(function () { $("name").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້"; });
-    loadProducts();
+    loadProfile()
+      .catch(function () { $("name").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້"; })
+      .then(loadProducts);
   }
 </script>
 </body>

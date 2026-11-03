@@ -813,6 +813,8 @@
       await loadProfile();
     };
   });
+  $("sBiz").onchange = renderDocNote;
+  $("sHasStore").onchange = renderDocNote;
   $("sDocList").addEventListener("click", async function (e) {
     const b = e.target.closest("[data-del]");
     if (!b || !session) return;
