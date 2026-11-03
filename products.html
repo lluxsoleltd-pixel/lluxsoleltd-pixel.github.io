@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLUX ສິນຄ້າ</title>
+<style>
+  :root { --red:#d62828; --ink:#1d2330; --mute:#6b7280; --line:#d1d5db; --bg:#f7f7f8; }
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 16px 16px 40px; color: var(--ink); }
+  h1 { font-size: 24px; margin: 0 0 12px; }
+  .search { width: 100%; padding: 12px 14px; font-size: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
+  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px; -webkit-overflow-scrolling: touch; }
+  .cat { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 15px; cursor: pointer; }
+  .cat.on { background: var(--red); border-color: var(--red); color: #fff; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
+  @media (min-width: 700px) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; display: flex; flex-direction: column; }
+  .img { width: 100%; aspect-ratio: 1 / 1; background: #eee; object-fit: cover; display: block; }
+  .body { padding: 10px 12px 12px; }
+  .name { font-size: 15px; font-weight: 600; line-height: 1.3; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .price { font-size: 16px; font-weight: 700; color: var(--red); }
+  .shop { font-size: 13px; color: var(--mute); margin-top: 4px; }
+  .out { display: inline-block; font-size: 12px; background: #374151; color: #fff; border-radius: 6px; padding: 2px 8px; margin-top: 6px; }
+  .msg { color: var(--mute); text-align: center; margin-top: 40px; font-size: 16px; }
+  .hidden { display: none; }
+  .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
+  .overlay.on { display: flex; }
+  .sheet { background: #fff; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 16px; }
+  .sheet .main { width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; background: #eee; object-fit: cover; display: block; }
+  .sheet h2 { font-size: 20px; margin: 12px 0 6px; }
+  .sheet .row { margin: 6px 0; font-size: 15px; color: #374151; }
+  .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; }
+  .thumbs img { width: 90px; height: 90px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eee; }
+  .close { margin-top: 14px; width: 100%; padding: 12px; border: none; border-radius: 10px; background: #374151; color: #fff; font-size: 16px; }
+</style>
+</head>
+<body>
+  <h1>LLUX ສິນຄ້າ</h1>
+  <input id="q" class="search" type="search" placeholder="ຄົ້ນຫາສິນຄ້າ ຫຼື ຮ້ານ">
+  <div id="cats" class="cats"></div>
+  <p id="msg" class="msg">ກຳລັງໂຫຼດສິນຄ້າ...</p>
+  <div id="grid" class="grid"></div>
+
+  <div id="overlay" class="overlay"><div class="sheet" id="sheet"></div></div>
+
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const ALL = "ທັງໝົດ";
+  let items = [];
+  let shown = [];
+  let cat = ALL;
+
+  const $ = (id) => document.getElementById(id);
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+
+  async function load() {
+    try {
+      const r = await fetch(API + "?type=products", { cache: "no-store" });
+      const data = await r.json();
+      items = Array.isArray(data) ? data : [];
+    } catch (e) {
+      $("msg").textContent = "ໂຫຼດສິນຄ້າບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ";
+      return;
+    }
+    renderCats();
+    render();
+  }
+
+  function renderCats() {
+    const names = [ALL];
+    items.forEach(function (i) { if (i.category && names.indexOf(i.category) < 0) names.push(i.category); });
+    $("cats").innerHTML = names.map(function (c) {
+      return '<button class="cat' + (c === cat ? " on" : "") + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
+    }).join("");
+  }
+
+  function render() {
+    const q = $("q").value.trim().toLowerCase();
+    shown = items.filter(function (i) {
+      if (cat !== ALL && i.category !== cat) return false;
+      if (!q) return true;
+      return (i.itemName + " " + i.shopName + " " + i.category + " " + i.description).toLowerCase().indexOf(q) >= 0;
+    });
+    $("msg").textContent = items.length === 0 ? "ຍັງບໍ່ມີສິນຄ້າ" : (shown.length === 0 ? "ບໍ່ພົບສິນຄ້າ" : "");
+    $("msg").classList.toggle("hidden", shown.length > 0);
+    $("grid").innerHTML = shown.map(function (i, idx) {
+      const img = i.imageUrl
+        ? '<img class="img" loading="lazy" src="' + esc(i.imageUrl) + '" alt="">'
+        : '<div class="img"></div>';
+      return '<div class="card" data-idx="' + idx + '">' + img +
+        '<div class="body">' +
+          '<p class="name">' + esc(i.itemName) + '</p>' +
+          '<div class="price">' + money(i.price) + '</div>' +
+          '<div class="shop">' + esc(i.shopName) + '</div>' +
+          (i.status === "soldout" ? '<span class="out">ໝົດແລ້ວ</span>' : '') +
+        '</div></div>';
+    }).join("");
+  }
+
+  function openDetail(i) {
+    const thumbs = String(i.detailImages || "").split(/[\n,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
+    $("sheet").innerHTML =
+      (i.imageUrl ? '<img class="main" src="' + esc(i.imageUrl) + '" alt="">' : '') +
+      (thumbs.length ? '<div class="thumbs">' + thumbs.map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join("") + '</div>' : '') +
+      '<h2>' + esc(i.itemName) + '</h2>' +
+      '<div class="row"><b>' + money(i.price) + '</b></div>' +
+      '<div class="row">ຮ້ານ: ' + esc(i.shopName) + '</div>' +
+      (i.category ? '<div class="row">ໝວດ: ' + esc(i.category) + '</div>' : '') +
+      (i.origin ? '<div class="row">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
+      (i.importer ? '<div class="row">ຜູ້ນຳເຂົ້າ: ' + esc(i.importer) + '</div>' : '') +
+      (i.description ? '<div class="row">' + esc(i.description) + '</div>' : '') +
+      (i.status === "soldout" ? '<div class="row"><span class="out">ໝົດແລ້ວ</span></div>' : '') +
+      '<button class="close" id="closeBtn">ປິດ</button>';
+    $("overlay").classList.add("on");
+  }
+  function closeDetail() { $("overlay").classList.remove("on"); }
+
+  $("q").addEventListener("input", render);
+  $("cats").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-cat]");
+    if (!b) return;
+    cat = b.dataset.cat;
+    renderCats();
+    render();
+  });
+  $("grid").addEventListener("click", function (e) {
+    const c = e.target.closest("[data-idx]");
+    if (!c) return;
+    openDetail(shown[Number(c.dataset.idx)]);
+  });
+  $("overlay").addEventListener("click", function (e) {
+    if (e.target.id === "overlay" || e.target.id === "closeBtn") closeDetail();
+  });
+
+  load();
+</script>
+</body>
+</html>
