@@ -138,7 +138,6 @@
 
     // ລະຍະທາງລວມທັງທຣິບ: ຮອດ 7 ກມ = 3,500 ກີບ/ກມ, ເກີນ 7 ກມ = 3,000 ກີບ/ກມ (ເຣດດຽວທັງໝົດ)
     function calcFee(km) {
-      if (km > 25) return null;
       const rate = km <= 7 ? 3500 : 3000;
       return Math.round((km * rate) / 100) * 100;
     }
