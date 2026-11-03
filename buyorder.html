@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ຕິດຕາມອໍເດີ · LLUX</title>
+<style>
+  :root { --red:#d62828; --red2:#ff5a36; --ink:#1d2330; --mute:#6b7280; --line:#e5e7eb; --bg:#f5f5f6; --ok:#16a34a; }
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; background: var(--bg); margin: 0; color: var(--ink); padding-bottom: 40px; }
+  .top { background: linear-gradient(180deg, var(--red), var(--red2)); color: #fff; padding: 14px 16px; }
+  .top a { color: #fff; text-decoration: none; font-size: 14px; }
+  .top h1 { font-size: 17px; margin: 6px 0 0; word-break: break-all; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 12px; }
+  .card { background: #fff; border-radius: 14px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+  .card h2 { font-size: 16px; margin: 0 0 8px; display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .st { font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #fee2e2; color: var(--red); white-space: nowrap; }
+  .st.ok { background: #dcfce7; color: var(--ok); }
+  .st.wait { background: #fef3c7; color: #92400e; }
+  .row { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; font-size: 14px; }
+  .muted { color: var(--mute); font-size: 13px; }
+  .qr { width: 200px; max-width: 80%; display: block; margin: 10px auto; border-radius: 10px; }
+  .btn { display: block; width: 100%; text-align: center; padding: 13px; border: 0; border-radius: 12px; font-size: 15px; background: var(--red); color: #fff; text-decoration: none; cursor: pointer; margin-top: 8px; }
+  .btn.ghost { background: #eef1f5; color: var(--ink); }
+  .btn:disabled { background: #d1d5db; cursor: default; }
+  .hidden { display: none !important; }
+  .msg { color: var(--mute); text-align: center; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="top">
+  <a href="products.html">‹ ກັບໄປໜ້າສິນຄ້າ</a>
+  <h1 id="oid">ກຳລັງໂຫຼດ...</h1>
+</div>
+<div class="wrap">
+  <div class="card" id="sumCard"></div>
+  <div id="shops"></div>
+  <p class="msg" id="msg"></p>
+</div>
+
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const ID = new URLSearchParams(location.search).get("id") || "";
+  const $ = (id) => document.getElementById(id);
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function setMsg(t) { $("msg").textContent = t || ""; }
+
+  const LABEL = {
+    shop_pending: ["ລໍຖ້າຮ້ານຢືນຢັນອໍເດີ", "wait"],
+    shop_rejected: ["ຮ້ານປະຕິເສດອໍເດີ", ""],
+    awaiting_payment: ["ລໍຖ້າໂອນຄ່າສິນຄ້າ ແລະ ອັບສລິບ", "wait"],
+    open_for_rider: ["ຮ້ານຢືນຢັນແລ້ວ · ລໍຖ້າໄຣເດີມາຮັບ", "wait"],
+    accepted: ["ໄຣເດີຮັບງານແລ້ວ", "ok"],
+    ready: ["ຮ້ານແພັກສິນຄ້າແລ້ວ", "ok"],
+    picked_up: ["ກຳລັງຈັດສົ່ງ", "ok"],
+    delivered: ["ສົ່ງສຳເລັດ ✔", "ok"]
+  };
+  function statusOf(o) {
+    if (o.status === "awaiting_payment" && o.paymentStatus === "slip_uploaded") return ["ສົ່ງສລິບແລ້ວ · ລໍຖ້າຮ້ານຢືນຢັນເງິນ", "wait"];
+    if (o.status === "open_for_rider" && o.paymentStatus === "confirmed") return ["ຮ້ານຢືນຢັນເງິນແລ້ວ · ລໍຖ້າໄຣເດີ", "wait"];
+    return LABEL[o.status] || [o.status || "-", ""];
+  }
+
+  function summary(list) {
+    const dt = list[0].deliveryType || "express";
+    const goods = list.reduce(function (s, o) { return s + (Number(o.goodsTotal) || 0); }, 0);
+    const fee = list.reduce(function (s, o) { return s + (Number(o.fee) || 0); }, 0);
+    $("sumCard").innerHTML =
+      '<div class="row"><span class="muted">ການສົ່ງ</span><span>' + (dt === "ship" ? "🚚 ໄປຕ່າງແຂວງ (ຮັບພາຍໃນ 3 ວັນ)" : "⚡ ສົ່ງດ່ວນທັນທີ") + '</span></div>' +
+      '<div class="row"><span class="muted">ລວມຄ່າສິນຄ້າ</span><span>' + money(goods) + '</span></div>' +
+      (dt === "ship"
+        ? '<div class="row"><span class="muted">ຄ່າຂົນສົ່ງ</span><span>ແອດມິນຈະແຈ້ງຍອດ</span></div>'
+        : '<div class="row"><span class="muted">ຄ່າສົ່ງ (ລວມ)</span><span>' + money(fee) + '</span></div>');
+  }
+
+  function shopCard(o) {
+    const st = statusOf(o);
+    let h = '<div class="card"><h2><span>' + esc(o.shopName) + '</span><span class="st ' + st[1] + '">' + esc(st[0]) + '</span></h2>';
+    h += '<div class="row"><span class="muted">ຄ່າສິນຄ້າ</span><span>' + money(o.goodsTotal) + '</span></div>';
+    if (o.itemDesc) h += '<div class="row"><span class="muted">ລາຍການ</span><span style="text-align:right">' + esc(o.itemDesc) + '</span></div>';
+
+    if (o.status === "awaiting_payment" && o.paymentStatus === "unpaid") {
+      h += '<p class="muted">ໂອນຄ່າສິນຄ້າເຂົ້າບັນຊີຮ້ານ ແລ້ວອັບສລິບການໂອນ</p>';
+      if (o.shopQr && o.shopQr.qrImageUrl) h += '<img class="qr" src="' + esc(o.shopQr.qrImageUrl) + '" alt="QR ຮ້ານ">';
+      if (o.shopQr && o.shopQr.accountNo) h += '<p class="muted" style="text-align:center">' + esc(o.shopQr.bankName) + ' · ' + esc(o.shopQr.accountName) + ' · ' + esc(o.shopQr.accountNo) + '</p>';
+      h += '<label class="btn" style="cursor:pointer">📎 ອັບສລິບການໂອນ<input type="file" accept="image/*" class="hidden" data-slip="' + o.row + '"></label>';
+    }
+
+    if (o.rider) {
+      h += '<div class="row"><span class="muted">ໄຣເດີ</span><span>' + esc(o.rider.riderName) + (o.rider.plate ? ' · ' + esc(o.rider.plate) : '') + '</span></div>';
+      if (o.rider.phone) h += '<a class="btn ghost" href="tel:' + esc(o.rider.phone) + '">📞 ໂທຫາໄຣເດີ</a>';
+    }
+
+    if (o.serviceType === "buy" && o.deliveryType !== "ship" && o.rider && Number(o.fee) > 0 && o.feePaymentStatus !== "confirmed") {
+      h += '<p class="muted" style="margin-top:10px">ໂອນຄ່າສົ່ງ ' + money(o.fee) + ' ຕາມ QR ໄຣເດີ</p>';
+      if (o.rider.qrImageUrl) h += '<img class="qr" src="' + esc(o.rider.qrImageUrl) + '" alt="QR ໄຣເດີ">';
+      if (o.feePaymentStatus === "claimed") h += '<p class="muted" style="text-align:center">ແຈ້ງໂອນແລ້ວ · ລໍຖ້າໄຣເດີຢືນຢັນ</p>';
+      else h += '<button class="btn" data-paid="' + o.row + '">ຂ້ອຍໂອນຄ່າສົ່ງແລ້ວ</button>';
+    }
+    if (o.feePaymentStatus === "confirmed" && Number(o.fee) > 0) h += '<p class="muted" style="text-align:center">ຄ່າສົ່ງຊຳລະແລ້ວ ✔</p>';
+    if (o.deliveryType === "ship") h += '<p class="muted">ຄ່າຂົນສົ່ງຕ່າງແຂວງ: ແອດມິນຈະແຈ້ງຍອດໃຫ້</p>';
+
+    return h + '</div>';
+  }
+
+  async function post(obj) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(obj) });
+    return r.json();
+  }
+
+  async function load() {
+    if (!ID) { setMsg("ບໍ່ພົບເລກອໍເດີ"); return; }
+    try {
+      const r = await fetch(API + "?type=orderstatus&orderId=" + encodeURIComponent(ID), { cache: "no-store" });
+      const rows = await r.json();
+      const list = Array.isArray(rows) ? rows : [];
+      if (!list.length) { setMsg("ບໍ່ພົບອໍເດີນີ້"); return; }
+      $("oid").textContent = "ອໍເດີ " + ID;
+      summary(list);
+      $("shops").innerHTML = list.map(shopCard).join("");
+      setMsg("");
+    } catch (e) {
+      setMsg("ໂຫຼດຂໍ້ມູນບໍ່ໄດ້ ກຳລັງລອງໃໝ່...");
+    }
+  }
+
+  // ຫຍໍ້ຮູບສລິບໃນເບຣາວເຊີ ແລ້ວສົ່ງເປັນ base64
+  function shrink(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          const scale = Math.min(1, 1000 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * scale);
+          c.height = Math.round(img.height * scale);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.addEventListener("change", async function (e) {
+    const inp = e.target;
+    if (!inp.dataset || !inp.dataset.slip) return;
+    const f = inp.files && inp.files[0];
+    inp.value = "";
+    if (!f) return;
+    setMsg("ກຳລັງອັບໂຫຼດສລິບ...");
+    let res = null;
+    try {
+      const b64 = await shrink(f);
+      res = await post({ type: "slip", row: Number(inp.dataset.slip), orderId: ID, mime: "image/jpeg", imageBase64: b64 });
+    } catch (err) {}
+    setMsg(res && res.ok ? "ອັບສລິບແລ້ວ ລໍຖ້າຮ້ານຢືນຢັນ" : "ອັບໂຫຼດບໍ່ໄດ້ ລອງໃໝ່");
+    load();
+  });
+
+  document.addEventListener("click", async function (e) {
+    const b = e.target.closest("[data-paid]");
+    if (!b || b.disabled) return;
+    b.disabled = true;
+    const res = await post({ type: "paymark", orderId: ID, row: Number(b.dataset.paid) }).catch(function () { return null; });
+    setMsg(res && res.ok ? "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນ" : "ແຈ້ງບໍ່ໄດ້ ລອງໃໝ່");
+    load();
+  });
+
+  load();
+  setInterval(load, 15000);
+</script>
+</body>
+</html>

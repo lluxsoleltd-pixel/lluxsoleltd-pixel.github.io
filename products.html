@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>LLUX ສິນຄ້າ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root { --red:#d62828; --red2:#ff5a36; --ink:#1d2330; --mute:#6b7280; --line:#e5e7eb; --bg:#f5f5f6; --ok:#16a34a; }
   * { box-sizing: border-box; }
@@ -87,6 +89,12 @@
   .sheet .main { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; background: #eee; display: block; }
   .sheet h2 { font-size: 19px; margin: 12px 0 6px; }
   .shoplink { color: var(--red); font-weight: 600; text-decoration: none; }
+  .comap { height: 240px; border-radius: 12px; margin: 8px 0; }
+  .dtype { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; }
+  .dt { border: 2px solid var(--line); background: #fff; border-radius: 12px; padding: 10px; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--mute); }
+  .dt b { font-size: 14px; color: var(--ink); }
+  .dt.on { border-color: var(--red); background: #fff5f5; }
+  .dt:disabled { opacity: .45; cursor: not-allowed; }
   .sheet .r { margin: 6px 0; font-size: 15px; color: #374151; }
   .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; }
   .thumbs img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eee; }
@@ -174,6 +182,8 @@
 <div class="overlay" id="ovDetail"><div class="sheet" id="sheetDetail"></div></div>
 <!-- ຕະກ້າ -->
 <div class="overlay" id="ovCart"><div class="sheet" id="sheetCart"></div></div>
+<!-- ສັ່ງຊື້ -->
+<div class="overlay" id="ovCheckout"><div class="sheet" id="sheetCheckout"></div></div>
 <!-- ໜ້າຕ່າງທົ່ວໄປ: ໝວດໝູ່ / ຕິດຕາມ / ບັນຊີ -->
 <div class="overlay" id="ovInfo"><div class="sheet" id="sheetInfo"></div></div>
 
@@ -426,9 +436,11 @@
         '<p class="note">ນ້ຳໜັກລວມ ' + sumW.toFixed(2) + ' ກກ · ປະລິມາດລວມ ' + sumC.toFixed(3) + ' CBM (ໃຊ້ເລືອກປະເພດໄຣເດີ)</p>' +
         '<div class="total"><span>ລວມຄ່າສິນຄ້າ</span><span>' + money(total) + '</span></div>' +
         '<p class="note">ຄ່າສົ່ງຈະຄິດຕາມທີ່ຢູ່ຂອງທ່ານ ແລະ ຈ່າຍເປັນຍອດດຽວ. ຈ່າຍເງິນແຕ່ລະຮ້ານແຍກກັນ.</p>' +
+        '<button class="btn" id="btnCheckout">ສັ່ງຊື້ · ' + money(total) + '</button>' +
         '<button class="btn ghost" id="btnClose">ປິດ</button>';
     }
     $("btnClose") && ($("btnClose").onclick = closeAll);
+    $("btnCheckout") && ($("btnCheckout").onclick = openCheckout);
     $("ovCart").classList.add("on");
   }
   $("sheetCart").addEventListener("click", function (e) {
@@ -445,7 +457,199 @@
   function closeAll() {
     $("ovDetail").classList.remove("on");
     $("ovCart").classList.remove("on");
+    $("ovCheckout").classList.remove("on");
     $("ovInfo").classList.remove("on");
+  }
+
+  // ===== ສັ່ງຊື້: ແຜນທີ່ປັກໝຸດ + ປະເພດການສົ່ງ + ສ້າງອໍເດີ =====
+  const EXPRESS_MAX_KM = 25;
+  let coMap = null, coMarker = null, coDrop = null, coType = "express", coShops = {};
+
+  function calcFeeEst(km) {
+    const rate = km <= 7 ? 3500 : 3000;
+    return Math.round((km * rate) / 100) * 100;
+  }
+  function cartGroups() {
+    const g = {};
+    getCart().forEach(function (x) {
+      if (!g[x.shopName]) g[x.shopName] = { shopName: x.shopName, items: [], goods: 0 };
+      g[x.shopName].items.push(x);
+      g[x.shopName].goods += (Number(x.price) || 0) * x.qty;
+    });
+    return Object.keys(g).map(function (k) { return g[k]; });
+  }
+  function shopKm(name) {
+    const s = coShops[name];
+    if (!s || isNaN(s.lat) || isNaN(s.lng) || !coDrop) return null;
+    return distKm(s.lat, s.lng, coDrop.lat, coDrop.lng);
+  }
+  function expressOk(groups) {
+    return groups.every(function (g) {
+      const k = shopKm(g.shopName);
+      return k !== null && k <= EXPRESS_MAX_KM;
+    });
+  }
+  async function loadShopCoords() {
+    try {
+      const r = await fetch(API, { cache: "no-store" });
+      const list = await r.json();
+      (Array.isArray(list) ? list : []).forEach(function (s) {
+        coShops[s.shopName] = { lat: Number(s.lat), lng: Number(s.lng), prep: Number(s.prepMinutes) || 0 };
+      });
+    } catch (e) {}
+  }
+
+  async function openCheckout() {
+    if (!cartGroups().length) return;
+    closeAll();
+    coDrop = null; coMarker = null; coMap = null; coType = "express"; coShops = {};
+    let me = {};
+    try { me = JSON.parse(localStorage.getItem("llux_me") || "{}"); } catch (e) {}
+    $("sheetCheckout").innerHTML =
+      '<h2>ສັ່ງຊື້</h2>' +
+      '<label class="lbl">ຊື່ຜູ້ຮັບ</label><input id="coName" class="inp" value="' + esc(me.name || "") + '">' +
+      '<label class="lbl">ເບີໂທ</label><input id="coPhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
+      '<label class="lbl">ປັກໝຸດຈຸດສົ່ງ (ແຕະແຜນທີ່ ຫຼື ລາກໝຸດ)</label>' +
+      '<div id="coMap" class="comap"></div>' +
+      '<button class="btn ghost" id="coLoc" type="button">📍 ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍ</button>' +
+      '<label class="lbl">ປະເພດການສົ່ງ</label>' +
+      '<div class="dtype">' +
+        '<button type="button" class="dt" id="dtExpress"><b>⚡ ສົ່ງດ່ວນທັນທີ</b><span>ຕົວເມືອງ / ໃກ້ຮ້ານ (ບໍ່ເກີນ 25 ກມ) · ນັບເວລາຫຼັງຮັບສິນຄ້າ</span></button>' +
+        '<button type="button" class="dt" id="dtShip"><b>🚚 ໄປຕ່າງແຂວງ</b><span>ແຍກ ແລະ ແພັກສິນຄ້າ ແລ້ວສົ່ງຂົນສົ່ງ · ຮັບພາຍໃນ 3 ວັນ</span></button>' +
+      '</div>' +
+      '<p id="coTypeNote" class="note"></p>' +
+      '<div id="coSum"></div>' +
+      '<button class="btn" id="coGo" type="button">ຢືນຢັນການສັ່ງຊື້</button>' +
+      '<p id="coMsg" class="note"></p>' +
+      '<button class="btn ghost" id="coBack" type="button">ກັບໄປຕະກ້າ</button>';
+    $("ovCheckout").classList.add("on");
+
+    $("coLoc").onclick = function () {
+      if (!navigator.geolocation) { toast("ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"); return; }
+      navigator.geolocation.getCurrentPosition(function (p) {
+        coMap.setView([p.coords.latitude, p.coords.longitude], 16);
+        setDrop(p.coords.latitude, p.coords.longitude);
+      }, function () { toast("ຫາຕຳແໜ່ງບໍ່ໄດ້"); }, { enableHighAccuracy: true, timeout: 10000 });
+    };
+    $("dtExpress").onclick = function () { if (!$("dtExpress").disabled) { coType = "express"; renderSummary(); } };
+    $("dtShip").onclick = function () { coType = "ship"; renderSummary(); };
+    $("coGo").onclick = submitOrder;
+    $("coBack").onclick = openCart;
+
+    await loadShopCoords();
+    coMap = L.map("coMap").setView([17.9757, 102.6331], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(coMap);
+    coMap.on("click", function (e) { setDrop(e.latlng.lat, e.latlng.lng); });
+    setTimeout(function () { coMap.invalidateSize(); }, 250);
+    renderSummary();
+  }
+
+  function setDrop(lat, lng) {
+    coDrop = { lat: lat, lng: lng };
+    if (!coMarker) {
+      coMarker = L.marker([lat, lng], { draggable: true }).addTo(coMap);
+      coMarker.on("dragend", function () {
+        const p = coMarker.getLatLng();
+        setDrop(p.lat, p.lng);
+      });
+    } else {
+      coMarker.setLatLng([lat, lng]);
+    }
+    renderSummary();
+  }
+
+  function renderSummary() {
+    const groups = cartGroups();
+    const can = !!coDrop && expressOk(groups);
+    if (!can && coType === "express") coType = "ship";
+    $("dtExpress").disabled = !can;
+    $("dtExpress").classList.toggle("on", coType === "express");
+    $("dtShip").classList.toggle("on", coType === "ship");
+
+    let note = "";
+    if (!coDrop) note = "ກະລຸນາປັກໝຸດຈຸດສົ່ງກ່ອນ";
+    else if (!expressOk(groups)) note = "ມີຮ້ານຢູ່ໄກເກີນ 25 ກມ ຈາກຈຸດສົ່ງ ສົ່ງດ່ວນບໍ່ໄດ້ ໃຫ້ເລືອກໄປຕ່າງແຂວງ";
+    $("coTypeNote").textContent = note;
+
+    if (!coDrop) { $("coSum").innerHTML = ""; return; }
+    let goods = 0, fee = 0, html = "";
+    groups.forEach(function (g) {
+      const km = shopKm(g.shopName);
+      const f = coType === "express" && km !== null ? calcFeeEst(km) : 0;
+      goods += g.goods;
+      fee += f;
+      html += '<div class="r"><b>' + esc(g.shopName) + '</b> · ' + money(g.goods) +
+        (km !== null ? ' · ~' + (Math.round(km * 10) / 10) + ' ກມ' : '') +
+        (coType === "express" ? ' · ຄ່າສົ່ງ ~' + money(f) : '') + '</div>';
+    });
+    html += '<div class="total"><span>ລວມຄ່າສິນຄ້າ</span><span>' + money(goods) + '</span></div>';
+    html += coType === "express"
+      ? '<p class="note">ຄ່າສົ່ງປະມານ ' + money(fee) + ' (ຍອດຈິງຄິດຕາມເສັ້ນທາງຈິງຕອນສັ່ງ)</p>'
+      : '<p class="note">ໄປຕ່າງແຂວງ: ແຍກ ແລະ ແພັກສິນຄ້າ ແລ້ວສົ່ງຂົນສົ່ງ ຮັບພາຍໃນ 3 ວັນ · ຄ່າຂົນສົ່ງແອດມິນຈະແຈ້ງຍອດໃຫ້ຫຼັງຢືນຢັນ</p>';
+    $("coSum").innerHTML = html;
+  }
+
+  async function submitOrder() {
+    const name = $("coName").value.trim();
+    const phone = $("coPhone").value.replace(/\D/g, "");
+    if (!name || phone.length < 8) { $("coMsg").textContent = "ໃສ່ຊື່ ແລະ ເບີໂທໃຫ້ຄົບ"; return; }
+    if (!coDrop) { $("coMsg").textContent = "ປັກໝຸດຈຸດສົ່ງໃນແຜນທີ່ກ່ອນ"; return; }
+    const groups = cartGroups();
+    if (!groups.length) { $("coMsg").textContent = "ຕະກ້າວ່າງ"; return; }
+    try { localStorage.setItem("llux_me", JSON.stringify({ name: name, phone: phone })); } catch (e) {}
+
+    $("coGo").disabled = true;
+    $("coMsg").textContent = "ກຳລັງສັ່ງຊື້...";
+    let res = null;
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({
+          type: "order", serviceType: "buy", deliveryType: coType,
+          customerName: name, phone: phone, dropLat: coDrop.lat, dropLng: coDrop.lng,
+          shops: groups.map(function (g) {
+            return { shopName: g.shopName, items: g.items.map(function (x) { return { itemName: x.itemName, qty: x.qty }; }) };
+          })
+        })
+      });
+      res = await r.json();
+    } catch (e) { res = null; }
+    if (!res || !res.ok) {
+      $("coGo").disabled = false;
+      $("coMsg").textContent = orderErr(res);
+      return;
+    }
+    setCart([]);
+    showOrderResult(res);
+  }
+
+  function orderErr(res) {
+    const r = res && res.reason;
+    if (r === "far") return "ຮ້ານ " + (res.shopName || "") + " ຢູ່ໄກເກີນ 25 ກມ ໃຫ້ເລືອກໄປຕ່າງແຂວງ";
+    if (r === "shop") return "ຮ້ານ " + (res.shopName || "") + " ຍັງບໍ່ພ້ອມຮັບອໍເດີ (ຫຼື ເອກະສານບໍ່ຄົບ)";
+    if (r === "item") return "ສິນຄ້າ " + (res.itemName || "") + " ໝົດ ຫຼື ບໍ່ມີແລ້ວ ກະລຸນາເອົາອອກຈາກຕະກ້າ";
+    return "ສັ່ງຊື້ບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ";
+  }
+
+  function showOrderResult(res) {
+    const shopsHtml = (res.shops || []).map(function (s) {
+      const q = s.qr || {};
+      return '<div class="cgroup"><div class="gh"><span>' + esc(s.shopName) + '</span><span>' + money(s.goodsTotal) + '</span></div>' +
+        '<div class="r" style="padding:8px 12px">' + (res.deliveryType === "ship" ? "ຄ່າຂົນສົ່ງ: ແອດມິນຈະແຈ້ງ" : "ຄ່າສົ່ງ: " + money(s.fee)) + '</div>' +
+        (q.qrImageUrl ? '<img src="' + esc(q.qrImageUrl) + '" alt="QR" style="width:200px;max-width:80%;display:block;margin:8px auto;">' : '') +
+        (q.accountNo ? '<p class="note" style="text-align:center">' + esc(q.bankName) + ' · ' + esc(q.accountName) + ' · ' + esc(q.accountNo) + '</p>' : '') +
+        '</div>';
+    }).join("");
+    $("sheetCheckout").innerHTML =
+      '<h2>ສັ່ງຊື້ສຳເລັດ ✔</h2>' +
+      '<p class="note">ເລກອໍເດີ <b>' + esc(res.orderId) + '</b></p>' +
+      '<p class="note">1) ລໍຖ້າຮ້ານຢືນຢັນອໍເດີ<br>2) ໂອນຄ່າສິນຄ້າໃຫ້ແຕ່ລະຮ້ານຕາມ QR ດ້ານລຸ່ມ ແລ້ວອັບສລິບໃນໜ້າຕິດຕາມ<br>3) ເມື່ອໄຣເດີຮັບງານ ໂອນຄ່າສົ່ງຕາມ QR ໄຣເດີ</p>' +
+      (res.deliveryType === "ship" ? '<p class="note">ໄປຕ່າງແຂວງ: ຮັບຂອງພາຍໃນ 3 ວັນ</p>' : '') +
+      shopsHtml +
+      '<a class="btn" href="buyorder.html?id=' + encodeURIComponent(res.orderId) + '" style="display:block;text-align:center;text-decoration:none;">ໄປໜ້າຕິດຕາມອໍເດີ</a>' +
+      '<button class="btn ghost" id="coDone" type="button">ປິດ</button>';
+    $("coDone").onclick = closeAll;
   }
 
   // ===== ເຫດການ =====
@@ -470,6 +674,7 @@
   });
   $("ovDetail").addEventListener("click", function (e) { if (e.target.id === "ovDetail") closeAll(); });
   $("ovCart").addEventListener("click", function (e) { if (e.target.id === "ovCart") closeAll(); });
+  $("ovCheckout").addEventListener("click", function (e) { if (e.target.id === "ovCheckout") closeAll(); });
   $("ovInfo").addEventListener("click", function (e) { if (e.target.id === "ovInfo") closeAll(); });
   $("sheetInfo").addEventListener("click", function (e) {
     const p = e.target.closest("[data-pick]");
