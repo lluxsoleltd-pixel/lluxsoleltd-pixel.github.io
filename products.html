@@ -109,6 +109,7 @@
   .inp { width: 100%; padding: 12px; font-size: 16px; border: 1px solid var(--line); border-radius: 10px; margin-top: 6px; }
   .lbl { display: block; font-size: 14px; color: var(--mute); margin-top: 12px; }
 </style>
+<script src="categories.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -169,6 +170,8 @@
   const ALL = "ທັງໝົດ";
   // ໄອຄອນຕາມຊື່ໝວດ (ບໍ່ໃຊ້ລຳດັບ)
   function iconFor(name) {
+    const hit = LLUX_CATEGORIES.find(function (x) { return x.name === name; });
+    if (hit) return hit.icon;
     const n = String(name || "");
     if (n.indexOf("ເຈ້ຍ") >= 0 || /a4/i.test(n)) return "📄";
     if (n.indexOf("ນໍ້າມັນ") >= 0) return "🫒";
@@ -266,8 +269,7 @@
 
   // ===== ໝວດໝູ່ =====
   function renderCats() {
-    const names = [ALL];
-    items.forEach(function (i) { if (i.category && names.indexOf(i.category) < 0) names.push(i.category); });
+    const names = [ALL].concat(LLUX_CATEGORIES.map(function (c) { return c.name; }));
     $("cats").innerHTML = names.map(function (c, idx) {
       const icon = c === ALL ? "🛍️" : iconFor(c);
       return '<button class="cat' + (c === cat ? " on" : "") + '" data-cat="' + esc(c) + '">' +
@@ -305,7 +307,9 @@
     });
     $("secTitle").textContent = cat === ALL ? "ສິນຄ້າແນະນຳ" : cat;
     $("count").textContent = shown.length ? shown.length + " ລາຍການ" : "";
-    $("msg").textContent = items.length === 0 ? "ຍັງບໍ່ມີສິນຄ້າ" : "ບໍ່ພົບສິນຄ້າ";
+    if (items.length === 0) $("msg").textContent = "ຍັງບໍ່ມີສິນຄ້າໃນລະບົບ";
+    else if (cat !== ALL) $("msg").textContent = "ຍັງບໍ່ພົບສິນຄ້າໃນໝວດນີ້ໃນລະບົບ";
+    else $("msg").textContent = "ບໍ່ພົບສິນຄ້າ";
     $("msg").classList.toggle("hidden", shown.length > 0);
     $("grid").innerHTML = shown.map(function (i, idx) {
       const s = shops[i.shopName];
@@ -452,7 +456,7 @@
     items.forEach(function (i) { if (i.category) counts[i.category] = (counts[i.category] || 0) + 1; });
     const rows = [
       '<button class="cr' + (cat === ALL ? " on" : "") + '" data-pick="' + esc(ALL) + '"><span>🛍️ ' + esc(ALL) + '</span><small>' + items.length + '</small></button>'
-    ].concat(Object.keys(counts).map(function (n) {
+    ].concat(LLUX_CATEGORIES.map(function (x) { const n = x.name;
       return '<button class="cr' + (cat === n ? " on" : "") + '" data-pick="' + esc(n) + '"><span>' + iconFor(n) + ' ' + esc(n) + '</span><small>' + counts[n] + '</small></button>';
     }));
     $("sheetInfo").innerHTML = '<h2>ໝວດໝູ່</h2>' + (items.length ? rows.join("") : '<p class="note">ຍັງບໍ່ມີສິນຄ້າ</p>') +

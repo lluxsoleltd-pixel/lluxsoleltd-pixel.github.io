@@ -45,6 +45,7 @@
   .mitem .mbtns { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   .mitem .mbtns button { width:auto; margin:0; padding:6px 10px; font-size:14px; }
 </style>
+<script src="categories.js"></script>
 </head>
 <body>
 <div class="wrap">
@@ -455,7 +456,7 @@
 
   // ເລີ່ມຕົ້ນ
   // ===== ເມນູສິນຄ້າຂອງຮ້ານ =====
-  const MENU_CATS = ['ທົ່ວໄປ', 'ອາຫານດ່ວນ', 'ແຟຊັ່ນ', 'ເຄື່ອງສຳອາງ', 'ເຄື່ອງໃຊ້ໄຟຟ້າ', 'ເຄື່ອງໃຊ້ໃນຄົວເຮືອນ', 'ວັດສະດຸກໍ່ສ້າງ', 'ເຄື່ອງມືຊ່າງ'];
+  const MENU_CATS = LLUX_CATEGORIES.map(function (c) { return c.name; });
   let activeTab = "orders";
   let menuItems = [];
   let editingRow = null;
