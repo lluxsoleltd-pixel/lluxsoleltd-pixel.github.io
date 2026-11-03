@@ -82,6 +82,7 @@
     <div class="tabs">
       <button id="tabAvail" class="on">ງານລໍຖ້າ</button>
       <button id="tabMine">ງານຂອງຂ້ອຍ</button>
+      <button id="tabHist">ປະຫວັດ</button>
     </div>
 
     <p id="emptyMsg" class="muted hidden">ຍັງບໍ່ມີງານ</p>
@@ -192,6 +193,7 @@
 
   async function refresh() {
     if (!session) return;
+    if (tab === "hist") { jobs = histList(); render(); return; }
     try {
       const type = tab === "avail" ? "orders" : "myorders";
       let url = API + "?type=" + type + "&" + authParams();
@@ -219,6 +221,16 @@
   function getSkips() { try { return JSON.parse(localStorage.getItem("llux_skip") || "{}"); } catch (e) { return {}; } }
   function addSkip(id) { const s = getSkips(); s[id] = Date.now(); try { localStorage.setItem("llux_skip", JSON.stringify(s)); } catch (e) {} }
   function isSkipped(id) { return !!getSkips()[id]; }
+
+  // ປະຫວັດງານທີ່ສົ່ງສຳເລັດແລ້ວ (ເກັບໃນເຄື່ອງນີ້ ແລະ ສະແດງພຽງ 24 ຊມ.)
+  const HIST_MS = 24 * 60 * 60 * 1000;
+  function getHist() { try { return JSON.parse(localStorage.getItem("llux_hist") || "[]"); } catch (e) { return []; } }
+  function histList() { return getHist().filter(function (x) { return Date.now() - x.at < HIST_MS; }); }
+  function addHist(o) {
+    const h = histList();
+    h.unshift({ orderId: o.orderId, shopName: o.shopName, customerName: o.customerName, fee: o.fee, goodsTotal: o.goodsTotal, serviceType: o.serviceType, at: Date.now() });
+    try { localStorage.setItem("llux_hist", JSON.stringify(h)); } catch (e) {}
+  }
   function visibleJobs() { return tab === "avail" ? jobs.filter(function (o) { return !isSkipped(o.orderId); }) : jobs; }
 
   function actionButtons(o) {
@@ -271,7 +283,7 @@
   }
   function stopAlarm() { clearInterval(beepTimer); beepTimer = null; document.body.classList.remove("pulse"); }
   function updateAlarm() {
-    const hasAvail = visibleJobs().length > 0;
+    const hasAvail = tab === "avail" && visibleJobs().length > 0;
     if (hasAvail) startAlarm(); else stopAlarm();
   }
   $("btnMute").onclick = function () {
@@ -315,7 +327,25 @@
     return "https://wa.me/" + d;
   }
 
+  // ໜ້າປະຫວັດ: ສະແດງງານທີ່ສົ່ງສຳເລັດແລ້ວ ບໍ່ມີປຸ່ມ
+  function renderHist() {
+    const box = $("jobs");
+    $("emptyMsg").classList.toggle("hidden", jobs.length > 0);
+    updateAlarm();
+    box.innerHTML = jobs.map(function (o) {
+      const t = new Date(o.at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+      return '<div class="card">' +
+        '<div class="row"><span class="muted">ເລກອໍເດີ</span><span>' + esc(o.orderId) + '</span></div>' +
+        '<div class="row"><span class="muted">ຮ້ານ</span><span>' + esc(o.shopName) + '</span></div>' +
+        '<div class="row"><span class="muted">ລູກຄ້າ</span><span>' + esc(o.customerName) + '</span></div>' +
+        '<div class="row"><span class="muted">ຄ່າສົ່ງ</span><span>' + money(o.fee) + '</span></div>' +
+        '<p class="muted">ສົ່ງສຳເລັດເວລາ ' + esc(t) + '</p>' +
+        '</div>';
+    }).join("");
+  }
+
   function render() {
+    if (tab === "hist") { renderHist(); return; }
     const box = $("jobs");
     const list = visibleJobs();
     $("emptyMsg").classList.toggle("hidden", list.length > 0);
@@ -363,6 +393,8 @@
         const newStatus = act;
         res = await post({ type: "status", riderName: session.riderName, pin: session.pin, row: row, newStatus: newStatus });
         if (!res.ok) { alert("ອັບເດດສະຖານະບໍ່ໄດ້ ລອງໃໝ່"); }
+        const doneJob = jobs.find(function (o) { return o.row === row; });
+        if (res.ok && act === "delivered" && doneJob) addHist(doneJob);
       }
     } catch (e) {
       alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້ ລອງໃໝ່");
@@ -374,6 +406,7 @@
     tab = t;
     $("tabAvail").classList.toggle("on", t === "avail");
     $("tabMine").classList.toggle("on", t === "mine");
+    $("tabHist").classList.toggle("on", t === "hist");
     jobs = [];
     render();
     refresh();
@@ -392,6 +425,7 @@
   $("btnLogout").onclick = logout;
   $("tabAvail").onclick = function () { setTab("avail"); };
   $("tabMine").onclick = function () { setTab("mine"); };
+  $("tabHist").onclick = function () { setTab("hist"); };
   $("jobs").addEventListener("click", function (ev) {
     const b = ev.target.closest("button[data-act]");
     if (!b || b.disabled) return;
