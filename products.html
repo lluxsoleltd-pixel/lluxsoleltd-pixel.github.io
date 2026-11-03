@@ -2,61 +2,211 @@
 <html lang="lo">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>LLUX ສິນຄ້າ</title>
 <style>
-  :root { --red:#d62828; --ink:#1d2330; --mute:#6b7280; --line:#d1d5db; --bg:#f7f7f8; }
+  :root { --red:#d62828; --red2:#ff5a36; --ink:#1d2330; --mute:#6b7280; --line:#e5e7eb; --bg:#f5f5f6; --ok:#16a34a; }
   * { box-sizing: border-box; }
-  body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 16px 16px 40px; color: var(--ink); }
-  h1 { font-size: 24px; margin: 0 0 12px; }
-  .search { width: 100%; padding: 12px 14px; font-size: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
-  .cats { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0 4px; -webkit-overflow-scrolling: touch; }
-  .cat { flex: 0 0 auto; padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 15px; cursor: pointer; }
-  .cat.on { background: var(--red); border-color: var(--red); color: #fff; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px; }
-  @media (min-width: 700px) { .grid { grid-template-columns: repeat(4, 1fr); } }
-  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; display: flex; flex-direction: column; }
-  .img { width: 100%; aspect-ratio: 1 / 1; background: #eee; object-fit: cover; display: block; }
-  .body { padding: 10px 12px 12px; }
-  .name { font-size: 15px; font-weight: 600; line-height: 1.3; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-  .price { font-size: 16px; font-weight: 700; color: var(--red); }
-  .shop { font-size: 13px; color: var(--mute); margin-top: 4px; }
-  .out { display: inline-block; font-size: 12px; background: #374151; color: #fff; border-radius: 6px; padding: 2px 8px; margin-top: 6px; }
-  .msg { color: var(--mute); text-align: center; margin-top: 40px; font-size: 16px; }
-  .hidden { display: none; }
+  body { font-family: sans-serif; background: var(--bg); margin: 0; color: var(--ink); padding-bottom: 76px; }
+  button, input { font-family: inherit; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+
+  /* ===== ແຖບເທິງ ===== */
+  .top { position: sticky; top: 0; z-index: 5; background: linear-gradient(180deg, var(--red), var(--red2)); padding: 12px 12px 14px; }
+  .bar { display: flex; align-items: center; gap: 10px; }
+  .search { flex: 1; display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 0 12px; height: 42px; }
+  .search input { flex: 1; border: none; outline: none; font-size: 16px; background: transparent; min-width: 0; }
+  .icon { position: relative; width: 40px; height: 40px; border: none; border-radius: 10px; background: rgba(255,255,255,.18); color: #fff; font-size: 20px; cursor: pointer; flex: 0 0 auto; }
+  .badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #fff; color: var(--red); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; display: none; }
+  .badge.on { display: block; }
+
+  /* ===== ແຖບໂປຣໂມຊັນ ===== */
+  .promos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px; }
+  .promo { background: #fff; border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--mute); }
+  .promo b { display: block; color: var(--ink); font-size: 14px; margin-bottom: 2px; }
+
+  /* ===== ໝວດໝູ່ ===== */
+  .cats { display: flex; gap: 6px; overflow-x: auto; padding: 12px; background: #fff; scrollbar-width: none; }
+  .cats::-webkit-scrollbar { display: none; }
+  .cat { flex: 0 0 auto; width: 74px; border: none; background: none; cursor: pointer; text-align: center; color: var(--ink); font-size: 12px; padding: 0; }
+  .cat .ic { width: 52px; height: 52px; margin: 0 auto 4px; border-radius: 16px; background: #fff3f2; display: flex; align-items: center; justify-content: center; font-size: 24px; border: 1px solid #ffd9d4; }
+  .cat.on .ic { background: var(--red); border-color: var(--red); }
+  .cat.on span { color: var(--red); font-weight: 700; }
+  .cat span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* ===== ແບນເນີ ===== */
+  .banner { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 12px 12px 0; border-radius: 14px; }
+  .banner::-webkit-scrollbar { display: none; }
+  .slide { flex: 0 0 100%; scroll-snap-align: start; position: relative; aspect-ratio: 16 / 8; background: linear-gradient(135deg, #ffb199, var(--red)); overflow: hidden; }
+  .slide img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .slide .cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 14px 12px; background: linear-gradient(transparent, rgba(0,0,0,.6)); color: #fff; }
+  .slide .cap b { display: block; font-size: 16px; }
+  .slide .cap span { font-size: 14px; }
+  .dots { display: flex; justify-content: center; gap: 6px; margin-top: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 3px; background: #cbd5e1; }
+  .dot.on { width: 16px; background: var(--red); }
+
+  /* ===== ຫົວຂໍ້ + ກຣິດສິນຄ້າ ===== */
+  .sec { display: flex; justify-content: space-between; align-items: center; padding: 16px 12px 4px; }
+  .sec h2 { font-size: 16px; margin: 0; }
+  .sec small { color: var(--mute); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 12px 12px; }
+  @media (min-width: 640px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  .card { background: #fff; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.05); position: relative; }
+  .imgwrap { position: relative; aspect-ratio: 1 / 1; background: #eee; }
+  .imgwrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .tag { position: absolute; left: 6px; top: 6px; background: var(--ok); color: #fff; font-size: 11px; padding: 2px 6px; border-radius: 6px; }
+  .sold { position: absolute; inset: 0; background: rgba(0,0,0,.45); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+  .body { padding: 8px 10px 10px; display: flex; flex-direction: column; flex: 1; }
+  .name { font-size: 14px; line-height: 1.35; margin: 0 0 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 38px; }
+  .price { color: var(--red); font-weight: 700; font-size: 16px; }
+  .meta { font-size: 12px; color: var(--mute); margin-top: 4px; line-height: 1.4; }
+  .row2 { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .add { width: 34px; height: 34px; border: none; border-radius: 50%; background: var(--red); color: #fff; font-size: 20px; line-height: 34px; cursor: pointer; }
+  .add:disabled { background: #cbd5e1; }
+  .empty { text-align: center; color: var(--mute); padding: 40px 12px; font-size: 15px; }
+  .hidden { display: none !important; }
+
+  /* ===== ແຖບລຸ່ມ ===== */
+  .tabs { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--line); display: flex; z-index: 6; padding-bottom: env(safe-area-inset-bottom); }
+  .tabs button { flex: 1; border: none; background: none; padding: 8px 0 10px; font-size: 12px; color: var(--mute); cursor: pointer; position: relative; }
+  .tabs button .e { display: block; font-size: 20px; line-height: 1.2; }
+  .tabs button.on { color: var(--red); font-weight: 700; }
+  .tabs .badge { top: 2px; left: 55%; }
+
+  /* ===== ໜ້າຕ່າງ (ລາຍລະອຽດ / ຕະກ້າ) ===== */
   .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: none; align-items: flex-end; justify-content: center; z-index: 10; }
   .overlay.on { display: flex; }
-  .sheet { background: #fff; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 16px; }
-  .sheet .main { width: 100%; aspect-ratio: 1 / 1; border-radius: 12px; background: #eee; object-fit: cover; display: block; }
-  .sheet h2 { font-size: 20px; margin: 12px 0 6px; }
-  .sheet .row { margin: 6px 0; font-size: 15px; color: #374151; }
+  .sheet { background: #fff; width: 100%; max-width: 620px; max-height: 88vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 16px; }
+  .sheet .main { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; background: #eee; display: block; }
+  .sheet h2 { font-size: 19px; margin: 12px 0 6px; }
+  .sheet .r { margin: 6px 0; font-size: 15px; color: #374151; }
   .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; }
-  .thumbs img { width: 90px; height: 90px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eee; }
-  .close { margin-top: 14px; width: 100%; padding: 12px; border: none; border-radius: 10px; background: #374151; color: #fff; font-size: 16px; }
+  .thumbs img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eee; }
+  .qty { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+  .qty button { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: #fff; font-size: 18px; cursor: pointer; }
+  .btn { width: 100%; padding: 13px; border: none; border-radius: 12px; background: var(--red); color: #fff; font-size: 16px; font-weight: 700; margin-top: 12px; cursor: pointer; }
+  .btn.ghost { background: #374151; }
+  .btn:disabled { background: #cbd5e1; }
+
+  .cgroup { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .cgroup .gh { background: #fff7f6; padding: 10px 12px; display: flex; justify-content: space-between; font-weight: 700; font-size: 15px; }
+  .citem { display: flex; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); align-items: center; }
+  .citem img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; background: #eee; flex: 0 0 auto; }
+  .citem .ci { flex: 1; min-width: 0; }
+  .citem .cn { font-size: 14px; }
+  .citem .cp { font-size: 13px; color: var(--mute); }
+  .citem .qs { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .citem .qs button { width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  .citem .rm { border: none; background: none; color: var(--red); font-size: 13px; cursor: pointer; padding: 4px; }
+  .total { display: flex; justify-content: space-between; font-size: 16px; font-weight: 700; margin: 12px 0 4px; }
+  .note { font-size: 13px; color: var(--mute); line-height: 1.5; }
+  .toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  .toast.on { opacity: 1; }
 </style>
 </head>
 <body>
-  <h1>LLUX ສິນຄ້າ</h1>
-  <input id="q" class="search" type="search" placeholder="ຄົ້ນຫາສິນຄ້າ ຫຼື ຮ້ານ">
-  <div id="cats" class="cats"></div>
-  <p id="msg" class="msg">ກຳລັງໂຫຼດສິນຄ້າ...</p>
-  <div id="grid" class="grid"></div>
+<div class="wrap">
 
-  <div id="overlay" class="overlay"><div class="sheet" id="sheet"></div></div>
+  <!-- ແຖບເທິງ: ຄົ້ນຫາ · ແຊັດ · ຕະກ້າ -->
+  <header class="top">
+    <div class="bar">
+      <div class="search">
+        <span>🔍</span>
+        <input id="q" type="search" placeholder="ຄົ້ນຫາສິນຄ້າ ຫຼື ຮ້ານ">
+      </div>
+      <button class="icon" id="btnChat" title="ແຊັດກັບ LLUX">💬</button>
+      <button class="icon" id="btnCartTop" title="ຕະກ້າ">🛒<span class="badge" id="badgeTop">0</span></button>
+    </div>
+  </header>
+
+  <!-- ໂປຣໂມຊັນ / ຂໍ້ມູນ -->
+  <div class="promos">
+    <div class="promo"><b>ຄ່າສົ່ງໂປ່ງໃສ</b>3,500 ກີບ/ກມ (7 ກມ ທຳອິດ)</div>
+    <div class="promo"><b>ຊື້ຈາກຫຼາຍຮ້ານ</b>ຄ່າສົ່ງລວມຄັ້ງດຽວ</div>
+  </div>
+
+  <!-- ໝວດໝູ່ -->
+  <nav class="cats" id="cats"></nav>
+
+  <!-- ແບນເນີສິນຄ້າ -->
+  <div class="banner" id="banner"></div>
+  <div class="dots" id="dots"></div>
+
+  <!-- ລາຍການສິນຄ້າ -->
+  <div class="sec"><h2 id="secTitle">ສິນຄ້າແນະນຳ</h2><small id="count"></small></div>
+  <p id="msg" class="empty">ກຳລັງໂຫຼດສິນຄ້າ...</p>
+  <div class="grid" id="grid"></div>
+
+</div>
+
+<!-- ແຖບລຸ່ມ -->
+<nav class="tabs">
+  <button class="on" id="tHome"><span class="e">🏠</span>ໜ້າຫຼັກ</button>
+  <button id="tCat"><span class="e">🗂️</span>ໝວດໝູ່</button>
+  <button id="tCart"><span class="e">🛒</span>ຕະກ້າ<span class="badge" id="badgeTab">0</span></button>
+  <button id="tTrack"><span class="e">📦</span>ຕິດຕາມ</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- ລາຍລະອຽດສິນຄ້າ -->
+<div class="overlay" id="ovDetail"><div class="sheet" id="sheetDetail"></div></div>
+<!-- ຕະກ້າ -->
+<div class="overlay" id="ovCart"><div class="sheet" id="sheetCart"></div></div>
 
 <script>
   const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const ADMIN_WA = "8562023949789";
   const ALL = "ທັງໝົດ";
-  let items = [];
-  let shown = [];
+  const ICONS = ["👕", "📱", "🏠", "🧴", "🎁", "📦", "🍜", "💄", "🧸", "🖨️"];
+  const RIDER_KMH = 30;
+
+  let items = [];          // ສິນຄ້າທັງໝົດ
+  let shops = {};          // ຂໍ້ມູນຮ້ານ: ຊື່ -> { km, eta }
+  let shown = [];          // ສິນຄ້າທີ່ສະແດງຢູ່
   let cat = ALL;
+  let myPos = null;
 
   const $ = (id) => document.getElementById(id);
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
   }
   function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function distKm(a, b, c, d) {
+    const R = 6371, t = (x) => x * Math.PI / 180;
+    const dLat = t(c - a), dLng = t(d - b);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(t(a)) * Math.cos(t(c)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
 
+  // ===== ຕະກ້າ (ເກັບໃນເຄື່ອງນີ້) =====
+  function getCart() { try { return JSON.parse(localStorage.getItem("llux_cart") || "[]"); } catch (e) { return []; } }
+  function setCart(c) { try { localStorage.setItem("llux_cart", JSON.stringify(c)); } catch (e) {} updateBadges(); }
+  function cartCount() { return getCart().reduce(function (s, x) { return s + x.qty; }, 0); }
+  function updateBadges() {
+    const n = cartCount();
+    ["badgeTop", "badgeTab"].forEach(function (id) {
+      $(id).textContent = n;
+      $(id).classList.toggle("on", n > 0);
+    });
+  }
+  function addToCart(item, qty) {
+    const c = getCart();
+    const f = c.find(function (x) { return x.shopName === item.shopName && x.itemName === item.itemName; });
+    if (f) f.qty = Math.min(99, f.qty + qty);
+    else c.push({ shopName: item.shopName, itemName: item.itemName, price: item.price, imageUrl: item.imageUrl || "", qty: qty });
+    setCart(c);
+    toast("ເພີ່ມເຂົ້າຕະກ້າແລ້ວ");
+  }
+  function toast(t) {
+    $("toast").textContent = t;
+    $("toast").classList.add("on");
+    clearTimeout(toast.t);
+    toast.t = setTimeout(function () { $("toast").classList.remove("on"); }, 1400);
+  }
+
+  // ===== ໂຫຼດຂໍ້ມູນ =====
   async function load() {
     try {
       const r = await fetch(API + "?type=products", { cache: "no-store" });
@@ -67,17 +217,65 @@
       return;
     }
     renderCats();
+    renderBanner();
     render();
+    loadShops();
   }
 
+  // ຮ້ານ + ໄລຍະທາງ/ເວລາຖືງ (ຖ້າອະນຸຍາດຕຳແໜ່ງ)
+  async function loadShops() {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(async function (p) {
+      myPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+      try {
+        const r = await fetch(API, { cache: "no-store" });
+        const list = await r.json();
+        (Array.isArray(list) ? list : []).forEach(function (s) {
+          const lat = Number(s.lat), lng = Number(s.lng);
+          if (isNaN(lat) || isNaN(lng)) return;
+          const km = distKm(myPos.lat, myPos.lng, lat, lng);
+          shops[s.shopName] = {
+            km: Math.round(km * 10) / 10,
+            eta: Math.round((Number(s.prepMinutes) || 0) + (km / RIDER_KMH) * 60)
+          };
+        });
+        render();
+      } catch (e) {}
+    }, function () {}, { timeout: 8000 });
+  }
+
+  // ===== ໝວດໝູ່ =====
   function renderCats() {
     const names = [ALL];
     items.forEach(function (i) { if (i.category && names.indexOf(i.category) < 0) names.push(i.category); });
-    $("cats").innerHTML = names.map(function (c) {
-      return '<button class="cat' + (c === cat ? " on" : "") + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
+    $("cats").innerHTML = names.map(function (c, idx) {
+      const icon = c === ALL ? "🛍️" : ICONS[(idx - 1) % ICONS.length];
+      return '<button class="cat' + (c === cat ? " on" : "") + '" data-cat="' + esc(c) + '">' +
+        '<div class="ic">' + icon + '</div><span>' + esc(c) + '</span></button>';
     }).join("");
   }
 
+  // ===== ແບນເນີ: ສິນຄ້າແນະນຳ 3 ລາຍການແລກ =====
+  function renderBanner() {
+    const picks = items.filter(function (i) { return i.imageUrl; }).slice(0, 3);
+    if (picks.length === 0) {
+      $("banner").innerHTML = '<div class="slide"><div class="cap"><b>LLUX ສິນຄ້າຄຸນນະພາບ</b><span>ສັ່ງຈາກຫຼາຍຮ້ານໃນຄັ້ງດຽວ</span></div></div>';
+    } else {
+      $("banner").innerHTML = picks.map(function (i) {
+        return '<div class="slide"><img src="' + esc(i.imageUrl) + '" alt=""><div class="cap"><b>' + esc(i.itemName) +
+          '</b><span>' + money(i.price) + ' · ' + esc(i.shopName) + '</span></div></div>';
+      }).join("");
+    }
+    const n = Math.max(1, picks.length);
+    $("dots").innerHTML = Array.from({ length: n }, function (_, k) { return '<span class="dot' + (k === 0 ? " on" : "") + '"></span>'; }).join("");
+  }
+  $("banner").addEventListener("scroll", function () {
+    const w = $("banner").clientWidth || 1;
+    const k = Math.round($("banner").scrollLeft / w);
+    Array.from($("dots").children).forEach(function (d, idx) { d.classList.toggle("on", idx === k); });
+  });
+
+  // ===== ສະແດງສິນຄ້າ =====
   function render() {
     const q = $("q").value.trim().toLowerCase();
     shown = items.filter(function (i) {
@@ -85,40 +283,104 @@
       if (!q) return true;
       return (i.itemName + " " + i.shopName + " " + i.category + " " + i.description).toLowerCase().indexOf(q) >= 0;
     });
-    $("msg").textContent = items.length === 0 ? "ຍັງບໍ່ມີສິນຄ້າ" : (shown.length === 0 ? "ບໍ່ພົບສິນຄ້າ" : "");
+    $("secTitle").textContent = cat === ALL ? "ສິນຄ້າແນະນຳ" : cat;
+    $("count").textContent = shown.length ? shown.length + " ລາຍການ" : "";
+    $("msg").textContent = items.length === 0 ? "ຍັງບໍ່ມີສິນຄ້າ" : "ບໍ່ພົບສິນຄ້າ";
     $("msg").classList.toggle("hidden", shown.length > 0);
     $("grid").innerHTML = shown.map(function (i, idx) {
-      const img = i.imageUrl
-        ? '<img class="img" loading="lazy" src="' + esc(i.imageUrl) + '" alt="">'
-        : '<div class="img"></div>';
-      return '<div class="card" data-idx="' + idx + '">' + img +
+      const s = shops[i.shopName];
+      const meta = s ? '📍 ' + s.km + ' ກມ · ~' + s.eta + ' ນາທີ' : esc(i.shopName);
+      const isOut = i.status === "soldout";
+      return '<div class="card" data-idx="' + idx + '">' +
+        '<div class="imgwrap">' +
+          (i.imageUrl ? '<img loading="lazy" src="' + esc(i.imageUrl) + '" alt="">' : '') +
+          '<span class="tag">✔ ຮ້ານຢືນຢັນ</span>' +
+          (isOut ? '<div class="sold">ໝົດແລ້ວ</div>' : '') +
+        '</div>' +
         '<div class="body">' +
           '<p class="name">' + esc(i.itemName) + '</p>' +
           '<div class="price">' + money(i.price) + '</div>' +
-          '<div class="shop">' + esc(i.shopName) + '</div>' +
-          (i.status === "soldout" ? '<span class="out">ໝົດແລ້ວ</span>' : '') +
+          '<div class="meta">' + meta + '</div>' +
+          '<div class="row2"><span class="meta">' + esc(i.shopName) + '</span>' +
+            '<button class="add" data-add="' + idx + '"' + (isOut ? ' disabled' : '') + '>+</button></div>' +
         '</div></div>';
     }).join("");
   }
 
+  // ===== ລາຍລະອຽດສິນຄ້າ =====
   function openDetail(i) {
     const thumbs = String(i.detailImages || "").split(/[\n,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
-    $("sheet").innerHTML =
+    const isOut = i.status === "soldout";
+    $("sheetDetail").innerHTML =
       (i.imageUrl ? '<img class="main" src="' + esc(i.imageUrl) + '" alt="">' : '') +
       (thumbs.length ? '<div class="thumbs">' + thumbs.map(function (u) { return '<img src="' + esc(u) + '" alt="">'; }).join("") + '</div>' : '') +
       '<h2>' + esc(i.itemName) + '</h2>' +
-      '<div class="row"><b>' + money(i.price) + '</b></div>' +
-      '<div class="row">ຮ້ານ: ' + esc(i.shopName) + '</div>' +
-      (i.category ? '<div class="row">ໝວດ: ' + esc(i.category) + '</div>' : '') +
-      (i.origin ? '<div class="row">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
-      (i.importer ? '<div class="row">ຜູ້ນຳເຂົ້າ: ' + esc(i.importer) + '</div>' : '') +
-      (i.description ? '<div class="row">' + esc(i.description) + '</div>' : '') +
-      (i.status === "soldout" ? '<div class="row"><span class="out">ໝົດແລ້ວ</span></div>' : '') +
-      '<button class="close" id="closeBtn">ປິດ</button>';
-    $("overlay").classList.add("on");
+      '<div class="r"><b style="color:var(--red)">' + money(i.price) + '</b></div>' +
+      '<div class="r">ຮ້ານ: ' + esc(i.shopName) + '</div>' +
+      (i.category ? '<div class="r">ໝວດ: ' + esc(i.category) + '</div>' : '') +
+      (i.origin ? '<div class="r">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
+      (i.importer ? '<div class="r">ຜູ້ນຳເຂົ້າ: ' + esc(i.importer) + '</div>' : '') +
+      (i.description ? '<div class="r">' + esc(i.description) + '</div>' : '') +
+      '<div class="qty"><button id="qMinus">−</button><b id="qVal">1</b><button id="qPlus">+</button></div>' +
+      '<button class="btn" id="btnAdd"' + (isOut ? ' disabled' : '') + '>' + (isOut ? 'ໝົດແລ້ວ' : 'ເພີ່ມເຂົ້າຕະກ້າ') + '</button>' +
+      '<button class="btn ghost" id="btnClose">ປິດ</button>';
+    let qty = 1;
+    $("qMinus").onclick = function () { qty = Math.max(1, qty - 1); $("qVal").textContent = qty; };
+    $("qPlus").onclick = function () { qty = Math.min(99, qty + 1); $("qVal").textContent = qty; };
+    $("btnAdd").onclick = function () { addToCart(i, qty); closeAll(); };
+    $("btnClose").onclick = closeAll;
+    $("ovDetail").classList.add("on");
   }
-  function closeDetail() { $("overlay").classList.remove("on"); }
 
+  // ===== ຕະກ້າ: ຈັດກຸ່ມຕາມຮ້ານ =====
+  function openCart() {
+    const c = getCart();
+    if (c.length === 0) {
+      $("sheetCart").innerHTML = '<h2>ຕະກ້າ</h2><p class="note">ຕະກ້າຍັງວ່າງ ເລືອກສິນຄ້າກ່ອນໄດ້ເລີຍ</p><button class="btn ghost" id="btnClose">ປິດ</button>';
+    } else {
+      const groups = {};
+      c.forEach(function (x, idx) {
+        (groups[x.shopName] = groups[x.shopName] || []).push({ x: x, idx: idx });
+      });
+      let total = 0;
+      const html = Object.keys(groups).map(function (shop) {
+        const rows = groups[shop];
+        const sub = rows.reduce(function (s, r) { return s + r.x.price * r.x.qty; }, 0);
+        total += sub;
+        return '<div class="cgroup"><div class="gh"><span>' + esc(shop) + '</span><span>' + money(sub) + '</span></div>' +
+          rows.map(function (r) {
+            return '<div class="citem">' +
+              (r.x.imageUrl ? '<img src="' + esc(r.x.imageUrl) + '" alt="">' : '<div style="width:56px;height:56px;border-radius:8px;background:#eee"></div>') +
+              '<div class="ci"><div class="cn">' + esc(r.x.itemName) + '</div><div class="cp">' + money(r.x.price) + '</div>' +
+                '<div class="qs"><button data-dec="' + r.idx + '">−</button><b>' + r.x.qty + '</b><button data-inc="' + r.idx + '">+</button>' +
+                '<button class="rm" data-rm="' + r.idx + '">ລຶບ</button></div></div></div>';
+          }).join("") + '</div>';
+      }).join("");
+      $("sheetCart").innerHTML = '<h2>ຕະກ້າ</h2>' + html +
+        '<div class="total"><span>ລວມຄ່າສິນຄ້າ</span><span>' + money(total) + '</span></div>' +
+        '<p class="note">ຄ່າສົ່ງຈະຄິດຕາມທີ່ຢູ່ຂອງທ່ານ ແລະ ຈ່າຍເປັນຍອດດຽວ. ຈ່າຍເງິນແຕ່ລະຮ້ານແຍກກັນ.</p>' +
+        '<button class="btn ghost" id="btnClose">ປິດ</button>';
+    }
+    $("btnClose") && ($("btnClose").onclick = closeAll);
+    $("ovCart").classList.add("on");
+  }
+  $("sheetCart").addEventListener("click", function (e) {
+    const t = e.target;
+    const c = getCart();
+    if (t.dataset.inc != null) c[t.dataset.inc].qty = Math.min(99, c[t.dataset.inc].qty + 1);
+    else if (t.dataset.dec != null) c[t.dataset.dec].qty = Math.max(1, c[t.dataset.dec].qty - 1);
+    else if (t.dataset.rm != null) c.splice(t.dataset.rm, 1);
+    else return;
+    setCart(c);
+    openCart();
+  });
+
+  function closeAll() {
+    $("ovDetail").classList.remove("on");
+    $("ovCart").classList.remove("on");
+  }
+
+  // ===== ເຫດການ =====
   $("q").addEventListener("input", render);
   $("cats").addEventListener("click", function (e) {
     const b = e.target.closest("[data-cat]");
@@ -128,14 +390,30 @@
     render();
   });
   $("grid").addEventListener("click", function (e) {
+    const a = e.target.closest("[data-add]");
+    if (a) {
+      if (a.disabled) return;
+      addToCart(shown[Number(a.dataset.add)], 1);
+      return;
+    }
     const c = e.target.closest("[data-idx]");
-    if (!c) return;
-    openDetail(shown[Number(c.dataset.idx)]);
+    if (c) openDetail(shown[Number(c.dataset.idx)]);
   });
-  $("overlay").addEventListener("click", function (e) {
-    if (e.target.id === "overlay" || e.target.id === "closeBtn") closeDetail();
-  });
+  $("ovDetail").addEventListener("click", function (e) { if (e.target.id === "ovDetail") closeAll(); });
+  $("ovCart").addEventListener("click", function (e) { if (e.target.id === "ovCart") closeAll(); });
 
+  $("btnChat").onclick = function () { window.open("https://wa.me/" + ADMIN_WA, "_blank"); };
+  $("btnCartTop").onclick = openCart;
+  $("tCart").onclick = openCart;
+  $("tTrack").onclick = function () { location.href = "track.html"; };
+  $("tHome").onclick = function () { window.scrollTo({ top: 0, behavior: "smooth" }); setTab("tHome"); };
+  $("tCat").onclick = function () { $("cats").scrollIntoView({ behavior: "smooth" }); setTab("tCat"); };
+
+  function setTab(id) {
+    ["tHome", "tCat"].forEach(function (k) { $(k).classList.toggle("on", k === id); });
+  }
+
+  updateBadges();
   load();
 </script>
 </body>
