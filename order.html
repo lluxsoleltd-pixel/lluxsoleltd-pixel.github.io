@@ -136,12 +136,11 @@
     let currentKm = null, currentFee = null;
     let selectedShop = null;
 
-    // 7 ກມ ທຳອິດ 3,000 ກີບ/ກມ, ເກີນ 7 ຫາ 14 ກມ 2,000 ກີບ/ກມ
+    // ລະຍະທາງລວມທັງທຣິບ: ຮອດ 7 ກມ = 3,500 ກີບ/ກມ, ເກີນ 7 ກມ = 3,000 ກີບ/ກມ (ເຣດດຽວທັງໝົດ)
     function calcFee(km) {
-      if (km > 14) return null;
-      const first = Math.min(km, 7) * 3000;
-      const second = km > 7 ? (Math.min(km, 14) - 7) * 2000 : 0;
-      return Math.round((first + second) / 100) * 100;
+      if (km > 25) return null;
+      const rate = km <= 7 ? 3500 : 3000;
+      return Math.round((km * rate) / 100) * 100;
     }
 
     // ຕັ້ງຄ່າ UI ຕາມບໍລິການ
