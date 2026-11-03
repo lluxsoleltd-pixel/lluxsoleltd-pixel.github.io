@@ -16,6 +16,12 @@
   .bar { display: flex; align-items: center; gap: 10px; }
   .search { flex: 1; display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 0 12px; height: 42px; }
   .search input { flex: 1; border: none; outline: none; font-size: 16px; background: transparent; min-width: 0; }
+  .cam { font-size: 18px; cursor: pointer; display: flex; align-items: center; padding: 0 2px; }
+  .imgchip { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 6px 8px; margin-top: 10px; font-size: 13px; }
+  .imgchip.hidden { display: none; }
+  .imgchip img { width: 36px; height: 36px; object-fit: cover; border-radius: 8px; }
+  .imgchip span { flex: 1; }
+  .imgchip button { border: none; background: #f2f2f2; border-radius: 8px; width: 28px; height: 28px; cursor: pointer; }
   .icon { position: relative; width: 40px; height: 40px; border: none; border-radius: 10px; background: rgba(255,255,255,.18); color: #fff; font-size: 20px; cursor: pointer; flex: 0 0 auto; }
   .badge { position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #fff; color: var(--red); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; display: none; }
   .badge.on { display: block; }
@@ -120,9 +126,15 @@
       <div class="search">
         <span>🔍</span>
         <input id="q" type="search" placeholder="ຄົ້ນຫາສິນຄ້າ ຫຼື ຮ້ານ">
+        <label class="cam" title="ຄົ້ນຫາດ້ວຍຮູບ">📷<input id="qImg" type="file" accept="image/*" hidden></label>
       </div>
       <button class="icon" id="btnChat" title="ແຊັດກັບ LLUX">💬</button>
       <button class="icon" id="btnCartTop" title="ຕະກ້າ">🛒<span class="badge" id="badgeTop">0</span></button>
+    </div>
+    <div class="imgchip hidden" id="imgChip">
+      <img id="imgThumb" alt="">
+      <span>ຄົ້ນຫາດ້ວຍຮູບ</span>
+      <button type="button" id="imgClear">✕</button>
     </div>
   </header>
 
@@ -297,6 +309,26 @@
     const k = Math.round($("banner").scrollLeft / w);
     Array.from($("dots").children).forEach(function (d, idx) { d.classList.toggle("on", idx === k); });
   });
+
+  // ===== ຄົ້ນຫາດ້ວຍຮູບ =====
+  // ປິດໄວ້ຈົນກວ່າຈະເຊື່ອມ AI: ເມື່ອພ້ອມ ຕັ້ງເປັນ true ແລ້ວເຊື່ອມກັບ backend ຕອນນັ້ນ
+  const AI_IMAGE_SEARCH = false;
+  let imgSearchFile = null;
+
+  $("qImg").onchange = function () {
+    const f = this.files && this.files[0];
+    this.value = "";
+    if (!f) return;
+    imgSearchFile = f;
+    $("imgThumb").src = URL.createObjectURL(f);
+    $("imgChip").classList.remove("hidden");
+    if (!AI_IMAGE_SEARCH) toast("ການຄົ້ນຫາດ້ວຍຮູບຈະເປີດໃຊ້ໃນໄວໆນີ້");
+  };
+  $("imgClear").onclick = function () {
+    imgSearchFile = null;
+    $("imgChip").classList.add("hidden");
+    render();
+  };
 
   // ===== ສະແດງສິນຄ້າ =====
   function render() {
