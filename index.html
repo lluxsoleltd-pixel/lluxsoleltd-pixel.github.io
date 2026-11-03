@@ -98,10 +98,10 @@
         <label class="muted small">ລາຍລະອຽດ</label>
         <input id="mDesc" type="text">
         <label class="muted small">ນ້ຳໜັກຫຼັງແພັກ (ກກ)</label>
-        <input id="mWeight" type="number" min="0" step="0.01" inputmode="decimal">
+        <input id="mWeight" type="text" autocomplete="off" inputmode="text" placeholder="ເຊັ່ນ 2.5 ຫຼື 0.5*2+1">
         <label class="muted small">ຂະໜາດຫຼັງແພັກ (CBM)</label>
-        <input id="mCbm" type="number" min="0" step="0.001" inputmode="decimal">
-        <p class="muted small">ຄິດໄລ່: ກວ້າງ × ຍາວ × ສູງ (ມ) ເຊັ່ນ 0.5 × 0.4 × 0.3 = 0.06 CBM</p>
+        <input id="mCbm" type="text" autocomplete="off" inputmode="text" placeholder="ເຊັ່ນ 0.6*0.2*1">
+        <p class="muted small">ພິມສູດໄດ້ເລີຍ ເຊັ່ນ 0.5*0.4*0.3 (ກວ້າງ*ຍາວ*ສູງ ເປັນແມັດ) ແລ້ວກົດ Enter ຫຼື ກົດຊ່ອງອື່ນ ລະບົບຈະຄຳນວນໃຫ້ອັດຕະໂນມັດ</p>
         <label class="muted small">ຮູບສິນຄ້າ</label>
         <input id="mImg" type="file" accept="image/*">
         <img id="mPreview" class="hidden" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px;">
@@ -613,7 +613,77 @@
     $("mPreview").classList.remove("hidden");
   };
 
+  // ===== ເຄື່ອງຄິດເລກໃນຊ່ອງນ້ຳໜັກ / CBM =====
+  // ຮັບສູດເຊັ່ນ 0.5*0.4*0.3, 0,5 x 0,4 x 0,3, =0.6*0.2*1, (1+2)*3 ແລະ ຄຳນວນເອງ (ບໍ່ໃຊ້ eval)
+  function evalExpr(src) {
+    let s = String(src || "").trim().replace(/^=/, "").replace(/,/g, ".")
+      .replace(/[xX×]/g, "*").replace(/÷/g, "/").replace(/\s+/g, "");
+    if (!s) return NaN;
+    if (!/^[0-9.+\-*/()]+$/.test(s)) return NaN;
+    let pos = 0;
+    function peek() { return s.charAt(pos); }
+    function parseExpr() {
+      let v = parseTerm();
+      while (peek() === "+" || peek() === "-") {
+        const op = s.charAt(pos++);
+        const r = parseTerm();
+        v = op === "+" ? v + r : v - r;
+      }
+      return v;
+    }
+    function parseTerm() {
+      let v = parseFactor();
+      while (peek() === "*" || peek() === "/") {
+        const op = s.charAt(pos++);
+        const r = parseFactor();
+        v = op === "*" ? v * r : v / r;
+      }
+      return v;
+    }
+    function parseFactor() {
+      if (peek() === "-") { pos++; return -parseFactor(); }
+      if (peek() === "(") {
+        pos++;
+        const v = parseExpr();
+        if (peek() !== ")") throw new Error("paren");
+        pos++;
+        return v;
+      }
+      const m = s.slice(pos).match(/^(\d+\.?\d*|\.\d+)/);
+      if (!m) throw new Error("num");
+      pos += m[0].length;
+      return parseFloat(m[0]);
+    }
+    try {
+      const v = parseExpr();
+      if (pos !== s.length || !isFinite(v)) return NaN;
+      return v;
+    } catch (e) {
+      return NaN;
+    }
+  }
+  function calcField(input) {
+    const raw = input.value.trim();
+    if (raw === "") return;
+    const v = evalExpr(raw);
+    if (isNaN(v) || v < 0) {
+      input.style.borderColor = "#dc2626";
+      return;
+    }
+    input.style.borderColor = "";
+    input.value = String(Math.round(v * 10000) / 10000);
+  }
+  ["mWeight", "mCbm"].forEach(function (id) {
+    const el = $(id);
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); calcField(el); }
+    });
+    el.addEventListener("blur", function () { calcField(el); });
+  });
+
   $("mSave").onclick = async function () {
+    calcField($("mWeight"));
+    calcField($("mCbm"));
     const item = {
       itemName: $("mName").value.trim(),
       price: Number($("mPrice").value),
