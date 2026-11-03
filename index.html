@@ -81,6 +81,7 @@
     <div class="tabs2">
       <button id="tabOrders" class="good">ອໍເດີ</button>
       <button id="tabMenu" class="secondary">ເມນູສິນຄ້າ</button>
+      <button id="tabSettings" class="secondary">ຕັ້ງຄ່າຮ້ານ</button>
     </div>
 
     <!-- ໜ້າເມນູສິນຄ້າຂອງຮ້ານ -->
@@ -103,6 +104,40 @@
         <p id="mMsg" class="muted small"></p>
       </div>
       <div id="menuList"></div>
+    </div>
+
+    <!-- ໜ້າຕັ້ງຄ່າຮ້ານ -->
+    <div id="settingsView" class="hidden">
+      <div class="card">
+        <label class="muted small">ຊື່ຮ້ານ (ປັດຈຸບັນ)</label>
+        <p id="sName" style="font-weight:bold;margin:4px 0 0;">-</p>
+        <p id="sNameNote" class="muted small"></p>
+        <label class="muted small">ປ່ຽນຊື່ຮ້ານ (ຕ້ອງໃຫ້ແອດມິນ LLUX ອະນຸມັດ)</label>
+        <input id="sNewName" type="text" placeholder="ຊື່ໃໝ່">
+        <button id="sNameBtn" class="secondary">ສົ່ງຄຳຂໍປ່ຽນຊື່</button>
+        <p id="sNameMsg" class="muted small"></p>
+      </div>
+
+      <div class="card">
+        <label class="muted small">ຮູບໜ້າຮ້ານ</label>
+        <input id="sPhoto" type="file" accept="image/*">
+        <img id="sPhotoPrev" class="hidden" alt="" style="width:100%;max-height:200px;object-fit:cover;border-radius:10px;margin-top:8px;">
+        <label class="muted small">ເບີໂທ</label>
+        <input id="sPhone" type="tel" inputmode="tel">
+        <label class="muted small">ອີເມວຮ້ານ</label>
+        <input id="sEmail" type="email" inputmode="email">
+        <label class="muted small">ທີ່ຢູ່ຮ້ານ</label>
+        <input id="sAddr" type="text">
+        <label class="muted small">ຕຳແໜ່ງຮ້ານ</label>
+        <p id="sGeo" class="small" style="margin:4px 0;"></p>
+        <button id="sGeoBtn" class="secondary">ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ</button>
+        <button id="sSave">ບັນທຶກຂໍ້ມູນຮ້ານ</button>
+        <p id="sMsg" class="muted small"></p>
+      </div>
+
+      <div class="card">
+        <a id="sAdmin" class="hidden" target="_blank" rel="noopener" href="#" style="display:block;text-align:center;background:#0369a1;color:#fff;padding:12px;border-radius:10px;text-decoration:none;">ຕິດຕໍ່ແອດມິນ LLUX ດ່ວນ</a>
+      </div>
     </div>
 
     <div id="orders"></div>
@@ -256,7 +291,7 @@
   // ສະແດງຜົນ
   function render() {
     const box = $("orders");
-    $("emptyMsg").classList.toggle("hidden", activeTab === "menu" || orders.length > 0);
+    $("emptyMsg").classList.toggle("hidden", activeTab !== "orders" || orders.length > 0);
     box.innerHTML = orders.map(orderCard).join("");
   }
 
@@ -433,12 +468,15 @@
 
   function showTab(which) {
     activeTab = which;
-    const isMenu = which === "menu";
-    $("tabOrders").className = isMenu ? "secondary" : "good";
-    $("tabMenu").className = isMenu ? "good" : "secondary";
-    $("menuView").classList.toggle("hidden", !isMenu);
-    $("orders").classList.toggle("hidden", isMenu);
-    if (isMenu) { $("emptyMsg").classList.add("hidden"); loadMenu(); } else render();
+    $("tabOrders").className = which === "orders" ? "good" : "secondary";
+    $("tabMenu").className = which === "menu" ? "good" : "secondary";
+    $("tabSettings").className = which === "settings" ? "good" : "secondary";
+    $("menuView").classList.toggle("hidden", which !== "menu");
+    $("settingsView").classList.toggle("hidden", which !== "settings");
+    $("orders").classList.toggle("hidden", which !== "orders");
+    if (which === "menu") { $("emptyMsg").classList.add("hidden"); loadMenu(); }
+    else if (which === "settings") { $("emptyMsg").classList.add("hidden"); loadSettings(); }
+    else render();
   }
 
   async function loadMenu() {
@@ -588,7 +626,106 @@
 
   $("tabOrders").onclick = function () { showTab("orders"); };
   $("tabMenu").onclick = function () { showTab("menu"); };
+  $("tabSettings").onclick = function () { showTab("settings"); };
   fillCats();
+
+  // ===== ໜ້າຕັ້ງຄ່າຮ້ານ =====
+  const ADMIN_WA = ""; // ໃສ່ເບີ WhatsApp ແອດມິນ LLUX ຮູບແບບ 856xxxxxxxxx
+  let geo = { lat: "", lng: "" };
+
+  function showGeo() {
+    $("sGeo").textContent = geo.lat === "" ? "ຍັງບໍ່ໄດ້ຕັ້ງຕຳແໜ່ງ" : Number(geo.lat).toFixed(6) + ", " + Number(geo.lng).toFixed(6);
+  }
+
+  async function settingsCall(extra) {
+    try {
+      return await apiPost(Object.assign({ type: "shopinfosave", shopName: session.shopName, pin: session.pin }, extra));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function loadSettings() {
+    if (!session) return;
+    try {
+      const data = await apiGet({ type: "shopinfo", shopName: session.shopName, pin: session.pin });
+      if (data && data.error === "auth") { logout(); return; }
+      $("sName").textContent = data.name || "-";
+      $("sNameNote").textContent = data.pendingName ? "ລໍຖ້າອະນຸມັດປ່ຽນເປັນ: " + data.pendingName : "";
+      $("sPhone").value = data.phone || "";
+      $("sEmail").value = data.email || "";
+      $("sAddr").value = data.address || "";
+      geo = { lat: data.lat, lng: data.lng };
+      showGeo();
+      if (data.imageUrl) { $("sPhotoPrev").src = data.imageUrl; $("sPhotoPrev").classList.remove("hidden"); }
+      if (ADMIN_WA) { $("sAdmin").href = "https://wa.me/" + ADMIN_WA; $("sAdmin").classList.remove("hidden"); }
+    } catch (e) {
+      $("sMsg").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້";
+    }
+  }
+
+  $("sPhoto").onchange = function () {
+    const f = $("sPhoto").files[0];
+    if (!f) return;
+    $("sPhotoPrev").src = URL.createObjectURL(f);
+    $("sPhotoPrev").classList.remove("hidden");
+  };
+
+  $("sGeoBtn").onclick = function () {
+    if (!navigator.geolocation) { $("sGeo").textContent = "ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"; return; }
+    $("sGeo").textContent = "ກຳລັງຫາຕຳແໜ່ງ...";
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      geo = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      showGeo();
+    }, function () {
+      $("sGeo").textContent = "ຫາຕຳແໜ່ງບໍ່ໄດ້ ກະລຸນາອະນຸຍາດການເຂົ້າເຖິງຕຳແໜ່ງ";
+    }, { enableHighAccuracy: true, timeout: 15000 });
+  };
+
+  $("sSave").onclick = async function () {
+    $("sSave").disabled = true;
+    $("sMsg").textContent = "ກຳລັງບັນທຶກ...";
+    const res = await settingsCall({
+      action: "save",
+      phone: $("sPhone").value,
+      email: $("sEmail").value.trim(),
+      address: $("sAddr").value.trim(),
+      lat: geo.lat,
+      lng: geo.lng
+    });
+    if (!res || !res.ok) {
+      const reasons = { phone: "ເບີໂທບໍ່ຖືກຕ້ອງ", email: "ອີເມວບໍ່ຖືກຕ້ອງ", location: "ຕຳແໜ່ງບໍ່ຖືກຕ້ອງ", auth: "PIN ບໍ່ຖືກຕ້ອງ" };
+      $("sMsg").textContent = reasons[res && res.reason] || "ບັນທຶກບໍ່ໄດ້ ລອງໃໝ່";
+      $("sSave").disabled = false;
+      return;
+    }
+
+    let msg = "ບັນທຶກແລ້ວ";
+    const f = $("sPhoto").files[0];
+    if (f) {
+      try {
+        const b64 = await shrinkImage(f);
+        const up = await apiPost({ type: "shopphoto", shopName: session.shopName, pin: session.pin, imageBase64: b64 });
+        if (!up || !up.ok) msg = "ບັນທຶກແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້";
+        else $("sPhoto").value = "";
+      } catch (e) {
+        msg = "ບັນທຶກແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້";
+      }
+    }
+    $("sSave").disabled = false;
+    $("sMsg").textContent = msg;
+    loadSettings();
+  };
+
+  $("sNameBtn").onclick = async function () {
+    const nn = $("sNewName").value.trim();
+    if (!nn) { $("sNameMsg").textContent = "ໃສ່ຊື່ໃໝ່ກ່ອນ"; return; }
+    if (!confirm("ສົ່ງຄຳຂໍປ່ຽນຊື່ເປັນ \"" + nn + "\" ໃຫ້ແອດມິນ LLUX ອະນຸມັດ?")) return;
+    const res = await settingsCall({ action: "requestName", newName: nn });
+    $("sNameMsg").textContent = res && res.ok ? "ສົ່ງຄຳຂໍແລ້ວ ລໍຖ້າແອດມິນອະນຸມັດ" : "ສົ່ງບໍ່ໄດ້ ລອງໃໝ່";
+    if (res && res.ok) $("sNewName").value = "";
+    loadSettings();
+  };
 
   setInterval(tickCountdown, 1000);
   updateNotifyState();
