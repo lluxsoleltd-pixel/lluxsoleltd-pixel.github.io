@@ -87,6 +87,7 @@
 
     <p id="emptyMsg" class="muted hidden">ຍັງບໍ່ມີງານ</p>
     <div id="jobs"></div>
+    <input type="file" id="deliverFile" accept="image/*" capture="environment" hidden>
     <p id="netMsg" class="muted"></p>
   </div>
 </div>
@@ -240,19 +241,41 @@
         '<button class="green" data-act="skip" data-id="' + esc(o.orderId) + '" style="flex:1;">ປະຕິເສດ</button>' +
         '</div>';
     }
+    // ຂັ້ນຕອນ: ໄດ້ຮັບເງິນແລ້ວ → ກຳລັງໄປຮັບສິນຄ້າ (ລໍຖ້າຮ້ານແພັກ) → ຮັບສິນຄ້າແລ້ວ → ສົ່ງສຳເລັດ (ຖ່າຍຮູບ)
+    if (o.serviceType === "buy") {
+      if (o.status === "picked_up") {
+        return '<button class="green" data-act="deliver" data-row="' + o.row + '">ສົ່ງສຳເລັດ · ຖ່າຍຮູບຈຸດສົ່ງ</button>';
+      }
+      if (o.status === "accepted" || o.status === "ready") {
+        const feeOk = Number(o.fee) <= 0 || o.feePaymentStatus === "confirmed";
+        if (!feeOk) {
+          if (o.feePaymentStatus === "claimed") {
+            return '<p class="muted">ລູກຄ້າແຈ້ງໂອນຄ່າສົ່ງແລ້ວ ກະລຸນາກວດເງິນ</p>' +
+              '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບເງິນແລ້ວ</button>';
+          }
+          return '<p class="muted">ລໍຖ້າລູກຄ້າໂອນຄ່າສົ່ງ</p>';
+        }
+        if (o.status === "ready") {
+          return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>';
+        }
+        return '<p class="muted">ໄດ້ຮັບເງິນແລ້ວ · ກຳລັງໄປຮັບສິນຄ້າ ລໍຖ້າຮ້ານແພັກ</p>';
+      }
+      return '<p class="muted">ລໍຖ້າຮ້ານແພັກສິນຄ້າ</p>';
+    }
+
     // ງານບໍລິການໄຣເດີ (ບໍ່ມີຮ້ານແພັກ) ກົດຮັບສິນຄ້າໄດ້ທັນທີຫຼັງຮັບງານ
     const canPickup = o.status === "ready" || o.status === "accepted";
+    if (o.status === "picked_up") {
+      return '<button class="green" data-act="deliver" data-row="' + o.row + '">ສົ່ງສຳເລັດ · ຖ່າຍຮູບຈຸດສົ່ງ</button>';
+    }
     // ລູກຄ້າແຈ້ງໂອນແລ້ວ ໄຣເດີຕ້ອງກົດຢືນຢັນວ່າໄດ້ຮັບເງິນ
-    if (o.serviceType !== "buy" && o.paymentStatus === "claimed" && o.status !== "delivered") {
+    if (o.paymentStatus === "claimed" && o.status !== "delivered") {
       return '<p class="muted">ລູກຄ້າແຈ້ງໂອນແລ້ວ ກະລຸນາກວດເງິນ</p>' +
         '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບເງິນແລ້ວ</button>' +
         (canPickup ? '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>' : '');
     }
     if (canPickup) {
       return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>';
-    }
-    if (o.status === "picked_up") {
-      return '<button class="green" data-act="delivered" data-row="' + o.row + '">ສົ່ງສຳເລັດແລ້ວ</button>';
     }
     return '<p class="muted">ລໍຖ້າຮ້ານແພັກສິນຄ້າ</p>';
   }
@@ -389,12 +412,15 @@
       } else if (act === "paid") {
         res = await post({ type: "payconfirm", riderName: session.riderName, pin: session.pin, row: row });
         if (!res.ok) { alert("ຢືນຢັນການຮັບເງິນບໍ່ໄດ້ ລອງໃໝ່"); }
+      } else if (act === "deliver") {
+        // ຕ້ອງຖ່າຍຮູບຈຸດສົ່ງກ່ອນ ຈຶ່ງຈະປິດງານໄດ້
+        pendingDeliverRow = row;
+        $("deliverFile").click();
+        return;
       } else {
         const newStatus = act;
         res = await post({ type: "status", riderName: session.riderName, pin: session.pin, row: row, newStatus: newStatus });
-        if (!res.ok) { alert("ອັບເດດສະຖານະບໍ່ໄດ້ ລອງໃໝ່"); }
-        const doneJob = jobs.find(function (o) { return o.row === row; });
-        if (res.ok && act === "delivered" && doneJob) addHist(doneJob);
+        if (!res.ok) { alert(res.reason === "notpaid" ? "ລູກຄ້າຍັງບໍ່ໄດ້ຊຳລະຄ່າສົ່ງ" : (res.reason === "notready" ? "ຮ້ານຍັງບໍ່ແພັກສິນຄ້າ" : "ອັບເດດສະຖານະບໍ່ໄດ້ ລອງໃໝ່")); }
       }
     } catch (e) {
       alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້ ລອງໃໝ່");
@@ -426,6 +452,49 @@
   $("tabAvail").onclick = function () { setTab("avail"); };
   $("tabMine").onclick = function () { setTab("mine"); };
   $("tabHist").onclick = function () { setTab("hist"); };
+  // ຖ່າຍຮູບຈຸດສົ່ງ ແລ້ວສົ່ງຂຶ້ນເຊີບເວີ ເພື່ອປິດງານ
+  let pendingDeliverRow = null;
+  function shrinkImage(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+          const scale = Math.min(1, 1000 / Math.max(img.width, img.height));
+          const c = document.createElement("canvas");
+          c.width = Math.round(img.width * scale);
+          c.height = Math.round(img.height * scale);
+          c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+          resolve(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  $("deliverFile").addEventListener("change", async function () {
+    const f = this.files && this.files[0];
+    this.value = "";
+    const row = pendingDeliverRow;
+    pendingDeliverRow = null;
+    if (!f || !row) return;
+    try {
+      const b64 = await shrinkImage(f);
+      const res = await post({ type: "deliver", riderName: session.riderName, pin: session.pin, row: row, imageBase64: b64 });
+      if (res.ok) {
+        const doneJob = jobs.find(function (o) { return o.row === row; });
+        if (doneJob) addHist(doneJob);
+      } else {
+        alert(res.reason === "image" ? "ຖ່າຍຮູບບໍ່ສຳເລັດ ລອງໃໝ່" : "ປິດງານບໍ່ໄດ້ ລອງໃໝ່");
+      }
+    } catch (e) {
+      alert("ອັບໂຫຼດຮູບບໍ່ໄດ້ ລອງໃໝ່");
+    }
+    refresh();
+  });
+
   $("jobs").addEventListener("click", function (ev) {
     const b = ev.target.closest("button[data-act]");
     if (!b || b.disabled) return;

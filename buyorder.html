@@ -136,6 +136,12 @@
     }
     if (o.deliveryType === "ship") h += '<p class="muted">ຄ່າຂົນສົ່ງຕ່າງແຂວງ: ແອດມິນຈະແຈ້ງຍອດໃຫ້</p>';
 
+    // ຫຼັກຖານການສົ່ງ: ຮູບທີ່ໄຣເດີຖ່າຍຈຸດສົ່ງ
+    if (o.deliveryPhotoUrl) {
+      h += '<div class="row" style="margin-top:10px"><span class="muted">ຫຼັກຖານການສົ່ງ</span><span class="ok">ສົ່ງສຳເລັດແລ້ວ ✔</span></div>';
+      h += '<a href="' + esc(o.deliveryPhotoUrl) + '" target="_blank" rel="noopener"><img src="' + esc(o.deliveryPhotoUrl) + '" alt="ຮູບຈຸດສົ່ງ" style="width:100%;border-radius:12px;margin-top:6px;display:block;"></a>';
+    }
+
     return h + '</div>';
   }
 
