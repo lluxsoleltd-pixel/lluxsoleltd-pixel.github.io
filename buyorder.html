@@ -73,6 +73,14 @@
     cancelled_by_customer: ["ທ່ານຍົກເລີກອໍເດີແລ້ວ", ""]
   };
   const CANCELABLE = ["shop_pending", "awaiting_payment", "pending"];
+  let lastKey = "";  // ຈື່ຂໍ້ມູນຄັ້ງກ່ອນ ເພື່ອບໍ່ໃຫ້ໜ້າຈໍກະພິບ/ປຸ່ມທີ່ເປີດຢູ່ປິດເອງ
+
+  // ແປງເບີໄຣເດີເປັນລິ້ງ WhatsApp (0xx → 856xx)
+  function waLink(p) {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.indexOf("0") === 0) d = "856" + d.slice(1);
+    return "https://wa.me/" + d;
+  }
 
   // ຈື່ເລກອໍເດີໄວ້ໃນເຄື່ອງນີ້ ເພື່ອໃຫ້ເບິ່ງໄດ້ໃນໜ້າ "ອໍເດີຂອງຂ້ອຍ"
   function rememberOrder(id) {
@@ -120,7 +128,13 @@
     // ໄຣເດີ
     if (o.rider) {
       h += '<div class="row"><span class="muted">ໄຣເດີ</span><span>' + esc(o.rider.riderName) + (o.rider.plate ? ' · ' + esc(o.rider.plate) : '') + '</span></div>';
-      if (o.rider.phone) h += '<a class="btn ghost" href="tel:' + esc(o.rider.phone) + '">📞 ໂທຫາໄຣເດີ</a>';
+      if (o.rider.phone) {
+        h += '<button class="btn ghost" data-callopen="1">📞 ໂທຫາໄຣເດີ</button>' +
+             '<div class="callopts hidden">' +
+             '<a class="btn" href="tel:' + esc(o.rider.phone) + '">📞 ໂທສາຍກົງ</a>' +
+             '<a class="btn ghost" href="' + esc(waLink(o.rider.phone)) + '" target="_blank" rel="noopener">💬 WhatsApp</a>' +
+             '</div>';
+      }
     }
 
     // ຄ່າສົ່ງ: ໂອນໃຫ້ໄຣເດີ
@@ -186,6 +200,9 @@
       const rows = await r.json();
       const list = Array.isArray(rows) ? rows : [];
       if (!list.length) { setMsg("ບໍ່ພົບອໍເດີນີ້"); return; }
+      const key = JSON.stringify(list);
+      if (key === lastKey) { setMsg(""); return; }
+      lastKey = key;
       $("oid").textContent = "ອໍເດີ " + ID;
       rememberOrder(ID);
       summary(list);
@@ -240,6 +257,12 @@
   });
 
   document.addEventListener("click", async function (e) {
+    const co = e.target.closest("[data-callopen]");
+    if (co) {
+      const box = co.nextElementSibling;
+      if (box) box.classList.toggle("hidden");
+      return;
+    }
     const x = e.target.closest("[data-cancel]");
     if (x) {
       if (x.disabled || !confirm("ຍົກເລີກອໍເດີນີ້ແທ້ບໍ?")) return;
