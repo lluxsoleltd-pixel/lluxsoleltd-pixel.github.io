@@ -657,9 +657,28 @@
       '<p class="note">1) ລໍຖ້າຮ້ານຢືນຢັນອໍເດີ<br>2) ໂອນຄ່າສິນຄ້າໃຫ້ແຕ່ລະຮ້ານຕາມ QR ດ້ານລຸ່ມ ແລ້ວອັບສລິບໃນໜ້າຕິດຕາມ<br>3) ເມື່ອໄຣເດີຮັບງານ ໂອນຄ່າສົ່ງຕາມ QR ໄຣເດີ</p>' +
       (res.deliveryType === "ship" ? '<p class="note">ໄປຕ່າງແຂວງ: ຮັບຂອງພາຍໃນ 3 ວັນ</p>' : '') +
       shopsHtml +
-      '<a class="btn" href="buyorder.html?id=' + encodeURIComponent(res.orderId) + '" style="display:block;text-align:center;text-decoration:none;">ໄປໜ້າຕິດຕາມອໍເດີ</a>' +
+      '<button class="btn" id="coTrack" type="button" disabled>ລໍຖ້າຮ້ານຮັບອໍເດີ...</button>' +
       '<button class="btn ghost" id="coDone" type="button">ປິດ</button>';
     $("coDone").onclick = closeAll;
+    $("coTrack").onclick = function () { location.href = "buyorder.html?id=" + encodeURIComponent(res.orderId); };
+    watchAccept(res.orderId);
+  }
+
+  // ປົດລັອກປຸ່ມ "ໄປໜ້າຕິດຕາມອໍເດີ" ເມື່ອຮ້ານຮັບ (ຫຼື ປະຕິເສດ) ອໍເດີແລ້ວ
+  function watchAccept(oid) {
+    const t = setInterval(async function () {
+      const b = document.getElementById("coTrack");
+      if (!b) { clearInterval(t); return; }
+      try {
+        const r = await fetch(API + "?type=orderstatus&orderId=" + encodeURIComponent(oid), { cache: "no-store" });
+        const rows = await r.json();
+        if (Array.isArray(rows) && rows.length && rows.every(function (o) { return o.status !== "shop_pending"; })) {
+          b.disabled = false;
+          b.textContent = "ໄປໜ້າຕິດຕາມອໍເດີ";
+          clearInterval(t);
+        }
+      } catch (e) {}
+    }, 5000);
   }
 
   // ===== ເຫດການ =====
