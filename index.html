@@ -32,6 +32,8 @@
   button:disabled { opacity:.5; cursor:default; }
   .btns { display:flex; gap:8px; }
   .btns button { margin-top:8px; }
+  button[data-act="accept"] { transition: transform .15s ease, box-shadow .15s ease; }
+  body.pulse .alert button[data-act="accept"] { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(22,163,74,.45); }
   .slip { display:inline-block; margin-top:6px; font-size:15px; }
   .hidden { display:none !important; }
   .topbar { display:flex; justify-content:space-between; align-items:center; gap:8px; }
@@ -254,6 +256,9 @@
     } catch (e) { /* ບາງເບຣາວເຊີ */ }
   }
   function beepOnce() {
+    // ປຸ່ມຮັບອໍເດີກະພິບພ້ອມກັບສຽງເຕືອນ
+    document.body.classList.add("pulse");
+    setTimeout(function () { document.body.classList.remove("pulse"); }, 300);
     if (!audioCtx) return;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
@@ -273,6 +278,7 @@
   function stopAlarm() {
     clearInterval(beepTimer);
     beepTimer = null;
+    document.body.classList.remove("pulse");
   }
 
   // ອໍເດີທີ່ຮ້ານຕ້ອງດຳເນີນການ
