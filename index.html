@@ -347,6 +347,10 @@
     body += '<div class="row"><span>ລູກຄ້າ</span><span>' + esc(o.customerName) + ' · <a href="tel:' + esc(o.phone) + '">' + esc(o.phone) + '</a></span></div>';
     body += '<div class="row"><span>ລາຍການ</span><span>' + esc(o.itemDesc) + '</span></div>';
     body += '<div class="row"><span>ມູນຄ່າສິນຄ້າ</span><span>' + money(o.goodsTotal) + '</span></div>';
+    if (o.serviceType === "buy" && Number(o.fee) > 0) {
+      body += '<div class="row"><span>ຄ່າສົ່ງ (ຈ່າຍໃຫ້ໄຣເດີ)</span><span>' + money(o.fee) + '</span></div>';
+      body += '<div class="row"><span>ລູກຄ້າໂອນລວມ</span><span>' + money(Number(o.goodsTotal) + Number(o.fee)) + '</span></div>';
+    }
 
     // ການຊຳລະ
     if (o.status === "awaiting_payment") {

@@ -249,11 +249,9 @@
       if (o.status === "accepted" || o.status === "ready") {
         const feeOk = Number(o.fee) <= 0 || o.feePaymentStatus === "confirmed";
         if (!feeOk) {
-          if (o.feePaymentStatus === "claimed") {
-            return '<p class="muted">ລູກຄ້າແຈ້ງໂອນຄ່າສົ່ງແລ້ວ ກະລຸນາກວດເງິນ</p>' +
-              '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບເງິນແລ້ວ</button>';
-          }
-          return '<p class="muted">ລໍຖ້າລູກຄ້າໂອນຄ່າສົ່ງ</p>';
+          // ຮ້ານຈ່າຍຄ່າສົ່ງໃຫ້ໄຣເດີ (ໂອນ ຫຼື ເງິນສົດ) — ຖ້າຮ້ານຍັງບໍ່ຈ່າຍ ຢ່າຮັບສິນຄ້າ
+          return '<p class="muted">ຮ້ານຈ່າຍຄ່າສົ່ງໃຫ້ກ່ອນ ຖ້າຮ້ານຍັງບໍ່ຈ່າຍ ຢ່າຮັບສິນຄ້າ</p>' +
+            '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບຄ່າສົ່ງຈາກຮ້ານແລ້ວ</button>';
         }
         if (o.status === "ready") {
           return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>';

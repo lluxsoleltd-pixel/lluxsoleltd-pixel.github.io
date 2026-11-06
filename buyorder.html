@@ -118,7 +118,8 @@
 
     // ຄ່າສິນຄ້າ: ໂອນໃຫ້ຮ້ານ
     if (o.status === "awaiting_payment" && o.paymentStatus === "unpaid") {
-      h += '<p class="muted" style="margin-top:10px">ໂອນຄ່າສິນຄ້າເຂົ້າບັນຊີຮ້ານ ແລ້ວກົດ "ຂ້ອຍໂອນແລ້ວ"</p>';
+      const total = (Number(o.goodsTotal) || 0) + (o.deliveryType === "ship" ? 0 : (Number(o.fee) || 0));
+      h += '<p class="muted" style="margin-top:10px">ໂອນຍອດ <b>' + money(total) + '</b> ເຂົ້າບັນຊີຮ້ານ (ຄ່າສິນຄ້າ + ຄ່າສົ່ງ) ແລ້ວກົດ "ຂ້ອຍໂອນແລ້ວ"</p>';
       if (o.shopQr && o.shopQr.qrImageUrl) h += '<img class="qr" src="' + esc(o.shopQr.qrImageUrl) + '" alt="QR ຮ້ານ">';
       if (o.shopQr && o.shopQr.accountNo) h += '<p class="muted" style="text-align:center">' + esc(o.shopQr.bankName) + ' · ' + esc(o.shopQr.accountName) + ' · ' + esc(o.shopQr.accountNo) + '</p>';
       h += '<button class="btn" data-claim="' + o.row + '">ຂ້ອຍໂອນແລ້ວ</button>';
@@ -137,14 +138,11 @@
       }
     }
 
-    // ຄ່າສົ່ງ: ໂອນໃຫ້ໄຣເດີ
-    if (o.serviceType === "buy" && o.deliveryType !== "ship" && o.rider && Number(o.fee) > 0 && o.feePaymentStatus !== "confirmed") {
-      h += '<p class="muted" style="margin-top:10px">ໂອນຄ່າສົ່ງ ' + money(o.fee) + ' ຕາມ QR ໄຣເດີ</p>';
-      if (o.rider.qrImageUrl) h += '<img class="qr" src="' + esc(o.rider.qrImageUrl) + '" alt="QR ໄຣເດີ">';
-      if (o.feePaymentStatus === "claimed") h += '<p class="muted" style="text-align:center">ແຈ້ງໂອນແລ້ວ · ລໍຖ້າໄຣເດີຢືນຢັນ</p>';
-      else h += '<button class="btn" data-paid="' + o.row + '">ຂ້ອຍໂອນຄ່າສົ່ງແລ້ວ</button>';
+    // ຄ່າສົ່ງ: ລວມຢູ່ໃນຍອດໂອນໃຫ້ຮ້ານແລ້ວ ຮ້ານຈະຈ່າຍໃຫ້ໄຣເດີຕອນມາຮັບສິນຄ້າ
+    if (o.serviceType === "buy" && o.deliveryType !== "ship" && Number(o.fee) > 0 && o.feePaymentStatus !== "confirmed") {
+      h += '<p class="muted" style="text-align:center">ຄ່າສົ່ງ ' + money(o.fee) + ' ຮ້ານຈະຈ່າຍໃຫ້ໄຣເດີຕອນມາຮັບສິນຄ້າ</p>';
     }
-    if (o.feePaymentStatus === "confirmed" && Number(o.fee) > 0) h += '<p class="muted" style="text-align:center">ຄ່າສົ່ງຊຳລະແລ້ວ ✔</p>';
+    if (o.feePaymentStatus === "confirmed" && Number(o.fee) > 0) h += '<p class="muted" style="text-align:center">ຄ່າສົ່ງຊຳລະໃຫ້ໄຣເດີແລ້ວ ✔</p>';
     if (o.rider && !o.rider.lat && o.feePaymentStatus !== "confirmed" && o.deliveryType !== "ship") {
       h += '<p class="muted">ຕຳແໜ່ງໄຣເດີຈະສະແດງຫຼັງຊຳລະຄ່າສົ່ງຢືນຢັນແລ້ວ</p>';
     }
