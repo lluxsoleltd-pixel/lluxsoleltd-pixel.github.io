@@ -67,6 +67,7 @@
   }
 
   function statusOf(o) {
+    if (o.status === "accepted" && o.headingAt) return ["ໄຣເດີກຳລັງໄປຮັບສິນຄ້າ", "ok"];
     if (o.status === "awaiting_payment" && o.paymentStatus === "claimed") return ["ແຈ້ງໂອນແລ້ວ · ລໍຖ້າຮ້ານກວດຍອດ", "wait"];
     if (o.status === "awaiting_payment" && o.paymentStatus === "slip_uploaded") return ["ອັບສລິບແລ້ວ · ລໍຖ້າຮ້ານກວດຍອດ", "wait"];
     return LABEL[o.status] || [o.status || "-", ""];
