@@ -465,9 +465,21 @@
   const EXPRESS_MAX_KM = 25;
   let coMap = null, coMarker = null, coDrop = null, coType = "express", coShops = {};
 
-  function calcFeeEst(km) {
-    const rate = km <= 7 ? 3500 : 3000;
-    return Math.round((km * rate) / 100) * 100;
+  // ຄ່າສົ່ງທັງທຣິບ: ລວມໄລຍະທຸກຮ້ານ ≤7 ກມ = 3,500/ກມ, >7 ກມ = 2,500/ກມ (ອັດຕາດຽວທັງໝົດ)
+  function calcTripFee(totalKm) {
+    const rate = totalKm <= 7 ? 3500 : 2500;
+    return Math.round((totalKm * rate) / 100) * 100;
+  }
+  // ແບ່ງຄ່າສົ່ງໃຫ້ແຕ່ລະຮ້ານຕາມສັດສ່ວນໄລຍະ (ປັດເປັນ 100 ກີບ, ຮ້ານສຸດທ້າຍເກັບສ່ວນທີ່ເຫຼືອ)
+  function feeShares(kmList) {
+    const total = kmList.reduce(function (s, k) { return s + k; }, 0);
+    const trip = total > 0 ? calcTripFee(total) : 0;
+    let used = 0;
+    return kmList.map(function (k, i) {
+      const share = i === kmList.length - 1 ? trip - used : (total > 0 ? Math.round((trip * k / total) / 100) * 100 : 0);
+      used += share;
+      return share;
+    });
   }
   function cartGroups() {
     const g = {};
@@ -573,9 +585,11 @@
 
     if (!coDrop) { $("coSum").innerHTML = ""; return; }
     let goods = 0, fee = 0, html = "";
-    groups.forEach(function (g) {
+    const kmList = groups.map(function (g) { const k = shopKm(g.shopName); return k === null ? 0 : k; });
+    const shares = coType === "express" ? feeShares(kmList) : groups.map(function () { return 0; });
+    groups.forEach(function (g, idx) {
       const km = shopKm(g.shopName);
-      const f = coType === "express" && km !== null ? calcFeeEst(km) : 0;
+      const f = shares[idx];
       goods += g.goods;
       fee += f;
       html += '<div class="r"><b>' + esc(g.shopName) + '</b> · ' + money(g.goods) +
