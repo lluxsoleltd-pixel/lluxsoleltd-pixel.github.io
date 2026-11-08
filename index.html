@@ -104,6 +104,13 @@
         <label class="muted small">ຂະໜາດຫຼັງແພັກ (CBM)</label>
         <input id="mCbm" type="text" autocomplete="off" inputmode="text" placeholder="ເຊັ່ນ 0.6*0.2*1">
         <p class="muted small">ພິມສູດໄດ້ເລີຍ ເຊັ່ນ 0.5*0.4*0.3 (ກວ້າງ*ຍາວ*ສູງ ເປັນແມັດ) ແລ້ວກົດ Enter ຫຼື ກົດຊ່ອງອື່ນ ລະບົບຈະຄຳນວນໃຫ້ອັດຕະໂນມັດ</p>
+        <label class="muted small">ຂອບເຂດການຂາຍ (ເລືອກໄດ້ຫຼາຍຂໍ້)</label>
+        <div class="scopes">
+          <label><input type="checkbox" class="scope" value="local"> ສົ່ງໃກ້ຄຽງ</label>
+          <label><input type="checkbox" class="scope" value="nationwide"> ສົ່ງທົ່ວປະເທດ</label>
+          <label><input type="checkbox" class="scope" value="global"> ສົ່ງອອກທົ່ວໂລກ</label>
+        </div>
+        <label><input type="checkbox" id="mShipBranch"> ຮ້ານສົ່ງໄປຍັງສາຂາເອງ (ຄ່າສົ່ງລວມໃນລາຄາ)</label>
         <label class="muted small">ຮູບສິນຄ້າ</label>
         <input id="mImg" type="file" accept="image/*">
         <img id="mPreview" class="hidden" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px;">
@@ -559,6 +566,7 @@
         '<div class="mtxt"><b>' + esc(it.itemName) + '</b>' +
         '<span class="muted small">' + esc(it.category) + ' · ' + money(it.price) + '</span>' +
         '<span class="muted small">ນ້ຳໜັກ ' + (it.weightKg ? it.weightKg + ' ກກ' : 'ຍັງບໍ່ລະບຸ') + ' · ' + (it.cbm ? it.cbm + ' CBM' : 'ຍັງບໍ່ລະບຸ') + '</span>' +
+        '<span class="muted small">' + (scopeList(it).map(function (s) { return SCOPE_TXT[s] || s; }).join(' · ') || 'ຍັງບໍ່ລະບຸຂອບເຂດການຂາຍ') + (it.shipBranch === "yes" ? ' · ຮ້ານສົ່ງໄປສາຂາເອງ' : '') + '</span>' +
         (soldout ? ' <span class="bad small">ໝົດແລ້ວ</span>' : '') +
         '<div class="mbtns">' +
           '<button class="secondary" data-m="edit" data-row="' + it.row + '">ແກ້ໄຂ</button>' +
@@ -591,8 +599,18 @@
     });
   }
 
+  const SCOPE_TXT = { local: "ສົ່ງໃກ້ຄຽງ", nationwide: "ສົ່ງທົ່ວປະເທດ", global: "ສົ່ງອອກທົ່ວໂລກ" };
+  function scopeList(it) {
+    return String(it.scope || "").split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+  function setScopeBoxes(list, shipBranch) {
+    document.querySelectorAll(".scope").forEach(function (c) { c.checked = list.indexOf(c.value) >= 0; });
+    $("mShipBranch").checked = !!shipBranch;
+  }
+
   function resetForm() {
     editingRow = null;
+    setScopeBoxes([], false);
     $("mName").value = "";
     $("mPrice").value = "";
     $("mDesc").value = "";
@@ -614,6 +632,7 @@
     $("mDesc").value = it.description || "";
     $("mWeight").value = it.weightKg || "";
     $("mCbm").value = it.cbm || "";
+    setScopeBoxes(scopeList(it), it.shipBranch === "yes");
     $("menuFormTitle").textContent = "ແກ້ໄຂສິນຄ້າ";
     $("mCancel").classList.remove("hidden");
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -711,8 +730,11 @@
       category: $("mCat").value,
       description: $("mDesc").value.trim(),
       weightKg: Number($("mWeight").value),
-      cbm: Number($("mCbm").value)
+      cbm: Number($("mCbm").value),
+      scope: Array.from(document.querySelectorAll(".scope:checked")).map(function (c) { return c.value; }).join(","),
+      shipBranch: $("mShipBranch").checked ? "yes" : "no"
     };
+    if (!item.scope) { $("mMsg").textContent = "ເລືອກຂອບເຂດການຂາຍຢ່າງໜ້ອຍ 1 ຂໍ້"; return; }
     if (!item.itemName || !(item.price > 0)) { $("mMsg").textContent = "ໃສ່ຊື່ ແລະ ລາຄາໃຫ້ຄົບ"; return; }
     if (!(item.weightKg > 0) || !(item.cbm > 0)) { $("mMsg").textContent = "ໃສ່ນ້ຳໜັກ ແລະ ຂະໜາດ (CBM) ໃຫ້ຄົບ"; return; }
     $("mSave").disabled = true;
