@@ -95,6 +95,9 @@
   .dt b { font-size: 14px; color: var(--ink); }
   .dt.on { border-color: var(--red); background: #fff5f5; }
   .dt:disabled { opacity: .45; cursor: not-allowed; }
+  .dt.dim { opacity: .6; }
+  .dt.hint, .comap.hint { animation: hintPulse 1.2s ease-in-out infinite; }
+  @keyframes hintPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(214,40,40,.5); } 50% { box-shadow: 0 0 0 8px rgba(214,40,40,0); } }
   .sheet .r { margin: 6px 0; font-size: 15px; color: #374151; }
   .thumbs { display: flex; gap: 8px; overflow-x: auto; margin-top: 10px; }
   .thumbs img { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; flex: 0 0 auto; background: #eee; }
@@ -514,7 +517,7 @@
   async function openCheckout() {
     if (!cartGroups().length) return;
     closeAll();
-    coDrop = null; coMarker = null; coMap = null; coType = "express"; coShops = {};
+    coDrop = null; coMarker = null; coMap = null; coType = null; coShops = {};
     let me = {};
     try { me = JSON.parse(localStorage.getItem("llux_me") || "{}"); } catch (e) {}
     $("sheetCheckout").innerHTML =
@@ -522,11 +525,11 @@
       '<label class="lbl">ຊື່ຜູ້ຮັບ</label><input id="coName" class="inp" value="' + esc(me.name || "") + '">' +
       '<label class="lbl">ເບີໂທ</label><input id="coPhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
       '<label class="lbl">ປັກໝຸດຈຸດສົ່ງ (ແຕະແຜນທີ່ ຫຼື ລາກໝຸດ)</label>' +
-      '<div id="coMap" class="comap"></div>' +
+      '<div id="coMap" class="comap hint"></div>' +
       '<button class="btn ghost" id="coLoc" type="button">📍 ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍ</button>' +
       '<label class="lbl">ປະເພດການສົ່ງ</label>' +
       '<div class="dtype">' +
-        '<button type="button" class="dt" id="dtExpress"><b>⚡ ສົ່ງດ່ວນທັນທີ</b><span>ຕົວເມືອງ / ໃກ້ຮ້ານ (ບໍ່ເກີນ 25 ກມ) · ນັບເວລາຫຼັງຮັບສິນຄ້າ</span></button>' +
+        '<button type="button" class="dt hint" id="dtExpress"><b>⚡ ສົ່ງດ່ວນທັນທີ</b><span>ຕົວເມືອງ / ໃກ້ຮ້ານ (ບໍ່ເກີນ 25 ກມ) · ນັບເວລາຫຼັງຮັບສິນຄ້າ</span></button>' +
         '<button type="button" class="dt" id="dtShip"><b>🚚 ໄປຕ່າງແຂວງ</b><span>ແຍກ ແລະ ແພັກສິນຄ້າ ແລ້ວສົ່ງຂົນສົ່ງ · ຮັບພາຍໃນ 3 ວັນ</span></button>' +
       '</div>' +
       '<p id="coTypeNote" class="note"></p>' +
@@ -543,7 +546,20 @@
         setDrop(p.coords.latitude, p.coords.longitude);
       }, function () { toast("ຫາຕຳແໜ່ງບໍ່ໄດ້"); }, { enableHighAccuracy: true, timeout: 10000 });
     };
-    $("dtExpress").onclick = function () { if (!$("dtExpress").disabled) { coType = "express"; renderSummary(); } };
+    $("dtExpress").onclick = function () {
+      $("dtExpress").classList.remove("hint");
+      if (!coDrop) {
+        // ຍັງບໍ່ໄດ້ປັກໝຸດ: ບອກໃຫ້ແຕະແຜນທີ່ກ່ອນ (ບໍ່ບລັອກປຸ່ມ)
+        coType = "express";
+        $("coMap").classList.add("hint");
+        toast("ແຕະແຜນທີ່ເພື່ອປັກໝຸດຈຸດສົ່ງກ່ອນ");
+        renderSummary();
+        return;
+      }
+      if (!expressOk(cartGroups())) { toast("ຮ້ານຢູ່ໄກເກີນ 25 ກມ ເລືອກໄປຕ່າງແຂວງແທນ"); return; }
+      coType = "express";
+      renderSummary();
+    };
     $("dtShip").onclick = function () { coType = "ship"; renderSummary(); };
     $("coGo").onclick = submitOrder;
     $("coBack").onclick = openCart;
@@ -558,6 +574,7 @@
 
   function setDrop(lat, lng) {
     coDrop = { lat: lat, lng: lng };
+    $("coMap").classList.remove("hint");
     if (!coMarker) {
       coMarker = L.marker([lat, lng], { draggable: true }).addTo(coMap);
       coMarker.on("dragend", function () {
@@ -572,15 +589,17 @@
 
   function renderSummary() {
     const groups = cartGroups();
-    const can = !!coDrop && expressOk(groups);
-    if (!can && coType === "express") coType = "ship";
-    $("dtExpress").disabled = !can;
+    const okExpress = !!coDrop && expressOk(groups);
+    // ເລືອກສົ່ງດ່ວນແລ້ວ ແຕ່ປັກໝຸດແລ້ວພົບວ່າໄກເກີນ: ລ້າງການເລືອກໃຫ້ລູກຄ້າເລືອກໃໝ່ເອງ
+    if (coDrop && coType === "express" && !okExpress) coType = null;
     $("dtExpress").classList.toggle("on", coType === "express");
     $("dtShip").classList.toggle("on", coType === "ship");
+    $("dtExpress").classList.toggle("dim", !!coDrop && !okExpress);
 
     let note = "";
-    if (!coDrop) note = "ກະລຸນາປັກໝຸດຈຸດສົ່ງກ່ອນ";
-    else if (!expressOk(groups)) note = "ມີຮ້ານຢູ່ໄກເກີນ 25 ກມ ຈາກຈຸດສົ່ງ ສົ່ງດ່ວນບໍ່ໄດ້ ໃຫ້ເລືອກໄປຕ່າງແຂວງ";
+    if (!coDrop) note = "ແຕະແຜນທີ່ເພື່ອປັກໝຸດຈຸດສົ່ງ ແລ້ວເລືອກປະເພດການສົ່ງ";
+    else if (!okExpress) note = "ມີຮ້ານຢູ່ໄກເກີນ 25 ກມ ຈາກຈຸດສົ່ງ ສົ່ງດ່ວນບໍ່ໄດ້ ກະລຸນາເລືອກໄປຕ່າງແຂວງ";
+    else if (!coType) note = "ກະລຸນາເລືອກປະເພດການສົ່ງ";
     $("coTypeNote").textContent = note;
 
     if (!coDrop) { $("coSum").innerHTML = ""; return; }
@@ -597,7 +616,9 @@
         (coType === "express" ? ' · ຄ່າສົ່ງ ~' + money(f) : '') + '</div>';
     });
     html += '<div class="total"><span>ລວມຄ່າສິນຄ້າ</span><span>' + money(goods) + '</span></div>';
-    html += coType === "express"
+    html += !coType
+      ? '<p class="note">ເລືອກປະເພດການສົ່ງເພື່ອເບິ່ງຄ່າສົ່ງ</p>'
+      : coType === "express"
       ? '<p class="note">ຄ່າສົ່ງປະມານ ' + money(fee) + ' (ຍອດຈິງຄິດຕາມເສັ້ນທາງຈິງຕອນສັ່ງ)</p>'
       : '<p class="note">ໄປຕ່າງແຂວງ: ແຍກ ແລະ ແພັກສິນຄ້າ ແລ້ວສົ່ງຂົນສົ່ງ ຮັບພາຍໃນ 3 ວັນ · ຄ່າຂົນສົ່ງແອດມິນຈະແຈ້ງຍອດໃຫ້ຫຼັງຢືນຢັນ</p>';
     $("coSum").innerHTML = html;
@@ -608,6 +629,7 @@
     const phone = $("coPhone").value.replace(/\D/g, "");
     if (!name || phone.length < 8) { $("coMsg").textContent = "ໃສ່ຊື່ ແລະ ເບີໂທໃຫ້ຄົບ"; return; }
     if (!coDrop) { $("coMsg").textContent = "ປັກໝຸດຈຸດສົ່ງໃນແຜນທີ່ກ່ອນ"; return; }
+    if (!coType) { $("coMsg").textContent = "ກະລຸນາເລືອກປະເພດການສົ່ງກ່ອນ"; return; }
     const groups = cartGroups();
     if (!groups.length) { $("coMsg").textContent = "ຕະກ້າວ່າງ"; return; }
     try { localStorage.setItem("llux_me", JSON.stringify({ name: name, phone: phone })); } catch (e) {}
