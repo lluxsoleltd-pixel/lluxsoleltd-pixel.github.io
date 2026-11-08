@@ -242,24 +242,25 @@
         '</div>';
     }
     // ຂັ້ນຕອນ: ໄດ້ຮັບເງິນແລ້ວ → ກຳລັງໄປຮັບສິນຄ້າ (ລໍຖ້າຮ້ານແພັກ) → ຮັບສິນຄ້າແລ້ວ → ສົ່ງສຳເລັດ (ຖ່າຍຮູບ)
+    // ຂັ້ນຕອນ: ຮັບງານ → ກຳລັງໄປຮັບສິນຄ້າ → ໄດ້ຮັບຄ່າສົ່ງ ແລະ ຂອງຈາກຮ້ານ → ກຳລັງຈັດສົ່ງ → ສົ່ງສຳເລັດ (ຖ່າຍຮູບ)
     if (o.serviceType === "buy") {
       if (o.status === "picked_up") {
-        return '<button class="green" data-act="deliver" data-row="' + o.row + '">ສົ່ງສຳເລັດ · ຖ່າຍຮູບຈຸດສົ່ງ</button>';
+        return '<p class="muted">ກຳລັງຈັດສົ່ງໄປຍັງລູກຄ້າ</p>' +
+          '<button class="green" data-act="deliver" data-row="' + o.row + '">ສົ່ງສຳເລັດ · ຖ່າຍຮູບຈຸດສົ່ງ</button>';
       }
       if (o.status === "accepted" || o.status === "ready") {
-        const feeOk = Number(o.fee) <= 0 || o.feePaymentStatus === "confirmed";
-        if (!feeOk) {
-          // ຮ້ານຈ່າຍຄ່າສົ່ງໃຫ້ໄຣເດີ (ໂອນ ຫຼື ເງິນສົດ) — ຖ້າຮ້ານຍັງບໍ່ຈ່າຍ ຢ່າຮັບສິນຄ້າ
-          return '<p class="muted">ຮ້ານຈ່າຍຄ່າສົ່ງໃຫ້ກ່ອນ ຖ້າຮ້ານຍັງບໍ່ຈ່າຍ ຢ່າຮັບສິນຄ້າ</p>' +
-            '<button class="green" data-act="paid" data-row="' + o.row + '">ໄດ້ຮັບຄ່າສົ່ງຈາກຮ້ານແລ້ວ</button>';
-        }
         if (!o.headingAt) {
           return '<button class="green" data-act="heading" data-row="' + o.row + '">ກຳລັງໄປຮັບສິນຄ້າ</button>';
         }
-        if (o.status === "ready") {
-          return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ຮັບສິນຄ້າຈາກຮ້ານແລ້ວ</button>';
+        if (o.status === "accepted") {
+          return '<p class="muted">ກຳລັງໄປຮັບສິນຄ້າ · ລໍຖ້າຮ້ານແພັກ</p>';
         }
-        return '<p class="muted">ກຳລັງໄປຮັບສິນຄ້າ · ລໍຖ້າຮ້ານແພັກ</p>';
+        // ຮ້ານແພັກແລ້ວ: ຕ້ອງຮ້ານຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງກ່ອນ ຈຶ່ງກົດຮັບໄດ້
+        const feeOk = Number(o.fee) <= 0 || o.feePaymentStatus === "confirmed";
+        if (!feeOk) {
+          return '<p class="muted">ຮ້ານແພັກແລ້ວ ລໍຖ້າຮ້ານຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງ · ຖ້າຮ້ານຍັງບໍ່ຈ່າຍ ຢ່າຮັບສິນຄ້າ</p>';
+        }
+        return '<button class="green" data-act="picked_up" data-row="' + o.row + '">ໄດ້ຮັບຄ່າສົ່ງ ແລະ ຂອງຈາກຮ້ານແລ້ວ</button>';
       }
       return '<p class="muted">ລໍຖ້າຮ້ານແພັກສິນຄ້າ</p>';
     }
