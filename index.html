@@ -213,10 +213,12 @@
     ready: "ແພັກແລ້ວ ລໍຖ້າໄຣເດີມາຮັບ",
     picked_up: "ໄຣເດີຮັບສິນຄ້າແລ້ວ",
     delivered: "ສົ່ງສຳເລັດ",
-    shop_rejected: "ຮ້ານປະຕິເສດແລ້ວ"
+    shop_rejected: "ຮ້ານປະຕິເສດແລ້ວ",
+    shipped_to_branch: "ຮ້ານສົ່ງເຂົ້າສາຂາແລ້ວ · ລູກຄ້າໄປຮັບທີ່ສາຂາ"
   };
   const ERR_TXT = {
     auth: "PIN ບໍ່ຖືກຕ້ອງ",
+    route: "ກະລຸນາເລືອກວິທີສົ່ງກ່ອນຊຳລະ",
     state: "ສະຖານະປ່ຽນແລ້ວ ກະລຸນາລອງໃໝ່",
     notyours: "ອໍເດີນີ້ບໍ່ແມ່ນຂອງຮ້ານນີ້",
     row: "ບໍ່ພົບອໍເດີ"
@@ -340,6 +342,16 @@
     refresh();
   }
 
+  async function routeAct(row, via) {
+    try {
+      const res = await apiPost({ type: "shop", shopName: session.shopName, pin: session.pin, row: row, action: "route", via: via });
+      if (!res.ok) alert(ERR_TXT[res.reason] || "ເກີດຂໍ້ຜິດພາດ");
+    } catch (e) {
+      alert("ສົ່ງຄຳສັ່ງບໍ່ໄດ້ ກະລຸນາລອງໃໝ່");
+    }
+    refresh();
+  }
+
   // ສະແດງຜົນ
   function render() {
     const box = $("orders");
@@ -382,9 +394,22 @@
 
     // ປຸ່ມຕາມສະຖານະ
     let btns = "";
+    const shipPending = o.deliveryType === "ship" && o.serviceType === "buy" && o.shipVia === "pending";
+    if (o.deliveryType === "ship" && o.serviceType === "buy" && o.shipVia && o.shipVia !== "pending") {
+      body += '<div class="row"><span>ວິທີສົ່ງ</span><span>' + (o.shipVia === "shop" ? "ຮ້ານສົ່ງເອງໄປສາຂາ" : "ໄຣເດີ LLUX ໄປຮັບ") + '</span></div>';
+    }
+    if (o.deliveryType === "ship" && o.carrier) {
+      body += '<div class="row"><span>ບໍລິສັດຂົນສົ່ງ</span><span>' + esc(o.carrier) + '</span></div>';
+      body += '<div class="row"><span>ສາຂາປາຍທາງ</span><span>' + esc(o.branch || "-") + '</span></div>';
+    }
     if (o.status === "shop_pending") {
       btns = '<div class="btns"><button class="good" data-act="accept" data-row="' + o.row + '">ຮັບອໍເດີ</button>' +
              '<button class="danger" data-act="reject" data-row="' + o.row + '">ປະຕິເສດ</button></div>';
+    } else if (o.status === "awaiting_payment" && shipPending) {
+      btns = '<p class="muted small">ເລືອກວິທີສົ່ງໄປຕ່າງແຂວງກ່ອນ</p>' +
+             '<div class="btns"><button class="good" data-act="route_shop" data-row="' + o.row + '">ຮ້ານສົ່ງເອງໄປສາຂານີ້</button>' +
+             '<button class="secondary" data-act="route_llux" data-row="' + o.row + '">ໃຫ້ໄຣເດີ LLUX ມາຮັບ</button></div>' +
+             '<div class="btns"><button class="danger" data-act="reject" data-row="' + o.row + '">ຍົກເລີກອໍເດີ</button></div>';
     } else if (o.status === "awaiting_payment") {
       btns = '<div class="btns"><button class="good" data-act="confirm_payment" data-row="' + o.row + '">ໄດ້ຮັບຍອດໂອນແລ້ວ · ໃຫ້ຈັດຂອງເລີຍ</button>' +
              '<button class="danger" data-act="reject" data-row="' + o.row + '">ຍົກເລີກອໍເດີ</button></div>';
@@ -483,6 +508,11 @@
     const b = ev.target.closest("button[data-act]");
     if (!b) return;
     if (b.dataset.act === "reject" && !confirm("ຍົກເລີກອໍເດີນີ້ແທ້ບໍ?")) return;
+    if (b.dataset.act === "route_shop" || b.dataset.act === "route_llux") {
+      if (!confirm("ຢືນຢັນເລືອກວິທີສົ່ງນີ້?")) return;
+      routeAct(Number(b.dataset.row), b.dataset.act === "route_shop" ? "shop" : "llux");
+      return;
+    }
     act(Number(b.dataset.row), b.dataset.act);
   });
 
