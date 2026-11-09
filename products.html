@@ -536,6 +536,7 @@
       '</div>' +
       '<div id="shipBlock" style="display:none">' +
         '<label class="lbl">ບໍລິສັດຂົນສົ່ງ</label><select id="shipCarrier" class="inp"><option value="">ກຳລັງໂຫຼດ...</option></select>' +
+        '<label class="lbl">ສາຂາປາຍທາງ (ພິມເອງ)</label><input id="shipBranch" class="inp" placeholder="ເຊັ່ນ: ສາຂາ ... ">' +
         '<label class="lbl">ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງຈ່າຍທີ່</label><select id="shipPay" class="inp"><option value="origin">ຕົ້ນທາງ</option><option value="destination">ປາຍທາງ</option></select>' +
         '<p class="note">ລະບົບຈະເລືອກສາຂາທີ່ໃກ້ຈຸດລວມ LLUX ທີ່ສຸດໃຫ້ອັດຕະໂນມັດ ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງລູກຄ້າຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</p>' +
       '</div>' +
@@ -663,6 +664,8 @@
     const isShip = coType === "ship";
     const carrier = isShip ? $("shipCarrier").value : "";
     if (isShip && !carrier) { $("coMsg").textContent = "ເລືອກບໍລິສັດຂົນສົ່ງກ່ອນ"; return; }
+    const branch = isShip ? $("shipBranch").value.trim() : "";
+    if (isShip && !branch) { $("coMsg").textContent = "ພິມສາຂາປາຍທາງກ່ອນ"; return; }
     if (!isShip && !coDrop) { $("coMsg").textContent = "ປັກໝຸດຈຸດສົ່ງໃນແຜນທີ່ກ່ອນ"; return; }
     const groups = cartGroups();
     if (!groups.length) { $("coMsg").textContent = "ຕະກ້າວ່າງ"; return; }
@@ -678,7 +681,7 @@
         body: JSON.stringify({
           type: "order", serviceType: "buy", deliveryType: coType,
           customerName: name, phone: phone,
-          carrier: carrier, payTerm: isShip ? $("shipPay").value : "",
+          carrier: carrier, branch: branch, payTerm: isShip ? $("shipPay").value : "",
           dropLat: coDrop ? coDrop.lat : null, dropLng: coDrop ? coDrop.lng : null,
           shops: groups.map(function (g) {
             return { shopName: g.shopName, items: g.items.map(function (x) { return { itemName: x.itemName, qty: x.qty }; }) };
@@ -711,6 +714,9 @@
     if (r === "far") return "ຮ້ານ " + (res.shopName || "") + " ຢູ່ໄກເກີນ 25 ກມ ໃຫ້ເລືອກໄປຕ່າງແຂວງ";
     if (r === "shop") return "ຮ້ານ " + (res.shopName || "") + " ຍັງບໍ່ພ້ອມຮັບອໍເດີ (ຫຼື ເອກະສານບໍ່ຄົບ)";
     if (r === "item") return "ສິນຄ້າ " + (res.itemName || "") + " ໝົດ ຫຼື ບໍ່ມີແລ້ວ ກະລຸນາເອົາອອກຈາກຕະກ້າ";
+    if (r === "carrier") return "ບໍລິສັດຂົນສົ່ງນີ້ຍັງບໍ່ເປີດໃຫ້ບໍລິການ ກະລຸນາເລືອກບໍລິສັດອື່ນ";
+    if (r === "branch") return "ກະລຸນາພິມສາຂາປາຍທາງ";
+    if (r === "scope") return "ສິນຄ້າ " + (res.itemName || "") + " ຍັງບໍ່ເປີດຂາຍຕ່າງແຂວງ";
     return "ສັ່ງຊື້ບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ";
   }
 
