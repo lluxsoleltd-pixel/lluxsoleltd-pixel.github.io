@@ -537,6 +537,7 @@
       '<div id="shipBlock" style="display:none">' +
         '<label class="lbl">ບໍລິສັດຂົນສົ່ງ</label><select id="shipCarrier" class="inp"><option value="">ກຳລັງໂຫຼດ...</option></select>' +
         '<label class="lbl">ສາຂາປາຍທາງ (ພິມເອງ)</label><input id="shipBranch" class="inp" placeholder="ເຊັ່ນ: ສາຂາ ... ">' +
+        '<label class="lbl">ເບີໂທຜູ້ຮັບ</label><input id="shipPhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
         '<label class="lbl">ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງຈ່າຍທີ່</label><select id="shipPay" class="inp"><option value="origin">ຕົ້ນທາງ</option><option value="destination">ປາຍທາງ</option></select>' +
         '<p class="note">ລະບົບຈະເລືອກສາຂາທີ່ໃກ້ຈຸດລວມ LLUX ທີ່ສຸດໃຫ້ອັດຕະໂນມັດ ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງລູກຄ້າຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</p>' +
       '</div>' +
@@ -556,6 +557,8 @@
     };
     $("dtExpress").onclick = function () {
       $("dtExpress").classList.remove("hint");
+      $("coPhone").previousElementSibling.style.display = "";
+      $("coPhone").style.display = "";
       $("pinBlock").style.display = "";
       $("shipBlock").style.display = "none";
       if (coMap) coMap.invalidateSize();
@@ -573,6 +576,8 @@
     };
     $("dtShip").onclick = function () {
       coType = "ship";
+      $("coPhone").previousElementSibling.style.display = "none";
+      $("coPhone").style.display = "none";
       $("pinBlock").style.display = "none";
       $("shipBlock").style.display = "";
       loadCarriers();
@@ -658,10 +663,10 @@
 
   async function submitOrder() {
     const name = $("coName").value.trim();
-    const phone = $("coPhone").value.replace(/\D/g, "");
+    const isShip = coType === "ship";
+    const phone = (isShip ? $("shipPhone").value : $("coPhone").value).replace(/\D/g, "");
     if (!name || phone.length < 8) { $("coMsg").textContent = "ໃສ່ຊື່ ແລະ ເບີໂທໃຫ້ຄົບ"; return; }
     if (!coType) { $("coMsg").textContent = "ກະລຸນາເລືອກປະເພດການສົ່ງກ່ອນ"; return; }
-    const isShip = coType === "ship";
     const carrier = isShip ? $("shipCarrier").value : "";
     if (isShip && !carrier) { $("coMsg").textContent = "ເລືອກບໍລິສັດຂົນສົ່ງກ່ອນ"; return; }
     const branch = isShip ? $("shipBranch").value.trim() : "";
