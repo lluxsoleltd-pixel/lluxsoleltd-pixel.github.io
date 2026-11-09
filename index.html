@@ -83,6 +83,7 @@
     <p id="emptyMsg" class="muted hidden">ຍັງບໍ່ມີອໍເດີໃໝ່</p>
     <div class="tabs2">
       <button id="tabOrders" class="good">ອໍເດີ</button>
+      <button id="tabHistory" class="secondary">ປະຫວັດ</button>
       <button id="tabMenu" class="secondary">ເມນູສິນຄ້າ</button>
       <button id="tabSettings" class="secondary">ຕັ້ງຄ່າຮ້ານ</button>
     </div>
@@ -305,11 +306,14 @@
     }
   }
 
-  // ດຶງອໍເດີຂອງຮ້ານ
+  // ດຶງອໍເດີຂອງຮ້ານ (ໂໝດປະຫວັດ = historyMode)
+  let historyMode = false;
   async function refresh() {
     if (!session) return;
     try {
-      const data = await apiGet({ type: "shoporders", shopName: session.shopName, pin: session.pin });
+      const params = { type: "shoporders", shopName: session.shopName, pin: session.pin };
+      if (historyMode) params.scope = "history";
+      const data = await apiGet(params);
       if (data && data.error === "auth") { logout(); $("loginMsg").textContent = ERR_TXT.auth; return; }
       orders = Array.isArray(data) ? data : [];
       $("netMsg").textContent = "";
@@ -355,7 +359,8 @@
   // ສະແດງຜົນ
   function render() {
     const box = $("orders");
-    $("emptyMsg").classList.toggle("hidden", activeTab !== "orders" || orders.length > 0);
+    $("emptyMsg").textContent = historyMode ? "ຍັງບໍ່ມີປະຫວັດອໍເດີ" : "ຍັງບໍ່ມີອໍເດີໃໝ່";
+    $("emptyMsg").classList.toggle("hidden", (activeTab !== "orders" && activeTab !== "history") || orders.length > 0);
     box.innerHTML = orders.map(orderCard).join("");
   }
 
@@ -565,15 +570,18 @@
 
   function showTab(which) {
     activeTab = which;
+    historyMode = which === "history";
     $("tabOrders").className = which === "orders" ? "good" : "secondary";
+    $("tabHistory").className = which === "history" ? "good" : "secondary";
     $("tabMenu").className = which === "menu" ? "good" : "secondary";
     $("tabSettings").className = which === "settings" ? "good" : "secondary";
     $("menuView").classList.toggle("hidden", which !== "menu");
     $("settingsView").classList.toggle("hidden", which !== "settings");
-    $("orders").classList.toggle("hidden", which !== "orders");
+    $("orders").classList.toggle("hidden", which !== "orders" && which !== "history");
     if (which === "menu") { $("emptyMsg").classList.add("hidden"); loadMenu(); }
     else if (which === "settings") { $("emptyMsg").classList.add("hidden"); loadSettings(); }
-    else render();
+    else if (historyMode) { orders = []; render(); refresh(); }
+    else { render(); refresh(); }
   }
 
   async function loadMenu() {
@@ -815,6 +823,7 @@
   });
 
   $("tabOrders").onclick = function () { showTab("orders"); };
+  $("tabHistory").onclick = function () { showTab("history"); };
   $("tabMenu").onclick = function () { showTab("menu"); };
   $("tabSettings").onclick = function () { showTab("settings"); };
   fillCats();
