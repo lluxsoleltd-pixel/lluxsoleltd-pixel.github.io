@@ -110,7 +110,7 @@
       '<div class="row"><span class="muted">ການສົ່ງ</span><span>' + (dt === "ship" ? "🚚 ໄປຕ່າງແຂວງ (ຮັບພາຍໃນ 3 ວັນ)" : "⚡ ສົ່ງດ່ວນທັນທີ") + '</span></div>' +
       '<div class="row"><span class="muted">ລວມຄ່າສິນຄ້າ</span><span>' + money(goods) + '</span></div>' +
       (dt === "ship"
-        ? '<div class="row"><span class="muted">ຄ່າຂົນສົ່ງ</span><span>ແອດມິນຈະແຈ້ງຍອດ</span></div>'
+        ? '<div class="row"><span class="muted">ຄ່າຂົນສົ່ງ</span><span>ຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</span></div>'
         : '<div class="row"><span class="muted">ຄ່າສົ່ງ (ລວມ)</span><span>' + money(fee) + '</span></div>');
   }
 
@@ -152,7 +152,7 @@
     if (o.rider && !o.rider.lat && o.feePaymentStatus !== "confirmed" && o.deliveryType !== "ship") {
       h += '<p class="muted">ຕຳແໜ່ງໄຣເດີຈະສະແດງຫຼັງຊຳລະຄ່າສົ່ງຢືນຢັນແລ້ວ</p>';
     }
-    if (o.deliveryType === "ship") h += '<p class="muted">ຄ່າຂົນສົ່ງຕ່າງແຂວງ: ແອດມິນຈະແຈ້ງຍອດໃຫ້</p>';
+    if (o.deliveryType === "ship") h += '<p class="muted">ຄ່າຂົນສົ່ງຕ່າງແຂວງ: ຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ (ຕາມເງື່ອນໄຂຕົ້ນທາງ/ປາຍທາງທີ່ເລືອກ)</p>';
 
     // ຫຼັກຖານການສົ່ງ: ຮູບທີ່ໄຣເດີຖ່າຍຈຸດສົ່ງ
     if (o.deliveryPhotoUrl) {

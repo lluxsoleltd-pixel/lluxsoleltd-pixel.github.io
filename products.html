@@ -729,7 +729,7 @@
     const shopsHtml = (res.shops || []).map(function (s) {
       const q = s.qr || {};
       return '<div class="cgroup"><div class="gh"><span>' + esc(s.shopName) + '</span><span>' + money(s.goodsTotal) + '</span></div>' +
-        '<div class="r" style="padding:8px 12px">' + (res.deliveryType === "ship" ? "ຄ່າຂົນສົ່ງ: ແອດມິນຈະແຈ້ງ" : "ຄ່າສົ່ງ: " + money(s.fee) + " · ຍອດໂອນ: " + money((s.goodsTotal || 0) + (s.fee || 0))) + '</div>' +
+        '<div class="r" style="padding:8px 12px">' + (res.deliveryType === "ship" ? "ຄ່າຂົນສົ່ງ: ຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ (ຕາມເງື່ອນໄຂຕົ້ນທາງ/ປາຍທາງທີ່ເລືອກ)" : "ຄ່າສົ່ງ: " + money(s.fee) + " · ຍອດໂອນ: " + money((s.goodsTotal || 0) + (s.fee || 0))) + '</div>' +
         (q.qrImageUrl ? '<img src="' + esc(q.qrImageUrl) + '" alt="QR" style="width:200px;max-width:80%;display:block;margin:8px auto;">' : '') +
         (q.accountNo ? '<p class="note" style="text-align:center">' + esc(q.bankName) + ' · ' + esc(q.accountName) + ' · ' + esc(q.accountNo) + '</p>' : '') +
         '</div>';
