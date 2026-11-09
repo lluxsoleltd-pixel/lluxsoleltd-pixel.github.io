@@ -64,6 +64,24 @@
   .doc .pdf { width: 56px; height: 56px; border-radius: 8px; background: #fee2e2; color: var(--red); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex: 0 0 auto; }
   .doc .dt { flex: 1; font-size: 14px; }
   .doc a { color: var(--red); font-size: 13px; text-decoration: none; white-space: nowrap; }
+  /* ເອກະສານ: ຮູບເຕັມຄວາມກວ້າງ ຈັດຮຽງລົງ ເບິ່ງໄດ້ເລີຍ */
+  .docBox { margin-bottom: 18px; }
+  .docLbl { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+  .docImg { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
+  .pdfBtn { display: block; text-align: center; padding: 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--red); text-decoration: none; font-weight: 600; font-size: 14px; }
+  /* ຂໍ້ມູນຕິດຕໍ່ຮ້ານ (ແບບ Alibaba) */
+  .cCard { border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .cHead { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--red); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex: 0 0 auto; }
+  .cHead b { display: block; font-size: 16px; }
+  .cHead small { color: var(--mute); font-size: 13px; }
+  .cRow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+  .cRow.off { opacity: .5; }
+  .cIco { width: 36px; height: 36px; border-radius: 10px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 17px; flex: 0 0 auto; }
+  .cTxt { flex: 1; min-width: 0; }
+  .cTxt b { display: block; font-size: 15px; }
+  .cTxt small { display: block; color: var(--mute); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cGo { color: var(--mute); font-size: 22px; }
   /* ແຖບລຸ່ມ: ແຊັດ / ໂທ */
   .bottom { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); display: flex; gap: 10px; padding: 10px 12px; max-width: 720px; margin: 0 auto; }
   .bottom a { flex: 1; text-align: center; padding: 12px 6px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; color: #fff; }
@@ -111,6 +129,10 @@
     <div class="sec">
       <h2>ໃບຮັບຮອງ / ເອກະສານ</h2>
       <div id="docsHome"></div>
+    </div>
+    <div class="sec">
+      <h2>ຕິດຕໍ່ຜູ້ຂາຍໂດຍກົງ</h2>
+      <div class="cCard" id="contactBox"></div>
     </div>
   </section>
 
@@ -273,15 +295,32 @@
     $("featMsg").textContent = feat.length ? "" : "ຍັງບໍ່ມີສິນຄ້າ";
   }
 
+  // ເອກະສານ: ຮູບເຕັມຄວາມກວ້າງ ຈັດຮຽງລົງ ເບິ່ງໄດ້ເລີຍ (PDF ເປີດໃນແທັບໃໝ່)
   function docsHtml(docs) {
     if (!docs || !docs.length) return '<p class="empty">ຍັງບໍ່ມີເອກະສານທີ່ອັບໂຫຼດ</p>';
     return docs.map(function (d) {
       const isPdf = String(d.url).indexOf("drive.google.com") >= 0;
-      const thumb = isPdf ? '<div class="pdf">PDF</div>' : '<img src="' + esc(d.url) + '" alt="">';
-      return '<div class="doc">' + thumb +
-        '<div class="dt">' + esc(DOC[d.type] || d.type) + '</div>' +
-        '<a href="' + esc(d.url) + '" target="_blank" rel="noopener">ເປີດ ›</a></div>';
+      const label = esc(DOC[d.type] || d.type);
+      const body = isPdf
+        ? '<a class="pdfBtn" href="' + esc(d.url) + '" target="_blank" rel="noopener">📄 ເປີດເອກະສານ PDF ›</a>'
+        : '<a href="' + esc(d.url) + '" target="_blank" rel="noopener"><img class="docImg" loading="lazy" src="' + esc(d.url) + '" alt="' + label + '"></a>';
+      return '<div class="docBox"><div class="docLbl">' + label + '</div>' + body + '</div>';
     }).join("");
+  }
+
+  // ຂໍ້ມູນຕິດຕໍ່ (ແບບ Alibaba): ແຊັດ / ໂທ / ອີເມວ
+  function contactBox(p) {
+    const tel = String(p.phone || "").replace(/[^\d+]/g, "");
+    const wa = waLink(p.phone);
+    const row = function (ico, title, sub, href) {
+      if (!href) return '<div class="cRow off"><span class="cIco">' + ico + '</span><span class="cTxt"><b>' + esc(title) + '</b><small>ຍັງບໍ່ມີຂໍ້ມູນ</small></span></div>';
+      return '<a class="cRow" href="' + esc(href) + '"><span class="cIco">' + ico + '</span><span class="cTxt"><b>' + esc(title) + '</b><small>' + esc(sub) + '</small></span><span class="cGo">›</span></a>';
+    };
+    return '<div class="cHead"><div class="avatar">' + esc(String(p.name || "?").charAt(0)) + '</div>' +
+      '<div><b>' + esc(p.name) + '</b><small>' + esc(p.address || "ລາວ") + '</small></div></div>' +
+      row("💬", "ແຊັດກັບຮ້ານ", "ຜ່ານ WhatsApp", wa) +
+      row("📞", "ໂທສາຍກົງ", p.phone || "", tel ? "tel:" + tel : "") +
+      row("✉️", "ອີເມວ", p.email || "", p.email ? "mailto:" + p.email : "");
   }
 
   function bizRows(p) {
@@ -324,6 +363,7 @@
     $("desc").textContent = p.description || "ຍັງບໍ່ມີຄຳແນະນຳ";
     $("docsHome").innerHTML = docsHtml(p.docs);
     $("docs").innerHTML = docsHtml(p.docs);
+    $("contactBox").innerHTML = contactBox(p);
 
     const tel = String(p.phone || "").replace(/[^\d+]/g, "");
     const wa = waLink(p.phone);
