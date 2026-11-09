@@ -65,9 +65,10 @@
   .doc .dt { flex: 1; font-size: 14px; }
   .doc a { color: var(--red); font-size: 13px; text-decoration: none; white-space: nowrap; }
   /* ເອກະສານ: ຮູບເຕັມຄວາມກວ້າງ ຈັດຮຽງລົງ ເບິ່ງໄດ້ເລີຍ */
-  .docBox { margin-bottom: 18px; }
-  .docLbl { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
-  .docImg { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 8px; background: #fafafa; }
+  .certGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .docBox { border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.06); }
+  .docLbl { font-size: 13px; font-weight: 600; margin-bottom: 6px; text-align: center; }
+  .docImg { width: 100%; aspect-ratio: 3 / 4; object-fit: contain; display: block; border-radius: 6px; background: #fafafa; }
   .pdfBtn { display: block; text-align: center; padding: 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--red); text-decoration: none; font-weight: 600; font-size: 14px; }
   /* ຂໍ້ມູນຕິດຕໍ່ຮ້ານ (ແບບ Alibaba) */
   .cCard { border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
@@ -295,17 +296,17 @@
     $("featMsg").textContent = feat.length ? "" : "ຍັງບໍ່ມີສິນຄ້າ";
   }
 
-  // ເອກະສານ: ຮູບເຕັມຄວາມກວ້າງ ຈັດຮຽງລົງ ເບິ່ງໄດ້ເລີຍ (PDF ເປີດໃນແທັບໃໝ່)
+  // ເອກະສານ: ສະແດງເປັນຕາຕະລາງ 2 ຊ່ອງຄຽງກັນ (ແບບ CERTIFICATE DISPLAY) ກົດເບິ່ງເຕັມໄດ້ (PDF ເປີດແທັບໃໝ່)
   function docsHtml(docs) {
     if (!docs || !docs.length) return '<p class="empty">ຍັງບໍ່ມີເອກະສານທີ່ອັບໂຫຼດ</p>';
-    return docs.map(function (d) {
+    return '<div class="certGrid">' + docs.map(function (d) {
       const isPdf = String(d.url).indexOf("drive.google.com") >= 0;
       const label = esc(DOC[d.type] || d.type);
       const body = isPdf
-        ? '<a class="pdfBtn" href="' + esc(d.url) + '" target="_blank" rel="noopener">📄 ເປີດເອກະສານ PDF ›</a>'
+        ? '<a class="pdfBtn" href="' + esc(d.url) + '" target="_blank" rel="noopener">📄 ເປີດ PDF ›</a>'
         : '<a href="' + esc(d.url) + '" target="_blank" rel="noopener"><img class="docImg" loading="lazy" src="' + esc(d.url) + '" alt="' + label + '"></a>';
       return '<div class="docBox"><div class="docLbl">' + label + '</div>' + body + '</div>';
-    }).join("");
+    }).join("") + '</div>';
   }
 
   // ຂໍ້ມູນຕິດຕໍ່ (ແບບ Alibaba): ແຊັດ / ໂທ / ອີເມວ
