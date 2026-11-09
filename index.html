@@ -367,7 +367,7 @@
     body += '<div class="row"><span>ລາຍການ</span><span>' + esc(o.itemDesc) + '</span></div>';
     body += '<div class="row"><span>ມູນຄ່າສິນຄ້າ</span><span>' + money(o.goodsTotal) + '</span></div>';
     if (o.serviceType === "buy" && Number(o.fee) > 0) {
-      body += '<div class="row"><span>ຄ່າສົ່ງ (ຈ່າຍໃຫ້ໄຣເດີ)</span><span>' + money(o.fee) + '</span></div>';
+      if (o.deliveryType !== "ship") body += '<div class="row"><span>ຄ່າສົ່ງ (ຈ່າຍໃຫ້ໄຣເດີ)</span><span>' + money(o.fee) + '</span></div>';
       body += '<div class="row"><span>ລູກຄ້າໂອນລວມ</span><span>' + money(Number(o.goodsTotal) + Number(o.fee)) + '</span></div>';
     }
 
@@ -420,7 +420,7 @@
       if (o.serviceType === "buy" && o.feePaymentStatus === "confirmed") {
         btns = '<p class="muted small">ຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ ✔ ລໍຖ້າໄຣເດີຢືນຢັນຮັບຂອງ</p>';
       } else {
-        btns = '<button class="good" data-act="handover" data-row="' + o.row + '">ຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ</button>';
+        btns = '<button class="good" data-act="handover" data-row="' + o.row + '">' + (o.deliveryType === "ship" ? 'ມອບຂອງໃຫ້ໄຣເດີແລ້ວ' : 'ຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ') + '</button>';
       }
     }
 
