@@ -21,7 +21,11 @@
   .tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; background:var(--line); }
   .ok { color:#bbf7d0; } .warn { color:#fde68a; } .bad { color:#fecaca; }
   a { color:#9be7ff; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
-  input, select { width:100%; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--text); font-size:16px; margin-top:6px; }
+  /* ຊ່ອງກອກຂໍ້ມູນ: ພື້ນຟ້າທະເລອ່ອນ ໃຫ້ເຫັນຊັດວ່າວ່າງ ແລະ ຕ້ອງປ້ອນ */
+  input, select, textarea { width:100%; padding:12px; border-radius:10px; border:2px solid #7dd3fc; background:#e0f7ff; color:#0f172a; font-size:16px; margin-top:6px; font-family:inherit; font-weight:500; text-shadow:none; }
+  input::placeholder, textarea::placeholder { color:#64748b; }
+  select option { color:#0f172a; background:#ffffff; }
+  input[type="file"] { background:transparent; border:0; padding:0; }
   button { width:100%; padding:13px; border:0; border-radius:12px; font-size:16px; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
   button.secondary { background:#2f8a5a; }
   button.danger { background:var(--bad); }
