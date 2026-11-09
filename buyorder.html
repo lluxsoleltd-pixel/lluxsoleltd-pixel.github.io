@@ -112,7 +112,8 @@
       (dt === "ship"
         ? '<div class="row"><span class="muted">ຄ່າຂົນສົ່ງ</span><span>ຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</span></div>' +
           (fee > 0 ? '<div class="row"><span class="muted">ຄ່າໄຣເດີ LLUX (ລວມໃນຍອດໂອນເຂົ້າຮ້ານ)</span><span>' + money(fee) + '</span></div>' : '')
-        : '<div class="row"><span class="muted">ຄ່າສົ່ງ (ລວມ)</span><span>' + money(fee) + '</span></div>');
+        : '<div class="row"><span class="muted">ຄ່າສົ່ງ (ລວມ)</span><span>' + money(fee) + '</span></div>') +
+      '<div class="row"><span class="muted"><b>ຍອດໂອນເຂົ້າຮ້ານ</b></span><span><b>' + money(goods + fee) + '</b></span></div>';
   }
 
   function shopCard(o) {
