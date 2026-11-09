@@ -334,7 +334,7 @@
   async function act(row, action) {
     try {
       const res = await apiPost({ type: "shop", shopName: session.shopName, pin: session.pin, row: row, action: action });
-      if (!res.ok) alert(ERR_TXT[res.reason] || "ເກີດຂໍ້ຜິດພາດ");
+      if (!res.ok) alert(ERR_TXT[res.reason] || ("ເກີດຂໍ້ຜິດພາດ (" + (res.reason || "ບໍ່ຮູ້ສາເຫດ") + ")"));
     } catch (e) {
       alert("ສົ່ງຄຳສັ່ງບໍ່ໄດ້ ກະລຸນາລອງໃໝ່");
     }
@@ -345,7 +345,7 @@
   async function routeAct(row, via) {
     try {
       const res = await apiPost({ type: "shop", shopName: session.shopName, pin: session.pin, row: row, action: "route", via: via });
-      if (!res.ok) alert(ERR_TXT[res.reason] || "ເກີດຂໍ້ຜິດພາດ");
+      if (!res.ok) alert(ERR_TXT[res.reason] || ("ເກີດຂໍ້ຜິດພາດ (" + (res.reason || "ບໍ່ຮູ້ສາເຫດ") + ")"));
     } catch (e) {
       alert("ສົ່ງຄຳສັ່ງບໍ່ໄດ້ ກະລຸນາລອງໃໝ່");
     }
