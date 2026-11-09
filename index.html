@@ -420,7 +420,7 @@
       if (o.serviceType === "buy" && o.feePaymentStatus === "confirmed" && o.deliveryType !== "ship") {
         btns = '<p class="muted small">ຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ ✔ ລໍຖ້າໄຣເດີຢືນຢັນຮັບຂອງ</p>';
       } else {
-        btns = '<button class="good" data-act="handover" data-row="' + o.row + '">' + (o.deliveryType === "ship" ? 'ມອບຂອງໃຫ້ໄຣເດີແລ້ວ' : 'ຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ') + '</button>';
+        btns = '<button class="good" data-act="handover" data-row="' + o.row + '">' + (o.deliveryType === "ship" ? (Number(o.fee) > 0 ? 'ຈ່າຍຄ່າໄຣເດີໃຫ້ LLUX ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ' : 'ມອບຂອງໃຫ້ໄຣເດີແລ້ວ') : 'ຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີແລ້ວ') + '</button>';
       }
     }
 
