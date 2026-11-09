@@ -3,52 +3,74 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ໂປຣໄຟລ໌ຮ້ານ · LLUX</title>
+<title>ໜ້າຮ້ານ · LLUX</title>
 <style>
-  :root { --red:#c8102e; --red2:#e0463b; --ink:#111827; --mute:#6b7280; --bg:#f5f5f7; --line:#e5e7eb; --green:#15803d; }
+  :root { --red:#e0302b; --ink:#1d2330; --mute:#6b7280; --bg:#f5f5f7; --line:#e5e7eb; --green:#15803d; --wa:#25d366; }
   * { box-sizing: border-box; }
-  body { font-family: sans-serif; background: var(--bg); margin: 0; color: var(--ink); padding-bottom: 40px; }
+  body { font-family: system-ui, -apple-system, "Noto Sans Lao", sans-serif; background: var(--bg); margin: 0; color: var(--ink); padding-bottom: 76px; }
   button, a { font-family: inherit; }
   .hidden { display: none !important; }
-  .wrap { max-width: 720px; margin: 0 auto; }
-  .top { position: sticky; top: 0; z-index: 5; background: linear-gradient(180deg, var(--red), var(--red2)); color: #fff; display: flex; align-items: center; gap: 10px; padding: 12px; }
-  .top a { color: #fff; text-decoration: none; font-size: 26px; line-height: 1; padding: 0 6px; }
-  .top b { font-size: 16px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: #e5e7eb; display: block; }
-  .head { background: #fff; padding: 14px 16px; }
-  .head h1 { font-size: 20px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .wrap { max-width: 720px; margin: 0 auto; background: #fff; min-height: 100vh; }
+  /* ແຖບເທິງ */
+  .top { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .top .back { font-size: 26px; line-height: 1; color: var(--ink); text-decoration: none; padding: 0 6px; cursor: pointer; background: none; border: 0; }
+  .top .name { font-size: 17px; font-weight: 700; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cover { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: linear-gradient(135deg, #fde2e1, #f5f5f7); display: block; }
+  .head { padding: 14px 16px 6px; }
+  .head h1 { font-size: 20px; margin: 0 0 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .tag { font-size: 12px; font-weight: 600; color: var(--green); background: #dcfce7; border-radius: 6px; padding: 2px 8px; }
   .tag.warn { color: #92400e; background: #fef3c7; }
   .muted { color: var(--mute); font-size: 13px; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px; }
-  .stat { background: #fff; border-radius: 12px; padding: 10px; text-align: center; font-size: 12px; color: var(--mute); }
-  .stat b { display: block; font-size: 16px; color: var(--ink); }
-  .box { background: #fff; margin: 12px; border-radius: 12px; padding: 14px; }
-  .box h2 { font-size: 16px; margin: 0 0 10px; }
+  /* ແທັບ 3 ອັນ ແບບ Alibaba */
+  .tabs { display: flex; position: sticky; top: 0; z-index: 5; background: #fff; border-bottom: 1px solid var(--line); margin-top: 8px; }
+  .tabs button { flex: 1; background: none; border: 0; padding: 14px 6px; font-size: 15px; color: var(--mute); font-weight: 600; cursor: pointer; border-bottom: 3px solid transparent; }
+  .tabs button.on { color: var(--ink); border-bottom-color: var(--ink); }
+  .pane { padding: 14px 16px; }
+  .sec { margin: 0 0 22px; }
+  .sec h2 { font-size: 16px; margin: 0 0 10px; }
+  .sec .more { float: right; font-size: 13px; color: var(--red); background: none; border: 0; cursor: pointer; }
+  /* ໝວດສິນຄ້າ */
+  .cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .cat { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; cursor: pointer; text-align: left; padding: 0; }
+  .cat img, .cat .ph { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #eee; display: block; }
+  .cat span { display: block; padding: 8px 10px; font-size: 14px; font-weight: 600; }
+  .cat small { display: block; padding: 0 10px 10px; color: var(--red); font-size: 12px; }
+  /* ລາຍການສິນຄ້າ */
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 4px; }
+  .chip { flex: 0 0 auto; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .pcard { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; background: #fff; }
+  .pcard img, .pcard .ph { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #eee; display: block; }
+  .pbody { padding: 8px 10px 10px; font-size: 13px; }
+  .pname { font-weight: 600; margin: 0 0 4px; line-height: 1.35; }
+  .pprice { color: var(--red); font-weight: 700; font-size: 15px; }
+  .pmeta { color: var(--mute); font-size: 11px; margin-top: 2px; min-height: 14px; }
+  .padd { margin-top: 6px; width: 100%; border: none; background: var(--red); color: #fff; border-radius: 8px; padding: 8px; font-size: 14px; cursor: pointer; }
+  .padd:disabled { background: #d1d5db; cursor: default; }
+  .empty { color: var(--mute); font-size: 14px; margin: 0; }
+  /* ຂໍ້ມູນບໍລິສັດ */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  .stat { background: #f9fafb; border-radius: 12px; padding: 12px 8px; text-align: center; font-size: 12px; color: var(--mute); }
+  .stat b { display: block; font-size: 17px; color: var(--ink); margin-bottom: 2px; }
+  .table { border-top: 1px solid var(--line); }
+  .trow { display: flex; justify-content: space-between; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .trow span:first-child { color: var(--mute); flex: 0 0 42%; }
+  .trow span:last-child { font-weight: 600; text-align: right; }
   .desc { margin: 0; font-size: 14px; line-height: 1.7; white-space: pre-wrap; }
-  .contact { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .contact a { display: block; text-align: center; padding: 12px 6px; border-radius: 10px; text-decoration: none; color: #fff; background: var(--red); font-weight: 600; font-size: 14px; }
-  .contact a.wa { background: #25d366; }
-  .contact a.mail { background: #0369a1; }
-  .contact a.map { background: #475569; }
-  .contact a.off { background: #d1d5db; color: #6b7280; pointer-events: none; }
   .doc { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
   .doc:last-child { border-bottom: none; }
   .doc img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #eee; flex: 0 0 auto; }
   .doc .pdf { width: 56px; height: 56px; border-radius: 8px; background: #fee2e2; color: var(--red); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex: 0 0 auto; }
   .doc .dt { flex: 1; font-size: 14px; }
   .doc a { color: var(--red); font-size: 13px; text-decoration: none; white-space: nowrap; }
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .pcard { background: #f9fafb; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
-  .pcard img, .pcard .ph { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; background: #eee; display: block; }
-  .pbody { padding: 8px; font-size: 13px; }
-  .pname { font-weight: 600; margin: 0 0 4px; }
-  .pprice { color: var(--red); font-weight: 700; }
-  .pmeta { color: var(--mute); font-size: 11px; margin-top: 2px; min-height: 14px; }
-  .padd { margin-top: 6px; width: 100%; border: none; background: var(--red); color: #fff; border-radius: 8px; padding: 8px; font-size: 14px; cursor: pointer; }
-  .padd:disabled { background: #d1d5db; cursor: default; }
-  .empty { color: var(--mute); font-size: 14px; margin: 0; }
-  .toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  /* ແຖບລຸ່ມ: ແຊັດ / ໂທ */
+  .bottom { position: fixed; left: 0; right: 0; bottom: 0; background: #fff; border-top: 1px solid var(--line); display: flex; gap: 10px; padding: 10px 12px; max-width: 720px; margin: 0 auto; }
+  .bottom a { flex: 1; text-align: center; padding: 12px 6px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 15px; color: #fff; }
+  .bottom a.call { background: var(--red); }
+  .bottom a.wa { background: var(--wa); }
+  .bottom a.off { background: #d1d5db; color: #6b7280; pointer-events: none; }
+  .toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
   .toast.on { opacity: 1; }
 </style>
 </head>
@@ -56,8 +78,8 @@
 <div class="wrap">
 
   <header class="top">
-    <a href="products.html" title="ກັບໄປໜ້າສິນຄ້າ">‹</a>
-    <b id="ttl">ໂປຣໄຟລ໌ຮ້ານ</b>
+    <button class="back" id="back" title="ກັບ">‹</button>
+    <div class="name" id="ttl">ໜ້າຮ້ານ</div>
   </header>
 
   <img id="cover" class="cover hidden" alt="">
@@ -68,33 +90,63 @@
     <div class="muted" id="address"></div>
   </section>
 
-  <section class="stats">
-    <div class="stat"><b id="stEmp">-</b>ພະນັກງານ</div>
-    <div class="stat"><b id="stStore">-</b>ໜ້າຮ້ານ</div>
-    <div class="stat"><b id="stPrep">-</b>ເວລາຕຽມ (ນາທີ)</div>
+  <nav class="tabs">
+    <button id="t-home" class="on">ໜ້າຫຼັກ</button>
+    <button id="t-products">ສິນຄ້າ</button>
+    <button id="t-profile">ຂໍ້ມູນຮ້ານ</button>
+  </nav>
+
+  <!-- ແທັບ 1: ໜ້າຫຼັກ -->
+  <section class="pane" id="tab-home">
+    <div class="sec">
+      <h2>ໝວດສິນຄ້າ</h2>
+      <div class="cats" id="cats"></div>
+      <p class="empty" id="catMsg"></p>
+    </div>
+    <div class="sec">
+      <h2>ສິນຄ້າແນະນຳ <button class="more" data-go="products">ເບິ່ງທັງໝົດ ›</button></h2>
+      <div class="grid" id="featured"></div>
+      <p class="empty" id="featMsg"></p>
+    </div>
+    <div class="sec">
+      <h2>ໃບຮັບຮອງ / ເອກະສານ</h2>
+      <div id="docsHome"></div>
+    </div>
   </section>
 
-  <section class="box">
-    <h2>ສິນຄ້າຂອງຮ້ານ</h2>
+  <!-- ແທັບ 2: ສິນຄ້າ -->
+  <section class="pane hidden" id="tab-products">
+    <div class="chips" id="chips"></div>
     <div class="grid" id="prods"></div>
     <p class="empty" id="prodMsg"></p>
   </section>
 
-  <section class="box">
-    <h2>ແນະນຳຮ້ານ</h2>
-    <p class="desc" id="desc"></p>
+  <!-- ແທັບ 3: ຂໍ້ມູນຮ້ານ -->
+  <section class="pane hidden" id="tab-profile">
+    <div class="stats">
+      <div class="stat"><b id="stEmp">-</b>ພະນັກງານ</div>
+      <div class="stat"><b id="stStore">-</b>ໜ້າຮ້ານ</div>
+      <div class="stat"><b id="stPrep">-</b>ເວລາຕຽມ (ນາທີ)</div>
+    </div>
+    <div class="sec">
+      <h2>ລາຍລະອຽດທຸລະກິດ</h2>
+      <div class="table" id="biz"></div>
+    </div>
+    <div class="sec">
+      <h2>ແນະນຳຮ້ານ</h2>
+      <p class="desc" id="desc"></p>
+    </div>
+    <div class="sec">
+      <h2>ເອກະສານ</h2>
+      <div id="docs"></div>
+    </div>
   </section>
 
-  <section class="box">
-    <h2>ຕິດຕໍ່ຮ້ານ</h2>
-    <div class="contact" id="contact"></div>
-  </section>
+</div>
 
-  <section class="box">
-    <h2>ເອກະສານ</h2>
-    <div id="docs"></div>
-  </section>
-
+<div class="bottom">
+  <a class="wa off" id="bWa" target="_blank" rel="noopener" href="#">💬 WhatsApp</a>
+  <a class="call off" id="bCall" href="#">📞 ໂທຫາຮ້ານ</a>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -102,8 +154,11 @@
   const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
   const BIZ = { individual: "ບຸກຄົນ / ຮ້ານເລັກ", company: "ບໍລິສັດ", factory: "ໂຮງງານ / ຜູ້ຜະລິດ" };
   const DOC = { registration: "ໃບທະບຽນວິສາຫະກິດ", license: "ໃບອະນຸຍາດດຳເນີນທຸລະກິດ", other: "ເອກະສານອື່ນ" };
+  const SCOPE = { local: "ໃນທ້ອງຖິ່ນ", nationwide: "ທົ່ວປະເທດ", global: "ຕ່າງປະເທດ" };
   const shopName = new URLSearchParams(location.search).get("shop") || "";
   let prodList = [];
+  let profile = null;
+  let activeCat = "";
 
   const $ = (id) => document.getElementById(id);
   function esc(s) {
@@ -121,7 +176,6 @@
     toast.t = setTimeout(function () { $("toast").classList.remove("on"); }, 1400);
   }
 
-  // ເບີ WhatsApp: 020... -> 85620...
   function waLink(phone) {
     let d = String(phone || "").replace(/\D/g, "");
     if (!d) return "";
@@ -129,14 +183,94 @@
     return "https://wa.me/" + d;
   }
 
-  function contactHtml(p) {
-    const tel = String(p.phone || "").replace(/[^\d+]/g, "");
-    const wa = waLink(p.phone);
-    const map = (p.lat != null && p.lng != null) ? "https://www.google.com/maps?q=" + p.lat + "," + p.lng : "";
-    return (tel ? '<a href="tel:' + esc(tel) + '">📞 ໂທຫາ</a>' : '<a class="off">📞 ໂທຫາ</a>') +
-      (wa ? '<a class="wa" target="_blank" rel="noopener" href="' + esc(wa) + '">💬 WhatsApp</a>' : '<a class="wa off">💬 WhatsApp</a>') +
-      (p.email ? '<a class="mail" href="mailto:' + esc(p.email) + '">✉️ ອີເມວ</a>' : '<a class="mail off">✉️ ອີເມວ</a>') +
-      (map ? '<a class="map" target="_blank" rel="noopener" href="' + esc(map) + '">📍 ແຜນທີ່</a>' : '<a class="map off">📍 ແຜນທີ່</a>');
+  // ===== ແທັບ =====
+  const TABS = ["home", "products", "profile"];
+  function showTab(t) {
+    TABS.forEach(function (x) {
+      $("tab-" + x).classList.toggle("hidden", x !== t);
+      $("t-" + x).classList.toggle("on", x === t);
+    });
+    window.scrollTo(0, 0);
+  }
+  TABS.forEach(function (x) { $("t-" + x).onclick = function () { showTab(x); }; });
+  document.querySelectorAll("[data-go]").forEach(function (b) {
+    b.onclick = function () { showTab(b.dataset.go); };
+  });
+  $("back").onclick = function () {
+    if (history.length > 1) history.back(); else location.href = "products.html";
+  };
+
+  // ===== ການ໌ດ໌ສິນຄ້າ (ໃຊ້ຮ່ວມທຸກແທັບ) =====
+  function cardHtml(i) {
+    const out = i.status === "soldout";
+    const meta = [i.weightKg ? "ນ້ຳໜັກ " + esc(i.weightKg) + " ກກ" : "", i.cbm ? "CBM " + esc(i.cbm) : ""].filter(Boolean).join(" · ");
+    return '<div class="pcard">' +
+      (i.imageUrl ? '<img loading="lazy" src="' + esc(i.imageUrl) + '" alt="">' : '<div class="ph"></div>') +
+      '<div class="pbody"><p class="pname">' + esc(i.itemName) + '</p>' +
+      '<div class="pprice">' + money(i.price) + '</div>' +
+      '<div class="pmeta">' + meta + '</div>' +
+      '<button class="padd" data-name="' + esc(i.itemName) + '"' + (out ? ' disabled' : '') + '>' + (out ? 'ໝົດແລ້ວ' : '+ ເພີ່ມເຂົ້າຕະກ້າ') + '</button></div></div>';
+  }
+
+  document.addEventListener("click", function (e) {
+    const b = e.target.closest("[data-name]");
+    if (!b || b.disabled) return;
+    const i = prodList.find(function (x) { return x.itemName === b.dataset.name; });
+    if (!i) return;
+    const c = getCart();
+    const f = c.find(function (x) { return x.shopName === i.shopName && x.itemName === i.itemName; });
+    if (f) f.qty = Math.min(99, f.qty + 1);
+    else c.push({ shopName: i.shopName, itemName: i.itemName, price: i.price, imageUrl: i.imageUrl || "", weightKg: i.weightKg || 0, cbm: i.cbm || 0, qty: 1 });
+    setCart(c);
+    toast("ເພີ່ມເຂົ້າຕະກ້າແລ້ວ");
+  });
+
+  function renderProducts() {
+    const list = activeCat ? prodList.filter(function (i) { return i.category === activeCat; }) : prodList;
+    const cats = [...new Set(prodList.map(function (i) { return i.category; }).filter(Boolean))];
+    $("chips").innerHTML = (cats.length ? ['<button class="chip' + (activeCat ? '' : ' on') + '" data-cat="">ທັງໝົດ</button>']
+      .concat(cats.map(function (c) { return '<button class="chip' + (activeCat === c ? ' on' : '') + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>'; })).join("") : "");
+    if (!prodList.length) {
+      $("prods").innerHTML = "";
+      $("prodMsg").textContent = (profile && profile.needsDocs && !profile.complete)
+        ? "ຮ້ານນີ້ກຳລັງລໍຖ້າກວດເອກະສານ ສິນຄ້າຈະສະແດງເມື່ອເອກະສານຄົບ"
+        : "ຮ້ານນີ້ຍັງບໍ່ມີສິນຄ້າໃນລະບົບ";
+      return;
+    }
+    $("prodMsg").textContent = list.length ? "" : "ບໍ່ມີສິນຄ້າໃນໝວດນີ້";
+    $("prods").innerHTML = list.map(cardHtml).join("");
+  }
+
+  $("chips").addEventListener("click", function (e) {
+    const b = e.target.closest("[data-cat]");
+    if (!b) return;
+    activeCat = b.dataset.cat;
+    renderProducts();
+  });
+
+  function renderHome() {
+    // ໝວດສິນຄ້າ: ຮູບຈາກສິນຄ້າທຳອິດຂອງໝວດນັ້ນ
+    const seen = {};
+    const cats = [];
+    prodList.forEach(function (i) {
+      if (!i.category) return;
+      if (!seen[i.category]) { seen[i.category] = { name: i.category, img: i.imageUrl, n: 0 }; cats.push(seen[i.category]); }
+      seen[i.category].n++;
+      if (!seen[i.category].img && i.imageUrl) seen[i.category].img = i.imageUrl;
+    });
+    $("cats").innerHTML = cats.map(function (c) {
+      return '<button class="cat" data-catgo="' + esc(c.name) + '">' +
+        (c.img ? '<img loading="lazy" src="' + esc(c.img) + '" alt="">' : '<div class="ph"></div>') +
+        '<span>' + esc(c.name) + '</span><small>' + c.n + ' ລາຍການ ›</small></button>';
+    }).join("");
+    $("catMsg").textContent = cats.length ? "" : "ຍັງບໍ່ມີໝວດສິນຄ້າ";
+    $("cats").querySelectorAll("[data-catgo]").forEach(function (b) {
+      b.onclick = function () { activeCat = b.dataset.catgo; renderProducts(); showTab("products"); };
+    });
+
+    const feat = prodList.slice(0, 4);
+    $("featured").innerHTML = feat.map(cardHtml).join("");
+    $("featMsg").textContent = feat.length ? "" : "ຍັງບໍ່ມີສິນຄ້າ";
   }
 
   function docsHtml(docs) {
@@ -150,51 +284,28 @@
     }).join("");
   }
 
-  let waitingDocs = false;
-
-  function renderProducts() {
-    if (!prodList.length) {
-      $("prods").innerHTML = "";
-      $("prodMsg").textContent = waitingDocs
-        ? "ຮ້ານນີ້ກຳລັງລໍຖ້າກວດເອກະສານ ສິນຄ້າຈະສະແດງເມື່ອເອກະສານຄົບ"
-        : "ຮ້ານນີ້ຍັງບໍ່ມີສິນຄ້າໃນລະບົບ";
-      return;
-    }
-    $("prodMsg").textContent = "";
-    $("prods").innerHTML = prodList.map(function (i, idx) {
-      const out = i.status === "soldout";
-      const meta = [i.weightKg ? "ນ້ຳໜັກ " + esc(i.weightKg) + " ກກ" : "", i.cbm ? "CBM " + esc(i.cbm) : ""].filter(Boolean).join(" · ");
-      return '<div class="pcard">' +
-        (i.imageUrl ? '<img loading="lazy" src="' + esc(i.imageUrl) + '" alt="">' : '<div class="ph"></div>') +
-        '<div class="pbody"><p class="pname">' + esc(i.itemName) + '</p>' +
-        '<div class="pprice">' + money(i.price) + '</div>' +
-        '<div class="pmeta">' + meta + '</div>' +
-        '<button class="padd" data-idx="' + idx + '"' + (out ? ' disabled' : '') + '>' + (out ? 'ໝົດແລ້ວ' : '+ ເພີ່ມເຂົ້າຕະກ້າ') + '</button></div></div>';
-    }).join("");
+  function bizRows(p) {
+    const cats = [...new Set(prodList.map(function (i) { return i.category; }).filter(Boolean))];
+    const scopes = [...new Set(prodList.flatMap(function (i) { return String(i.scope || "").split(","); }).filter(Boolean))];
+    const rows = [
+      ["ປະເພດທຸລະກິດ", BIZ[p.bizType] || "-"],
+      ["ພະນັກງານ", p.employees ? p.employees + " ຄົນ" : "-"],
+      ["ທີ່ຢູ່", p.address || "-"],
+      ["ສິນຄ້າຫຼັກ", cats.length ? cats.join(", ") : "-"],
+      ["ຂອບເຂດການຂາຍ", scopes.length ? scopes.map(function (s) { return SCOPE[s] || s; }).join(", ") : "-"],
+      ["ມີໜ້າຮ້ານ", p.hasStore ? "ມີ" : "ບໍ່ມີ"]
+    ];
+    return rows.map(function (r) { return '<div class="trow"><span>' + esc(r[0]) + '</span><span>' + esc(r[1]) + '</span></div>'; }).join("");
   }
-
-  $("prods").addEventListener("click", function (e) {
-    const b = e.target.closest("[data-idx]");
-    if (!b || b.disabled) return;
-    const i = prodList[Number(b.dataset.idx)];
-    if (!i) return;
-    const c = getCart();
-    const f = c.find(function (x) { return x.shopName === i.shopName && x.itemName === i.itemName; });
-    if (f) f.qty = Math.min(99, f.qty + 1);
-    else c.push({ shopName: i.shopName, itemName: i.itemName, price: i.price, imageUrl: i.imageUrl || "", weightKg: i.weightKg || 0, cbm: i.cbm || 0, qty: 1 });
-    setCart(c);
-    toast("ເພີ່ມເຂົ້າຕະກ້າແລ້ວ");
-  });
 
   async function loadProfile() {
     const r = await fetch(API + "?type=shopprofile&shop=" + encodeURIComponent(shopName), { cache: "no-store" });
     const p = await r.json();
     if (!p || !p.ok) {
       $("name").textContent = "ບໍ່ພົບຮ້ານນີ້";
-      $("prodMsg").textContent = "";
       return;
     }
-    waitingDocs = !!p.needsDocs && !p.complete;
+    profile = p;
     document.title = p.name + " · LLUX";
     $("ttl").textContent = p.name;
     $("name").textContent = p.name;
@@ -206,12 +317,18 @@
     $("tags").innerHTML = tags;
     $("address").textContent = p.address || "";
     if (p.imageUrl) { $("cover").src = p.imageUrl; $("cover").classList.remove("hidden"); }
+
     $("stEmp").textContent = p.employees || "-";
     $("stStore").textContent = p.hasStore ? "ມີ" : "ບໍ່ມີ";
     $("stPrep").textContent = p.prepMinutes || "-";
     $("desc").textContent = p.description || "ຍັງບໍ່ມີຄຳແນະນຳ";
-    $("contact").innerHTML = contactHtml(p);
+    $("docsHome").innerHTML = docsHtml(p.docs);
     $("docs").innerHTML = docsHtml(p.docs);
+
+    const tel = String(p.phone || "").replace(/[^\d+]/g, "");
+    const wa = waLink(p.phone);
+    if (tel) { $("bCall").href = "tel:" + tel; $("bCall").classList.remove("off"); }
+    if (wa) { $("bWa").href = wa; $("bWa").classList.remove("off"); }
   }
 
   async function loadProducts() {
@@ -224,16 +341,18 @@
       $("prodMsg").textContent = "ໂຫຼດສິນຄ້າບໍ່ໄດ້ ລອງໃໝ່ອີກຄັ້ງ";
       return;
     }
+    renderHome();
     renderProducts();
+    if (profile) $("biz").innerHTML = bizRows(profile);
   }
 
   if (!shopName) {
     $("name").textContent = "ບໍ່ພົບຮ້ານນີ້";
-    $("prodMsg").textContent = "";
   } else {
     loadProfile()
       .catch(function () { $("name").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້"; })
-      .then(loadProducts);
+      .then(loadProducts)
+      .then(function () { if (profile) $("biz").innerHTML = bizRows(profile); });
   }
 </script>
 </body>

@@ -88,6 +88,7 @@
       <button id="tabMenu" class="secondary">ເມນູສິນຄ້າ</button>
       <button id="tabSettings" class="secondary">ຕັ້ງຄ່າຮ້ານ</button>
     </div>
+    <a id="viewStore" class="hidden" target="_blank" rel="noopener" href="#" style="display:block;text-align:center;background:#2f8a5a;color:#fff;padding:10px;border-radius:12px;text-decoration:none;font-weight:700;margin:0 0 12px;">ເບິ່ງໜ້າຮ້ານ (ແບບທີ່ລູກຄ້າເຫັນ)</a>
 
     <!-- ໜ້າເມນູສິນຄ້າຂອງຮ້ານ -->
     <div id="menuView" class="hidden">
@@ -318,6 +319,8 @@
       if (data && data.error === "auth") { logout(); $("loginMsg").textContent = ERR_TXT.auth; return; }
       orders = Array.isArray(data) ? data : [];
       $("netMsg").textContent = "";
+      $("viewStore").href = "shop.html?shop=" + encodeURIComponent(session.shopName);
+      $("viewStore").classList.remove("hidden");
       // ກວດອໍເດີໃໝ່
       let alarmNeeded = false;
       orders.forEach(function (o) {
