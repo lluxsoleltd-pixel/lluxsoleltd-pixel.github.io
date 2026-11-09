@@ -111,7 +111,7 @@
       '<div class="row"><span class="muted">ລວມຄ່າສິນຄ້າ</span><span>' + money(goods) + '</span></div>' +
       (dt === "ship"
         ? '<div class="row"><span class="muted">ຄ່າຂົນສົ່ງ</span><span>ຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</span></div>' +
-          (fee > 0 ? '<div class="row"><span class="muted">ຄ່າໄຣເດີ LLUX (ໂອນເຂົ້າ LLUX)</span><span>' + money(fee) + '</span></div>' : '')
+          (fee > 0 ? '<div class="row"><span class="muted">ຄ່າໄຣເດີ LLUX (ລວມໃນຍອດໂອນເຂົ້າຮ້ານ)</span><span>' + money(fee) + '</span></div>' : '')
         : '<div class="row"><span class="muted">ຄ່າສົ່ງ (ລວມ)</span><span>' + money(fee) + '</span></div>');
   }
 
@@ -125,21 +125,14 @@
 
     // ຄ່າສິນຄ້າ: ໂອນໃຫ້ຮ້ານ
     if (o.status === "awaiting_payment" && o.paymentStatus === "unpaid") {
-      const total = (Number(o.goodsTotal) || 0) + (o.deliveryType === "ship" ? 0 : (Number(o.fee) || 0));
-      h += '<p class="muted" style="margin-top:10px">ໂອນຍອດ <b>' + money(total) + '</b> ເຂົ້າບັນຊີຮ້ານ ' + (o.deliveryType === "ship" ? '(ຄ່າສິນຄ້າ)' : '(ຄ່າສິນຄ້າ + ຄ່າສົ່ງ)') + ' ແລ້ວກົດ "ຂ້ອຍໂອນແລ້ວ"</p>';
+      const total = (Number(o.goodsTotal) || 0) + (Number(o.fee) || 0);
+      h += '<p class="muted" style="margin-top:10px">ໂອນຍອດ <b>' + money(total) + '</b> ເຂົ້າບັນຊີຮ້ານ (ຄ່າສິນຄ້າ + ຄ່າສົ່ງ) ຄັ້ງດຽວ ແລ້ວກົດ "ຂ້ອຍໂອນແລ້ວ"</p>';
       if (o.shopQr && o.shopQr.qrImageUrl) h += '<img class="qr" src="' + esc(o.shopQr.qrImageUrl) + '" alt="QR ຮ້ານ">';
       if (o.shopQr && o.shopQr.accountNo) h += '<p class="muted" style="text-align:center">' + esc(o.shopQr.bankName) + ' · ' + esc(o.shopQr.accountName) + ' · ' + esc(o.shopQr.accountNo) + '</p>';
       h += '<button class="btn" data-claim="' + o.row + '">ຂ້ອຍໂອນແລ້ວ</button>';
       h += '<label class="btn ghost" style="cursor:pointer">📎 ອັບສລິບ (ບໍ່ບັງຄັບ)<input type="file" accept="image/*" class="hidden" data-slip="' + o.row + '"></label>';
     }
 
-    // ຄ່າໄຣເດີ (ໄປຕ່າງແຂວງ · LLUX ໄປຮັບ): ໂອນແຍກເຂົ້າບັນຊີ LLUX
-    if (o.deliveryType === "ship" && o.shipVia === "llux" && Number(o.fee) > 0 && o.feePaymentStatus !== "confirmed") {
-      h += '<div class="card" style="margin-top:10px"><p style="margin:0 0 6px"><b>ໂອນຄ່າໄຣເດີ ' + money(o.fee) + '</b> ເຂົ້າບັນຊີ LLUX (ແຍກຈາກຄ່າສິນຄ້າ)</p>';
-      if (o.feePayInfo && o.feePayInfo.qrImageUrl) h += '<img class="qr" src="' + esc(o.feePayInfo.qrImageUrl) + '" alt="QR LLUX">';
-      if (o.feePayInfo && o.feePayInfo.accountNo) h += '<p class="muted" style="text-align:center">' + esc(o.feePayInfo.bankName) + ' · ' + esc(o.feePayInfo.accountName) + ' · ' + esc(o.feePayInfo.accountNo) + '</p>';
-      h += '</div>';
-    }
 
     // ໄຣເດີ
     if (o.rider) {
