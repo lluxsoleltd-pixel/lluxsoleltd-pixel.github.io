@@ -673,7 +673,7 @@
     $("mShipBranch").checked = !!shipBranch;
   }
 
-  // ໝວດທີ່ມີສີ/ຂະໜາດ: ແຟຊັ່ນ (ສີ + ຂະໜາດ), ອາຫານພ້ອມກິນ (ຂະໜາດ ເລັກ/ກາງ/ໃຫຍ່)
+  // ໝວດທີ່ມີສີ/ຂະໜາດ: ແຟຊັ່ນ (ສີ + ຂະໜາດ), ອາຫານພ້ອມກິນ (ຂະໜາດ ນ້ອຍ/ກາງ/ໃຫຍ່)
   const VAR_CATS = { "ແຟຊັ່ນ": "fashion", "ອາຫານພ້ອມກິນ": "food" };
   let pendingImgs = [];
   function splitList(s) {
@@ -711,7 +711,7 @@
     $("varBox").classList.toggle("hidden", !kind);
     $("mColors").disabled = kind === "food";
     $("mColors").placeholder = kind === "food" ? "ບໍ່ຕ້ອງໃສ່ສີ" : "ດຳ, ຂາວ, ແດງ";
-    if (kind === "food" && !splitList($("mSizes").value).length) $("mSizes").value = "ເລັກ, ກາງ, ໃຫຍ່";
+    if (kind === "food" && !splitList($("mSizes").value).length) $("mSizes").value = "ນ້ອຍ, ກາງ, ໃຫຍ່";
     renderSizePrices(sizePriceMap());
     renderImgTags();
   }
