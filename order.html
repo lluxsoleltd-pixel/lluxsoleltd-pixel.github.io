@@ -110,6 +110,8 @@
     let service = new URLSearchParams(location.search).get('service');
     if (service !== 'buy' && service !== 'rider') service = 'rider';
     const IS_BUY = service === 'buy';
+    // ສັ່ງຊື້ ແລະ ສົ່ງ ໃຊ້ໜ້າສິນຄ້າ (products.html) ທີ່ມີເວີຊັນລ່າສຸດ ລວມໄປຕ່າງແຂວງ
+    if (IS_BUY) location.replace('products.html');
 
     const map = L.map('map').setView([17.9757, 102.6331], 13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
