@@ -133,6 +133,15 @@
     const submitBtn = $('submit');
     const msg = $('msg');
 
+    // ໃຊ້ຊື່ ແລະ ເບີຈາກບັນຊີທີ່ລົງທະບຽນໄວ້ (ບໍ່ຕ້ອງພິມໃໝ່)
+    let me = {};
+    try { me = JSON.parse(localStorage.getItem('llux_me') || '{}'); } catch (e) {}
+    if (!me.name || !me.phone) location.replace('services.html');
+    nameEl.value = me.name || '';
+    phoneEl.value = me.phone || '';
+    nameEl.readOnly = true;
+    phoneEl.readOnly = true;
+
     let pickup = null, dropoff = null;
     let pickupMarker = null, dropMarker = null, line = null;
     let currentKm = null, currentFee = null;
@@ -376,8 +385,6 @@
             return;
           }
           msg.textContent = 'ສົ່ງຄຳສັ່ງແລ້ວ';
-          nameEl.value = '';
-          phoneEl.value = '';
           branchEl.value = '';
           itemDescEl.value = '';
           weightEl.value = '';

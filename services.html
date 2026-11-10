@@ -24,12 +24,12 @@
     background: var(--bg);
     color: var(--text);
     font-family: system-ui, -apple-system, "Noto Sans Lao", sans-serif;
-    overflow: hidden;
+    overflow-y: auto;
   }
   .wrap {
     max-width: 560px;
-    height: 100vh;
-    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
     margin: 0 auto;
     padding: 12px 16px;
     display: flex;
@@ -99,6 +99,18 @@
     color: var(--soon);
     margin-top: 3px;
   }
+  .hidden { display: none !important; }
+  /* ລົງທະບຽນ / ເຂົ້າສູ່ລະບົບ */
+  .auth { margin-top: 16px; border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .auth .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+  .auth .tabs button { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .auth .tabs button.on { background: var(--brand-red); border-color: var(--brand-red); color: #fff; }
+  .auth label { display: block; font-size: 14px; margin-top: 10px; }
+  .auth input { display: block; width: 100%; padding: 12px; font-size: 16px; margin-top: 4px; border: 1px solid #ccc; border-radius: 10px; }
+  .auth .go { width: 100%; margin-top: 14px; padding: 12px; border: 0; border-radius: 10px; background: var(--brand-red); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+  .auth .msg { color: var(--muted); font-size: 13px; min-height: 18px; margin: 8px 0 0; }
+  .who { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 14px; font-size: 14px; }
+  .who button { padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-size: 13px; }
 </style>
 </head>
 <body>
@@ -111,7 +123,27 @@
     </div>
   </header>
 
-  <main class="grid">
+  <section class="auth" id="auth">
+    <div class="tabs">
+      <button type="button" id="tSign" class="on" data-mode="signup">ສະໝັກ (Sign up)</button>
+      <button type="button" id="tIn" data-mode="signin">ເຂົ້າສູ່ລະບົບ (Sign in)</button>
+    </div>
+    <label>ຊື່
+      <input id="aName" type="text" autocomplete="name">
+    </label>
+    <label>ເບີໂທ
+      <input id="aPhone" type="tel" autocomplete="tel">
+    </label>
+    <button class="go" id="aGo" type="button">ສະໝັກ</button>
+    <p class="msg" id="aMsg"></p>
+  </section>
+
+  <div class="who hidden" id="who">
+    <span id="whoTxt"></span>
+    <button type="button" id="logout">ອອກຈາກລະບົບ</button>
+  </div>
+
+  <main class="grid hidden" id="grid">
     <a class="tile" href="products.html">
       <div>
         <div class="icon">🛍️</div>
@@ -161,5 +193,52 @@
     </div>
   </main>
 </div>
+<script>
+(function () {
+  // ຂໍ້ມູນລູກຄ້າເກັບໄວ້ໃນເຄື່ອງ (localStorage "llux_me") ໃຊ້ຮ່ວມກັບທຸກໜ້າຂອງ LLUX
+  function getMe() { try { return JSON.parse(localStorage.getItem("llux_me") || "{}"); } catch (e) { return {}; } }
+  function setMe(o) { try { localStorage.setItem("llux_me", JSON.stringify(o)); } catch (e) {} }
+  const $ = function (id) { return document.getElementById(id); };
+  let mode = "signup";
+
+  function render() {
+    const me = getMe();
+    const logged = !!(me.name && me.phone);
+    $("auth").classList.toggle("hidden", logged);
+    $("grid").classList.toggle("hidden", !logged);
+    $("who").classList.toggle("hidden", !logged);
+    if (logged) $("whoTxt").textContent = "ສະບາຍດີ " + me.name + " · " + me.phone;
+  }
+
+  function setMode(m) {
+    mode = m;
+    $("tSign").classList.toggle("on", m === "signup");
+    $("tIn").classList.toggle("on", m === "signin");
+    $("aGo").textContent = m === "signup" ? "ສະໝັກ" : "ເຂົ້າສູ່ລະບົບ";
+    $("aMsg").textContent = "";
+  }
+
+  $("tSign").onclick = function () { setMode("signup"); };
+  $("tIn").onclick = function () { setMode("signin"); };
+
+  $("aGo").onclick = function () {
+    const name = $("aName").value.trim();
+    const phone = $("aPhone").value.replace(/\s+/g, "");
+    if (!name) { $("aMsg").textContent = "ໃສ່ຊື່ກ່ອນ"; return; }
+    if (!/^\+?\d{8,}$/.test(phone)) { $("aMsg").textContent = "ໃສ່ເບີໂທໃຫ້ຖືກຕ້ອງ (ຢ່າງໜ້ອຍ 8 ຕົວເລກ)"; return; }
+    setMe({ name: name, phone: phone });
+    $("aName").value = ""; $("aPhone").value = "";
+    render();
+  };
+
+  $("logout").onclick = function () {
+    try { localStorage.removeItem("llux_me"); } catch (e) {}
+    render();
+  };
+
+  setMode("signup");
+  render();
+})();
+</script>
 </body>
 </html>
