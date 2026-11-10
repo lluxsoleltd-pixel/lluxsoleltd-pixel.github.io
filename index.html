@@ -119,6 +119,7 @@
           <input id="mColors" type="text" placeholder="ດຳ, ຂາວ, ແດງ">
           <label class="muted small">ຂະໜາດ (ແຍກດ້ວຍ ,)</label>
           <input id="mSizes" type="text" placeholder="S, M, L, XL">
+          <div id="spBox"></div>
         </div>
         <label class="muted small">ຮູບສິນຄ້າ (ເລືອກໄດ້ຫຼາຍຮູບ ແລ້ວເລືອກສີໃຫ້ແຕ່ລະຮູບ)</label>
         <input id="mImg" type="file" accept="image/*" multiple>
@@ -680,8 +681,30 @@
   }
   function variantsFromForm() {
     const kind = VAR_CATS[$("mCat").value];
-    if (!kind) return { colors: [], sizes: [] };
-    return { colors: kind === "food" ? [] : splitList($("mColors").value), sizes: splitList($("mSizes").value) };
+    if (!kind) return { colors: [], sizes: [], sizePrices: {} };
+    return {
+      colors: kind === "food" ? [] : splitList($("mColors").value),
+      sizes: splitList($("mSizes").value),
+      sizePrices: kind === "food" ? sizePriceMap() : {}
+    };
+  }
+  function sizePriceMap() {
+    const out = {};
+    document.querySelectorAll("#spBox input[data-size]").forEach(function (el) {
+      const n = Number(el.value);
+      if (n > 0) out[el.dataset.size] = n;
+    });
+    return out;
+  }
+  // ຊ່ອງລາຄາແຕ່ລະຂະໜາດ (ສະເພາະອາຫານພ້ອມກິນ)
+  function renderSizePrices(cur) {
+    const kind = VAR_CATS[$("mCat").value];
+    const sizes = kind === "food" ? splitList($("mSizes").value) : [];
+    $("spBox").innerHTML = sizes.length ? '<label class="muted small">ລາຄາແຕ່ລະຂະໜາດ (ກີບ) — ລາຄາຕ່ຳສຸດຈະສະແດງໜ້າຮ້ານ</label>' +
+      sizes.map(function (sz) {
+        return '<div style="display:flex;gap:8px;align-items:center;margin-top:6px;"><span style="min-width:70px;">' + escH(sz) + '</span>' +
+          '<input type="number" min="0" step="100" inputmode="numeric" data-size="' + escH(sz) + '" value="' + (cur[sz] || "") + '" style="flex:1;"></div>';
+      }).join("") : "";
   }
   function updateVarBox() {
     const kind = VAR_CATS[$("mCat").value];
@@ -689,6 +712,7 @@
     $("mColors").disabled = kind === "food";
     $("mColors").placeholder = kind === "food" ? "ບໍ່ຕ້ອງໃສ່ສີ" : "ດຳ, ຂາວ, ແດງ";
     if (kind === "food" && !splitList($("mSizes").value).length) $("mSizes").value = "ເລັກ, ກາງ, ໃຫຍ່";
+    renderSizePrices(sizePriceMap());
     renderImgTags();
   }
   function renderImgTags() {
@@ -716,6 +740,7 @@
     $("mSizes").value = "";
     pendingImgs = [];
     updateVarBox();
+    renderSizePrices({});
     $("menuFormTitle").textContent = "ເພີ່ມສິນຄ້າໃໝ່";
     $("mCancel").classList.add("hidden");
     $("mSave").disabled = false;
@@ -733,6 +758,7 @@
     $("mSizes").value = ((it.variants && it.variants.sizes) || []).join(", ");
     pendingImgs = [];
     updateVarBox();
+    renderSizePrices((it.variants && it.variants.sizePrices) || {});
     setScopeBoxes(scopeList(it), it.shipBranch === "yes");
     $("menuFormTitle").textContent = "ແກ້ໄຂສິນຄ້າ";
     $("mCancel").classList.remove("hidden");
@@ -754,6 +780,7 @@
     renderImgTags();
   };
   $("mCat").onchange = updateVarBox;
+  $("mSizes").oninput = function () { renderSizePrices(sizePriceMap()); };
   $("mColors").oninput = renderImgTags;
   $("imgTags").addEventListener("change", function (e) {
     const s = e.target.closest(".imgcolor");
@@ -842,6 +869,8 @@
       shipBranch: $("mShipBranch").checked ? "yes" : "no",
       variants: variantsFromForm()
     };
+    const spVals = Object.values(item.variants.sizePrices || {});
+    if (spVals.length) item.price = Math.min.apply(null, spVals);
     if (!item.scope) { $("mMsg").textContent = "ເລືອກຂອບເຂດການຂາຍຢ່າງໜ້ອຍ 1 ຂໍ້"; return; }
     if (!item.itemName || !(item.price > 0)) { $("mMsg").textContent = "ໃສ່ຊື່ ແລະ ລາຄາໃຫ້ຄົບ"; return; }
     if (!(item.weightKg > 0) || !(item.cbm > 0)) { $("mMsg").textContent = "ໃສ່ນ້ຳໜັກ ແລະ ຂະໜາດ (CBM) ໃຫ້ຄົບ"; return; }
