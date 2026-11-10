@@ -174,6 +174,22 @@
       </div>
 
       <div class="card">
+        <h3 style="margin:0 0 6px;">ບັນຊີຮັບເງິນຂອງຮ້ານ</h3>
+        <p class="muted small" style="margin:0 0 6px;">ລູກຄ້າຈະໂອນເງິນເຂົ້າບັນຊີນີ້ໂດຍກົງ</p>
+        <label class="muted small">ຊື່ທະນາຄານ</label>
+        <input id="sBankName" type="text" placeholder="ເຊັ່ນ: BCEL, LDB, ACLEDA">
+        <label class="muted small">ຊື່ບັນຊີ</label>
+        <input id="sAccName" type="text">
+        <label class="muted small">ເລກບັນຊີ</label>
+        <input id="sAccNo" type="text" inputmode="numeric">
+        <label class="muted small">Bank QR code (ຮູບ)</label>
+        <input id="sQr" type="file" accept="image/*">
+        <img id="sQrPrev" class="hidden" alt="" style="width:100%;max-width:220px;border-radius:10px;margin-top:8px;">
+        <button id="sPaySave">ບັນທຶກບັນຊີ</button>
+        <p id="sPayMsg" class="muted small"></p>
+      </div>
+
+      <div class="card">
         <label class="muted small">ເອກະສານ (ບັງຄັບສຳລັບບໍລິສັດ / ໂຮງງານ / ຮ້ານທີ່ມີໜ້າຮ້ານ · ຮູບ ຫຼື PDF ບໍ່ເກີນ 5MB)</label>
         <p id="sDocNote" class="small" style="margin:4px 0;"></p>
         <label class="muted small">ໃບທະບຽນວິສາຫະກິດ</label>
@@ -861,6 +877,10 @@
       geo = { lat: data.lat, lng: data.lng };
       showGeo();
       if (data.imageUrl) { $("sPhotoPrev").src = data.imageUrl; $("sPhotoPrev").classList.remove("hidden"); }
+      $("sBankName").value = data.bankName || "";
+      $("sAccName").value = data.accountName || "";
+      $("sAccNo").value = data.accountNo || "";
+      if (data.qrImageUrl) { $("sQrPrev").src = data.qrImageUrl; $("sQrPrev").classList.remove("hidden"); }
       if (ADMIN_WA) { $("sAdmin").href = "https://wa.me/" + ADMIN_WA; $("sAdmin").classList.remove("hidden"); }
     } catch (e) {
       $("sMsg").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້";
@@ -983,6 +1003,55 @@
     $("sDocMsg").textContent = res && res.ok ? "ລຶບແລ້ວ" : "ລຶບບໍ່ໄດ້";
     await loadProfile();
   });
+
+  $("sQr").onchange = function () {
+    const f = $("sQr").files[0];
+    if (!f) return;
+    $("sQrPrev").src = URL.createObjectURL(f);
+    $("sQrPrev").classList.remove("hidden");
+  };
+
+  $("sPaySave").onclick = async function () {
+    if (!session) return;
+    $("sPaySave").disabled = true;
+    $("sPayMsg").textContent = "ກຳລັງບັນທຶກ...";
+    const accNo = $("sAccNo").value.replace(/\s+/g, "");
+    if (!accNo || !$("sAccName").value.trim()) {
+      $("sPayMsg").textContent = "ກະລຸນາໃສ່ຊື່ບັນຊີ ແລະ ເລກບັນຊີ";
+      $("sPaySave").disabled = false;
+      return;
+    }
+    let res = null;
+    try {
+      res = await apiPost({
+        type: "shoppaysave", shopName: session.shopName, pin: session.pin,
+        bankName: $("sBankName").value.trim(),
+        accountName: $("sAccName").value.trim(),
+        accountNo: accNo
+      });
+    } catch (e) {}
+    if (!res || !res.ok) {
+      const reasons = { auth: "PIN ບໍ່ຖືກຕ້ອງ", account: "ຂໍ້ມູນບັນຊີບໍ່ຄົບ" };
+      $("sPayMsg").textContent = reasons[res && res.reason] || "ບັນທຶກບໍ່ໄດ້ ລອງໃໝ່";
+      $("sPaySave").disabled = false;
+      return;
+    }
+    let msg = "ບັນທຶກບັນຊີແລ້ວ";
+    const f = $("sQr").files[0];
+    if (f) {
+      try {
+        const b64 = await shrinkImage(f);
+        const up = await apiPost({ type: "shopqr", shopName: session.shopName, pin: session.pin, imageBase64: b64 });
+        if (!up || !up.ok) msg = "ບັນທຶກບັນຊີແລ້ວ ແຕ່ອັບໂຫຼດ QR ບໍ່ໄດ້";
+        else { $("sQr").value = ""; if (up.qrImageUrl) $("sQrPrev").src = up.qrImageUrl; }
+      } catch (e) {
+        msg = "ບັນທຶກບັນຊີແລ້ວ ແຕ່ອັບໂຫຼດ QR ບໍ່ໄດ້";
+      }
+    }
+    $("sPaySave").disabled = false;
+    $("sPayMsg").textContent = msg;
+    loadSettings();
+  };
 
   $("sPhoto").onchange = function () {
     const f = $("sPhoto").files[0];
