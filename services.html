@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLUX-e</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --text: #1d2330;
+    --muted: #6b7385;
+    --accent: #2563eb;
+    --line: #e3e6ec;
+    --soon: #9aa1b2;
+    --brand-red: #e02020;
+    --brand-green-line: #7ed08f;
+    --brand-green-bg: #eaf8ee;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Noto Sans Lao", sans-serif;
+    overflow: hidden;
+  }
+  .wrap {
+    max-width: 560px;
+    height: 100vh;
+    height: 100dvh;
+    margin: 0 auto;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  header {
+    text-align: center;
+  }
+  .logo {
+    height: clamp(120px, 22vh, 200px);
+    width: auto;
+    display: block;
+    margin: 0 auto 10px;
+  }
+  .brand-box {
+    max-width: 340px;
+    margin: 0 auto 16px;
+    padding: 10px 14px;
+    background: var(--brand-green-bg);
+    border: 2px solid var(--brand-green-line);
+    border-radius: 12px;
+  }
+  .brand-box h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand-red);
+  }
+  .brand-box h1 .e {
+    font-style: italic;
+    color: var(--brand-red);
+  }
+  .brand-box p {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-auto-rows: clamp(88px, 14vh, 118px);
+    gap: 10px;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 8px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--text);
+    text-decoration: none;
+    transition: transform .08s ease, border-color .15s ease;
+  }
+  .tile:active { transform: scale(0.98); }
+  .tile:hover { border-color: var(--accent); }
+  .tile .icon { font-size: 26px; line-height: 1; }
+  .tile .name { font-size: 15px; font-weight: 600; margin-top: 6px; }
+  .tile .desc { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tile.soon { opacity: 0.55; cursor: default; pointer-events: none; }
+  .tile.soon .tag {
+    font-size: 11px;
+    color: var(--soon);
+    margin-top: 3px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <img src="logo.png" alt="LLUX" class="logo">
+    <div class="brand-box">
+      <h1>LLUX<span class="e">-e</span></h1>
+      <p>ສະດວກ - ວ່ອງໄວ - ປອດໄພ</p>
+    </div>
+  </header>
+
+  <main class="grid">
+    <a class="tile" href="order.html?service=buy">
+      <div>
+        <div class="icon">🛍️</div>
+        <div class="name">ສັ່ງຊື້ ແລະ ສົ່ງ</div>
+        <div class="desc">ເລືອກຮ້ານ ແລ້ວໃຫ້ໄຣເດີນຳສົ່ງ</div>
+      </div>
+    </a>
+
+    <a class="tile" href="order.html?service=rider">
+      <div>
+        <div class="icon">🛵</div>
+        <div class="name">ບໍລິການໄຣເດີ</div>
+        <div class="desc">ຮັບເຄື່ອງ ແລະ ສົ່ງໄປສາຂາ</div>
+      </div>
+    </a>
+
+    <div class="tile soon">
+      <div>
+        <div class="icon">🚕</div>
+        <div class="name">ແທັກຊີ່</div>
+      </div>
+      <div class="tag">ໄວໆນີ້</div>
+    </div>
+
+    <div class="tile soon">
+      <div>
+        <div class="icon">🚗</div>
+        <div class="name">ເຊົ່າລົດ</div>
+      </div>
+      <div class="tag">ໄວໆນີ້</div>
+    </div>
+
+    <div class="tile soon">
+      <div>
+        <div class="icon">🏠</div>
+        <div class="name">ເຊົ່າຫ້ອງ ແລະ ອາພາດເມັ້ນ</div>
+      </div>
+      <div class="tag">ໄວໆນີ້</div>
+    </div>
+
+    <div class="tile soon">
+      <div>
+        <div class="icon">🏞️</div>
+        <div class="name">ໃຫ້ເຊົ່າ ແລະ ຊື້ຂາຍທີ່ດິນ</div>
+      </div>
+      <div class="tag">ໄວໆນີ້</div>
+    </div>
+  </main>
+</div>
+</body>
+</html>
