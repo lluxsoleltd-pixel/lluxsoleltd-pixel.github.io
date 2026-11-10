@@ -114,9 +114,15 @@
           <label><input type="checkbox" class="scope" value="global"> ສົ່ງອອກທົ່ວໂລກ</label>
         </div>
         <label><input type="checkbox" id="mShipBranch"> ຮ້ານສົ່ງໄປຍັງສາຂາເອງ (ຄ່າສົ່ງລວມໃນລາຄາ)</label>
-        <label class="muted small">ຮູບສິນຄ້າ</label>
-        <input id="mImg" type="file" accept="image/*">
-        <img id="mPreview" class="hidden" alt="" style="width:100%;max-height:200px;object-fit:contain;border-radius:10px;margin-top:8px;">
+        <div id="varBox" class="hidden">
+          <label class="muted small">ສີ (ແຍກດ້ວຍ , ເຊັ່ນ ດຳ, ຂາວ, ແດງ) — ສຳລັບເສື້ອຜ້າ/ຮອງເທົ້າ</label>
+          <input id="mColors" type="text" placeholder="ດຳ, ຂາວ, ແດງ">
+          <label class="muted small">ຂະໜາດ (ແຍກດ້ວຍ ,)</label>
+          <input id="mSizes" type="text" placeholder="S, M, L, XL">
+        </div>
+        <label class="muted small">ຮູບສິນຄ້າ (ເລືອກໄດ້ຫຼາຍຮູບ ແລ້ວເລືອກສີໃຫ້ແຕ່ລະຮູບ)</label>
+        <input id="mImg" type="file" accept="image/*" multiple>
+        <div id="imgTags"></div>
         <button id="mSave">ບັນທຶກສິນຄ້າ</button>
         <button id="mCancel" class="secondary hidden">ຍົກເລີກການແກ້ໄຂ</button>
         <p id="mMsg" class="muted small"></p>
@@ -666,6 +672,37 @@
     $("mShipBranch").checked = !!shipBranch;
   }
 
+  // ໝວດທີ່ມີສີ/ຂະໜາດ: ແຟຊັ່ນ (ສີ + ຂະໜາດ), ອາຫານພ້ອມກິນ (ຂະໜາດ ເລັກ/ກາງ/ໃຫຍ່)
+  const VAR_CATS = { "ແຟຊັ່ນ": "fashion", "ອາຫານພ້ອມກິນ": "food" };
+  let pendingImgs = [];
+  function splitList(s) {
+    return String(s || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+  }
+  function variantsFromForm() {
+    const kind = VAR_CATS[$("mCat").value];
+    if (!kind) return { colors: [], sizes: [] };
+    return { colors: kind === "food" ? [] : splitList($("mColors").value), sizes: splitList($("mSizes").value) };
+  }
+  function updateVarBox() {
+    const kind = VAR_CATS[$("mCat").value];
+    $("varBox").classList.toggle("hidden", !kind);
+    $("mColors").disabled = kind === "food";
+    $("mColors").placeholder = kind === "food" ? "ບໍ່ຕ້ອງໃສ່ສີ" : "ດຳ, ຂາວ, ແດງ";
+    if (kind === "food" && !splitList($("mSizes").value).length) $("mSizes").value = "ເລັກ, ກາງ, ໃຫຍ່";
+    renderImgTags();
+  }
+  function renderImgTags() {
+    const cols = splitList($("mColors").value);
+    pendingImgs.forEach(function (p) { if (cols.indexOf(p.color) < 0) p.color = ""; });
+    $("imgTags").innerHTML = pendingImgs.map(function (p, i) {
+      return '<div style="display:flex;gap:8px;align-items:center;margin-top:8px;">' +
+        '<img src="' + p.url + '" alt="" style="width:64px;height:64px;object-fit:cover;border-radius:8px;">' +
+        '<select class="imgcolor" data-i="' + i + '"><option value="">ຮູບລວມ</option>' +
+        cols.map(function (c) { return '<option value="' + escH(c) + '"' + (p.color === c ? " selected" : "") + ">" + escH(c) + "</option>"; }).join("") +
+        "</select></div>";
+    }).join("");
+  }
+
   function resetForm() {
     editingRow = null;
     setScopeBoxes([], false);
@@ -675,8 +712,10 @@
     $("mWeight").value = "";
     $("mCbm").value = "";
     $("mImg").value = "";
-    $("mPreview").classList.add("hidden");
-    $("mPreview").removeAttribute("src");
+    $("mColors").value = "";
+    $("mSizes").value = "";
+    pendingImgs = [];
+    updateVarBox();
     $("menuFormTitle").textContent = "ເພີ່ມສິນຄ້າໃໝ່";
     $("mCancel").classList.add("hidden");
     $("mSave").disabled = false;
@@ -690,6 +729,10 @@
     $("mDesc").value = it.description || "";
     $("mWeight").value = it.weightKg || "";
     $("mCbm").value = it.cbm || "";
+    $("mColors").value = ((it.variants && it.variants.colors) || []).join(", ");
+    $("mSizes").value = ((it.variants && it.variants.sizes) || []).join(", ");
+    pendingImgs = [];
+    updateVarBox();
     setScopeBoxes(scopeList(it), it.shipBranch === "yes");
     $("menuFormTitle").textContent = "ແກ້ໄຂສິນຄ້າ";
     $("mCancel").classList.remove("hidden");
@@ -705,11 +748,17 @@
   }
 
   $("mImg").onchange = function () {
-    const f = $("mImg").files[0];
-    if (!f) { $("mPreview").classList.add("hidden"); return; }
-    $("mPreview").src = URL.createObjectURL(f);
-    $("mPreview").classList.remove("hidden");
+    pendingImgs = Array.from($("mImg").files || []).slice(0, 20).map(function (f) {
+      return { file: f, color: "", url: URL.createObjectURL(f) };
+    });
+    renderImgTags();
   };
+  $("mCat").onchange = updateVarBox;
+  $("mColors").oninput = renderImgTags;
+  $("imgTags").addEventListener("change", function (e) {
+    const s = e.target.closest(".imgcolor");
+    if (s && pendingImgs[Number(s.dataset.i)]) pendingImgs[Number(s.dataset.i)].color = s.value;
+  });
 
   // ===== ເຄື່ອງຄິດເລກໃນຊ່ອງນ້ຳໜັກ / CBM =====
   // ຮັບສູດເຊັ່ນ 0.5*0.4*0.3, 0,5 x 0,4 x 0,3, =0.6*0.2*1, (1+2)*3 ແລະ ຄຳນວນເອງ (ບໍ່ໃຊ້ eval)
@@ -790,7 +839,8 @@
       weightKg: Number($("mWeight").value),
       cbm: Number($("mCbm").value),
       scope: Array.from(document.querySelectorAll(".scope:checked")).map(function (c) { return c.value; }).join(","),
-      shipBranch: $("mShipBranch").checked ? "yes" : "no"
+      shipBranch: $("mShipBranch").checked ? "yes" : "no",
+      variants: variantsFromForm()
     };
     if (!item.scope) { $("mMsg").textContent = "ເລືອກຂອບເຂດການຂາຍຢ່າງໜ້ອຍ 1 ຂໍ້"; return; }
     if (!item.itemName || !(item.price > 0)) { $("mMsg").textContent = "ໃສ່ຊື່ ແລະ ລາຄາໃຫ້ຄົບ"; return; }
@@ -809,16 +859,17 @@
 
     let msgTxt = "ບັນທຶກແລ້ວ";
     const row = editingRow || res.row;
-    const file = $("mImg").files[0];
-    if (file) {
+    let failed = 0;
+    for (const p of pendingImgs) {
       try {
-        const b64 = await shrinkImage(file);
-        const up = await apiPost({ type: "menuimage", shopName: session.shopName, pin: session.pin, row: row, imageBase64: b64 });
-        if (!up || !up.ok) msgTxt = "ບັນທຶກສິນຄ້າແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້";
+        const b64 = await shrinkImage(p.file);
+        const up = await apiPost({ type: "menuimages", shopName: session.shopName, pin: session.pin, row: row, color: p.color, imageBase64: b64 });
+        if (!up || !up.ok) failed++;
       } catch (e) {
-        msgTxt = "ບັນທຶກສິນຄ້າແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້";
+        failed++;
       }
     }
+    if (failed) msgTxt = "ບັນທຶກສິນຄ້າແລ້ວ ແຕ່ອັບໂຫຼດຮູບບໍ່ໄດ້ " + failed + " ຮູບ";
     resetForm();
     await loadMenu();
     $("mMsg").textContent = msgTxt;
