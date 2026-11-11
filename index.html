@@ -695,6 +695,7 @@
     const units = unitsOf($("mCat").value);
     const base = $("mUnit").value;
     const alts = base ? units.filter(function (u) { return u !== base; }) : [];
+    const u0 = alts[0] || "";
     $("ubBox").innerHTML = alts.length ? '<label class="muted small">ຫົວໜ່ວຍອື່ນທີ່ຂາຍນຳ (ຕິກເພື່ອເປີດຂາຍ)</label>' +
       alts.map(function (u) {
         const c = (cur && cur[u]) || null;
@@ -704,7 +705,7 @@
           '<input type="number" class="ub-price" min="0" step="100" inputmode="numeric" placeholder="ລາຄາ (ກີບ)" value="' + (c ? c.price : '') + '" style="flex:1 1 0;min-width:0;width:100%;">' +
           '<input type="number" class="ub-pack" min="1" step="1" inputmode="numeric" placeholder="ມີກີ່ອັນ" value="' + (c ? c.pack : '') + '" style="flex:0 0 76px;width:76px;min-width:0;">' +
           '</div>';
-      }).join("") + '<p class="muted small" style="margin:4px 0 0;">ຊ່ອງ "ມີກີ່ອັນ" = ໃນ 1 ' + escH(base) + ' ຈັກອັນໃນ 1 ໜ່ວຍນັ້ນ (ເຊັ່ນ ແກັດ = 5 ແພັກ)</p>' : "";
+      }).join("") + '<p class="muted small" style="margin:4px 0 0;">ຊ່ອງ "ມີກີ່ອັນ" = 1 ' + escH(u0) + ' ມີ ' + escH(base) + ' ຈັກອັນ (ເຊັ່ນ 1 ແກັດ = 5 ແພັກ, ໃສ່ 5 ໃນແຖວແກັດ)</p>' : "";
   }
 
   // ຫົວໜ່ວຍຕາມໝວດ (ຈາກ categories.js)
