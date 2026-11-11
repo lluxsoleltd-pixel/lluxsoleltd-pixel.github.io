@@ -676,13 +676,18 @@
   }
 
   // ລາຄາຫົວໜ່ວຍອື່ນ (ເຊັ່ນ ແກັດ = 5 ແພັກ ລາຄາ 380,000)
+  let ubErr = "";
   function unitPriceMap() {
     const out = {};
+    ubErr = "";
     document.querySelectorAll("#ubBox .ub-row").forEach(function (row) {
       const on = row.querySelector(".ub-on").checked;
-      const price = Number(row.querySelector(".ub-price").value);
-      const pack = Math.floor(Number(row.querySelector(".ub-pack").value)) || 1;
-      if (on && price > 0 && pack >= 1) out[row.dataset.u] = { price: price, pack: pack };
+      const pe = row.querySelector(".ub-price"), ke = row.querySelector(".ub-pack");
+      if (!on) return;
+      const price = Number(pe.value), pack = Math.floor(Number(ke.value));
+      if (!(price >= 100)) { ubErr = "ໃສ່ລາຄາ " + row.dataset.u + " ໃຫ້ຖືກ (ຢ່າງໜ້ອຍ 100 ກີບ)"; pe.style.borderColor = "red"; return; }
+      if (!(pack >= 1)) { ubErr = "ໃສ່ຈຳນວນແພັກຂອງ " + row.dataset.u + " ໃຫ້ຖືກ (ເຊັ່ນ 5)"; ke.style.borderColor = "red"; return; }
+      out[row.dataset.u] = { price: price, pack: pack };
     });
     return out;
   }
@@ -914,6 +919,7 @@
       unitPrices: $("unitBox").classList.contains("hidden") ? {} : unitPriceMap()
     };
     if (!$("unitBox").classList.contains("hidden") && !item.unit) { $("mMsg").textContent = "ເລືອກຫົວໜ່ວຍກ່ອນ"; return; }
+    if (ubErr) { $("mMsg").textContent = ubErr; return; }
     const spVals = Object.values(item.variants.sizePrices || {});
     if (spVals.length) item.price = Math.min.apply(null, spVals);
     if (!item.scope) { $("mMsg").textContent = "ເລືອກຂອບເຂດການຂາຍຢ່າງໜ້ອຍ 1 ຂໍ້"; return; }
