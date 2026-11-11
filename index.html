@@ -100,6 +100,7 @@
         <input id="mPrice" type="number" min="1" step="100" inputmode="numeric">
         <label class="muted small">ໝວດສິນຄ້າ</label>
         <select id="mCat"></select>
+        <div id="unitBox" class="hidden"><label class="muted small">ຫົວໜ່ວຍ</label><select id="mUnit"></select></div>
         <label class="muted small">ລາຍລະອຽດ</label>
         <input id="mDesc" type="text">
         <label class="muted small">ນ້ຳໜັກຫຼັງແພັກ (ກກ)</label>
@@ -673,6 +674,14 @@
     $("mShipBranch").checked = !!shipBranch;
   }
 
+  // ຫົວໜ່ວຍຕາມໝວດ (ຈາກ categories.js)
+  function updateUnitBox(keep) {
+    const units = unitsOf($("mCat").value);
+    $("unitBox").classList.toggle("hidden", !units.length);
+    $("mUnit").innerHTML = '<option value="">ເລືອກຫົວໜ່ວຍ</option>' +
+      units.map(function (u) { return '<option value="' + escH(u) + '">' + escH(u) + '</option>'; }).join("");
+    if (keep && units.indexOf(keep) >= 0) $("mUnit").value = keep;
+  }
   // ໝວດທີ່ມີສີ/ຂະໜາດ: ແຟຊັ່ນ (ສີ + ຂະໜາດ), ອາຫານພ້ອມກິນ (ຂະໜາດ ນ້ອຍ/ກາງ/ໃຫຍ່)
   const VAR_CATS = { "ແຟຊັ່ນ": "fashion", "ອາຫານພ້ອມກິນ": "food" };
   let pendingImgs = [];
@@ -741,6 +750,7 @@
     pendingImgs = [];
     updateVarBox();
     renderSizePrices({});
+    updateUnitBox("");
     $("menuFormTitle").textContent = "ເພີ່ມສິນຄ້າໃໝ່";
     $("mCancel").classList.add("hidden");
     $("mSave").disabled = false;
@@ -751,6 +761,7 @@
     $("mName").value = it.itemName;
     $("mPrice").value = it.price;
     $("mCat").value = catOf(it) || MENU_CATS[0];
+    updateUnitBox(it.unit || "");
     $("mDesc").value = it.description || "";
     $("mWeight").value = it.weightKg || "";
     $("mCbm").value = it.cbm || "";
@@ -779,7 +790,7 @@
     });
     renderImgTags();
   };
-  $("mCat").onchange = updateVarBox;
+  $("mCat").onchange = function () { updateVarBox(); updateUnitBox(); };
   $("mSizes").oninput = function () { renderSizePrices(sizePriceMap()); };
   $("mColors").oninput = renderImgTags;
   $("imgTags").addEventListener("change", function (e) {
@@ -867,8 +878,10 @@
       cbm: Number($("mCbm").value),
       scope: Array.from(document.querySelectorAll(".scope:checked")).map(function (c) { return c.value; }).join(","),
       shipBranch: $("mShipBranch").checked ? "yes" : "no",
-      variants: variantsFromForm()
+      variants: variantsFromForm(),
+      unit: $("unitBox").classList.contains("hidden") ? "" : $("mUnit").value
     };
+    if (!$("unitBox").classList.contains("hidden") && !item.unit) { $("mMsg").textContent = "ເລືອກຫົວໜ່ວຍກ່ອນ"; return; }
     const spVals = Object.values(item.variants.sizePrices || {});
     if (spVals.length) item.price = Math.min.apply(null, spVals);
     if (!item.scope) { $("mMsg").textContent = "ເລືອກຂອບເຂດການຂາຍຢ່າງໜ້ອຍ 1 ຂໍ້"; return; }
