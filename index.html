@@ -699,12 +699,12 @@
       alts.map(function (u) {
         const c = (cur && cur[u]) || null;
         return '<div class="ub-row" data-u="' + escH(u) + '" style="display:flex;gap:6px;align-items:center;margin-top:6px;">' +
-          '<input type="checkbox" class="ub-on"' + (c ? ' checked' : '') + '>' +
-          '<span style="min-width:56px;">' + escH(u) + '</span>' +
-          '<input type="number" class="ub-price" min="0" step="100" inputmode="numeric" placeholder="ລາຄາ" value="' + (c ? c.price : '') + '" style="flex:1;">' +
-          '<input type="number" class="ub-pack" min="1" step="1" inputmode="numeric" placeholder="ຈຳນວນ" value="' + (c ? c.pack : '') + '" style="width:80px;">' +
+          '<input type="checkbox" class="ub-on" style="flex:0 0 auto;"' + (c ? ' checked' : '') + '>' +
+          '<span style="flex:0 0 52px;">' + escH(u) + '</span>' +
+          '<input type="number" class="ub-price" min="0" step="100" inputmode="numeric" placeholder="ລາຄາ (ກີບ)" value="' + (c ? c.price : '') + '" style="flex:1 1 0;min-width:0;width:100%;">' +
+          '<input type="number" class="ub-pack" min="1" step="1" inputmode="numeric" placeholder="ມີກີ່ອັນ" value="' + (c ? c.pack : '') + '" style="flex:0 0 76px;width:76px;min-width:0;">' +
           '</div>';
-      }).join("") + '<p class="muted small" style="margin:4px 0 0;">ຊ່ອງຈຳນວນ = ມີ ' + escH(base) + ' ຈັກອັນໃນ 1 ໜ່ວຍນັ້ນ (ເຊັ່ນ ແກັດ = 5 ແພັກ)</p>' : "";
+      }).join("") + '<p class="muted small" style="margin:4px 0 0;">ຊ່ອງ "ມີກີ່ອັນ" = ໃນ 1 ' + escH(base) + ' ຈັກອັນໃນ 1 ໜ່ວຍນັ້ນ (ເຊັ່ນ ແກັດ = 5 ແພັກ)</p>' : "";
   }
 
   // ຫົວໜ່ວຍຕາມໝວດ (ຈາກ categories.js)
