@@ -265,7 +265,7 @@
     extra = extra || {};
     const f = c.find(function (x) { return x.shopName === item.shopName && x.itemName === item.itemName && (x.variant || "") === variant; });
     if (f) f.qty = Math.min(99, f.qty + qty);
-    else c.push({ shopName: item.shopName, itemName: item.itemName, variant: variant, size: extra.size || "", color: extra.color || "", price: extra.price || item.price, imageUrl: imageOverride || item.imageUrl || "", weightKg: item.weightKg || 0, cbm: item.cbm || 0, qty: qty });
+    else c.push({ shopName: item.shopName, itemName: item.itemName, variant: variant, size: extra.size || "", color: extra.color || "", unit: extra.unit || "", price: extra.price || item.price, imageUrl: imageOverride || item.imageUrl || "", weightKg: item.weightKg || 0, cbm: item.cbm || 0, qty: qty });
     setCart(c);
     toast("ເພີ່ມເຂົ້າຕະກ້າແລ້ວ");
   }
@@ -406,7 +406,8 @@
     const colors = vars.colors || [], sizes = vars.sizes || [];
     const imgs = i.images || [];
     const allThumbs = imgs.length ? imgs.map(function (x) { return x.url; }) : String(i.detailImages || "").split(/[\n,]+/).map(function (s) { return s.trim(); }).filter(Boolean);
-    const sel = { color: "", size: "" };
+    const sel = { color: "", size: "", unit: i.unit || "" };
+    const unitChoices = i.unit ? [i.unit].concat(Object.keys(i.unitPrices || {})) : [];
     const firstOf = function (color) { const hit = imgs.find(function (x) { return x.color === color; }); return hit ? hit.url : ""; };
     const chipsHtml = function (list, key, label) {
       return list.length ? '<div class="opt"><div class="lbl">' + label + '</div><div class="chips">' +
@@ -425,13 +426,14 @@
       (i.origin ? '<div class="r">ແຫຼ່ງຜະລິດ: ' + esc(i.origin) + '</div>' : '') +
       (i.importer ? '<div class="r">ຜູ້ນຳເຂົ້າ: ' + esc(i.importer) + '</div>' : '') +
       (i.description ? '<div class="r">' + esc(i.description) + '</div>' : '') +
-      chipsHtml(colors, "color", "ສີ") + chipsHtml(sizes, "size", "ຂະໜາດ") +
+      chipsHtml(colors, "color", "ສີ") + chipsHtml(sizes, "size", "ຂະໜາດ") + chipsHtml(unitChoices, "unit", "ຫົວໜ່ວຍ") +
       '<div class="qty"><button id="qMinus">−</button><b id="qVal">1</b><button id="qPlus">+</button></div>' +
       '<button class="btn" id="btnAdd"' + (isOut ? ' disabled' : '') + '>' + (isOut ? 'ໝົດແລ້ວ' : 'ເພີ່ມເຂົ້າຕະກ້າ') + '</button>' +
       '<button class="btn ghost" id="btnClose">ປິດ</button>';
     let qty = 1;
     $("qMinus").onclick = function () { qty = Math.max(1, qty - 1); $("qVal").textContent = qty; };
     $("qPlus").onclick = function () { qty = Math.min(99, qty + 1); $("qVal").textContent = qty; };
+    Array.from($("sheetDetail").querySelectorAll(".chip[data-unit]")).forEach(function (b) { b.classList.toggle("on", b.dataset.unit === sel.unit); });
     $("sheetDetail").onclick = function (ev) {
       const t = ev.target;
       const mainEl = $("dMain");
@@ -446,6 +448,11 @@
         const spx = (vars.sizePrices || {})[sel.size];
         if (spx && $("dPrice")) $("dPrice").textContent = money(spx);
         Array.from(this.querySelectorAll(".chip[data-size]")).forEach(function (b) { b.classList.toggle("on", b.dataset.size === sel.size); });
+      } else if (t.dataset.unit != null) {
+        sel.unit = t.dataset.unit;
+        Array.from(this.querySelectorAll(".chip[data-unit]")).forEach(function (b) { b.classList.toggle("on", b.dataset.unit === sel.unit); });
+        const up = sel.unit === i.unit ? i.price : ((i.unitPrices || {})[sel.unit] || {}).price;
+        if (up && $("dPrice")) $("dPrice").textContent = money(up) + " / " + sel.unit;
       } else if (t.dataset.u) {
         openLb(allThumbs, allThumbs.indexOf(t.dataset.u));
       } else if (t.id === "dMain") {
@@ -456,9 +463,11 @@
     $("btnAdd").onclick = function () {
       if (colors.length && !sel.color) { toast("ເລືອກສີກ່ອນ"); return; }
       if (sizes.length && !sel.size) { toast("ເລືອກຂະໜາດກ່ອນ"); return; }
-      const variant = [sel.color ? "ສີ: " + sel.color : "", sel.size ? "ຂະໜາດ: " + sel.size : ""].filter(Boolean).join(" · ");
-      const unit = (sel.size && (vars.sizePrices || {})[sel.size]) || i.price;
-      addToCart(i, qty, variant, sel.color ? firstOf(sel.color) : "", { price: unit, size: sel.size, color: sel.color });
+      const variant = [sel.color ? "ສີ: " + sel.color : "", sel.size ? "ຂະໜາດ: " + sel.size : "", sel.unit ? "ຫົວໜ່ວຍ: " + sel.unit : ""].filter(Boolean).join(" · ");
+      const sizeP = (sel.size && (vars.sizePrices || {})[sel.size]) || i.price;
+      const unitSel = sel.unit && sel.unit !== i.unit ? (i.unitPrices || {})[sel.unit] : null;
+      const unitP = unitSel ? unitSel.price : sizeP;
+      addToCart(i, qty, variant, sel.color ? firstOf(sel.color) : "", { price: unitP, size: sel.size, color: sel.color, unit: sel.unit || "" });
       closeAll();
     };
     $("btnClose").onclick = closeAll;
@@ -745,7 +754,7 @@
           carrier: carrier, branch: branch, payTerm: isShip ? $("shipPay").value : "",
           dropLat: coDrop ? coDrop.lat : null, dropLng: coDrop ? coDrop.lng : null,
           shops: groups.map(function (g) {
-            return { shopName: g.shopName, items: g.items.map(function (x) { return { itemName: x.itemName, qty: x.qty, variant: x.variant || "", size: x.size || "", color: x.color || "" }; }) };
+            return { shopName: g.shopName, items: g.items.map(function (x) { return { itemName: x.itemName, qty: x.qty, variant: x.variant || "", size: x.size || "", color: x.color || "", unit: x.unit || "" }; }) };
           })
         })
       });

@@ -100,7 +100,8 @@
         <input id="mPrice" type="number" min="1" step="100" inputmode="numeric">
         <label class="muted small">ໝວດສິນຄ້າ</label>
         <select id="mCat"></select>
-        <div id="unitBox" class="hidden"><label class="muted small">ຫົວໜ່ວຍ</label><select id="mUnit"></select></div>
+        <div id="unitBox" class="hidden"><label class="muted small">ຫົວໜ່ວຍຫຼັກ</label><select id="mUnit"></select></div>
+        <div id="ubBox"></div>
         <label class="muted small">ລາຍລະອຽດ</label>
         <input id="mDesc" type="text">
         <label class="muted small">ນ້ຳໜັກຫຼັງແພັກ (ກກ)</label>
@@ -674,6 +675,33 @@
     $("mShipBranch").checked = !!shipBranch;
   }
 
+  // ລາຄາຫົວໜ່ວຍອື່ນ (ເຊັ່ນ ແກັດ = 5 ແພັກ ລາຄາ 380,000)
+  function unitPriceMap() {
+    const out = {};
+    document.querySelectorAll("#ubBox .ub-row").forEach(function (row) {
+      const on = row.querySelector(".ub-on").checked;
+      const price = Number(row.querySelector(".ub-price").value);
+      const pack = Math.floor(Number(row.querySelector(".ub-pack").value)) || 1;
+      if (on && price > 0 && pack >= 1) out[row.dataset.u] = { price: price, pack: pack };
+    });
+    return out;
+  }
+  function renderUnitPrices(cur) {
+    const units = unitsOf($("mCat").value);
+    const base = $("mUnit").value;
+    const alts = base ? units.filter(function (u) { return u !== base; }) : [];
+    $("ubBox").innerHTML = alts.length ? '<label class="muted small">ຫົວໜ່ວຍອື່ນທີ່ຂາຍນຳ (ຕິກເພື່ອເປີດຂາຍ)</label>' +
+      alts.map(function (u) {
+        const c = (cur && cur[u]) || null;
+        return '<div class="ub-row" data-u="' + escH(u) + '" style="display:flex;gap:6px;align-items:center;margin-top:6px;">' +
+          '<input type="checkbox" class="ub-on"' + (c ? ' checked' : '') + '>' +
+          '<span style="min-width:56px;">' + escH(u) + '</span>' +
+          '<input type="number" class="ub-price" min="0" step="100" inputmode="numeric" placeholder="ລາຄາ" value="' + (c ? c.price : '') + '" style="flex:1;">' +
+          '<input type="number" class="ub-pack" min="1" step="1" inputmode="numeric" placeholder="ຈຳນວນ" value="' + (c ? c.pack : '') + '" style="width:80px;">' +
+          '</div>';
+      }).join("") + '<p class="muted small" style="margin:4px 0 0;">ຊ່ອງຈຳນວນ = ມີ ' + escH(base) + ' ຈັກອັນໃນ 1 ໜ່ວຍນັ້ນ (ເຊັ່ນ ແກັດ = 5 ແພັກ)</p>' : "";
+  }
+
   // ຫົວໜ່ວຍຕາມໝວດ (ຈາກ categories.js)
   function updateUnitBox(keep) {
     const units = unitsOf($("mCat").value);
@@ -751,6 +779,7 @@
     updateVarBox();
     renderSizePrices({});
     updateUnitBox("");
+    renderUnitPrices({});
     $("menuFormTitle").textContent = "ເພີ່ມສິນຄ້າໃໝ່";
     $("mCancel").classList.add("hidden");
     $("mSave").disabled = false;
@@ -762,6 +791,7 @@
     $("mPrice").value = it.price;
     $("mCat").value = catOf(it) || MENU_CATS[0];
     updateUnitBox(it.unit || "");
+    renderUnitPrices(it.unitPrices || {});
     $("mDesc").value = it.description || "";
     $("mWeight").value = it.weightKg || "";
     $("mCbm").value = it.cbm || "";
@@ -790,7 +820,8 @@
     });
     renderImgTags();
   };
-  $("mCat").onchange = function () { updateVarBox(); updateUnitBox(); };
+  $("mCat").onchange = function () { updateVarBox(); updateUnitBox(); renderUnitPrices({}); };
+  $("mUnit").onchange = function () { renderUnitPrices(unitPriceMap()); };
   $("mSizes").oninput = function () { renderSizePrices(sizePriceMap()); };
   $("mColors").oninput = renderImgTags;
   $("imgTags").addEventListener("change", function (e) {
@@ -879,7 +910,8 @@
       scope: Array.from(document.querySelectorAll(".scope:checked")).map(function (c) { return c.value; }).join(","),
       shipBranch: $("mShipBranch").checked ? "yes" : "no",
       variants: variantsFromForm(),
-      unit: $("unitBox").classList.contains("hidden") ? "" : $("mUnit").value
+      unit: $("unitBox").classList.contains("hidden") ? "" : $("mUnit").value,
+      unitPrices: $("unitBox").classList.contains("hidden") ? {} : unitPriceMap()
     };
     if (!$("unitBox").classList.contains("hidden") && !item.unit) { $("mMsg").textContent = "ເລືອກຫົວໜ່ວຍກ່ອນ"; return; }
     const spVals = Object.values(item.variants.sizePrices || {});
