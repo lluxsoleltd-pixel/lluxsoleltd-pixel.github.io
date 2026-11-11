@@ -720,9 +720,10 @@
       const list = await r.json();
       const sel = $("shipCarrier");
       if (!sel) return;
-      sel.innerHTML = '<option value="">ເລືອກບໍລິສັດຂົນສົ່ງ</option>' +
-        list.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join("");
-      carriersLoaded = true;
+      sel.innerHTML = list.length ? '<option value="">ເລືອກບໍລິສັດຂົນສົ່ງ</option>' +
+        list.map(function (c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join("")
+        : '<option value="">ຍັງບໍ່ມີບໍລິສັດຂົນສົ່ງໃນລະບົບ</option>';
+      carriersLoaded = list.length > 0;
     } catch (e) { toast("ໂຫຼດບໍລິສັດຂົນສົ່ງບໍ່ໄດ້"); }
   }
 
