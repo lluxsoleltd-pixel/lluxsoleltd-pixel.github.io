@@ -604,7 +604,7 @@
         '<label class="lbl">ສາຂາປາຍທາງ (ພິມເອງ)</label><input id="shipBranch" class="inp" placeholder="ເຊັ່ນ: ສາຂາປາກກະຍຸງ, ເມືອງທຸລະຄົມ, ແຂວງວຽງຈັນ">' +
         '<label class="lbl">ເບີໂທຜູ້ຮັບ</label><input id="shipPhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
         '<label class="lbl">ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງຈ່າຍທີ່</label><select id="shipPay" class="inp"><option value="origin">ຕົ້ນທາງ</option><option value="destination">ປາຍທາງ</option></select>' +
-        '<p class="note">ລະບົບຈະເລືອກສາຂາທີ່ໃກ້ຈຸດລວມ LLUX ທີ່ສຸດໃຫ້ອັດຕະໂນມັດ ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງລູກຄ້າຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</p>' +
+        '<p class="note">ຮ້ານຈະເລືອກວິທີສົ່ງຫຼັງຮັບອໍເດີ ແລະ ລະບົບຈະແຈ້ງຍອດໂອນໃຫ້ທ່ານ</p>' +
       '</div>' +
       '<p id="coTypeNote" class="note"></p>' +
       '<div id="coSum"></div>' +
@@ -796,7 +796,7 @@
     const shopsHtml = (res.shops || []).map(function (s) {
       const q = s.qr || {};
       return '<div class="cgroup"><div class="gh"><span>' + esc(s.shopName) + '</span><span>' + money(s.goodsTotal) + '</span></div>' +
-        '<div class="r" style="padding:8px 12px">' + (res.deliveryType === "ship" ? "ຄ່າຂົນສົ່ງ: ຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ (ຕາມເງື່ອນໄຂຕົ້ນທາງ/ປາຍທາງທີ່ເລືອກ)" : "ຄ່າສົ່ງ: " + money(s.fee) + " · ຍອດໂອນ: " + money((s.goodsTotal || 0) + (s.fee || 0))) + '</div>' +
+        '<div class="r" style="padding:8px 12px">' + (res.deliveryType === "ship" ? "ຮ້ານຈະຢືນຢັນວິທີສົ່ງ ແລ້ວລະບົບຈະແຈ້ງຍອດໂອນໃຫ້ທ່ານ" : "ຄ່າສົ່ງ: " + money(s.fee) + " · ຍອດໂອນ: " + money((s.goodsTotal || 0) + (s.fee || 0))) + '</div>' +
         (q.qrImageUrl ? '<img src="' + esc(q.qrImageUrl) + '" alt="QR" style="width:200px;max-width:80%;display:block;margin:8px auto;">' : '') +
         (q.accountNo ? '<p class="note" style="text-align:center">' + esc(q.bankName) + ' · ' + esc(q.accountName) + ' · ' + esc(q.accountNo) + '</p>' : '') +
         '</div>';
