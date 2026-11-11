@@ -600,8 +600,8 @@
         '<button type="button" class="dt" id="dtShip"><b>🚚 ໄປຕ່າງແຂວງ</b><span>ແຍກ ແລະ ແພັກສິນຄ້າ ແລ້ວສົ່ງຂົນສົ່ງ · ຮັບພາຍໃນ 3 ວັນ</span></button>' +
       '</div>' +
       '<div id="shipBlock" style="display:none">' +
-        '<label class="lbl">ບໍລິສັດຂົນສົ່ງ</label><select id="shipCarrier" class="inp"><option value="">ກຳລັງໂຫຼດ...</option></select>' +
-        '<label class="lbl">ສາຂາປາຍທາງ (ພິມເອງ)</label><input id="shipBranch" class="inp" placeholder="ເຊັ່ນ: ສາຂາ ... ">' +
+        '<label class="lbl">ບໍລິສັດຂົນສົ່ງ</label><select id="shipCarrier" class="inp"><option value="">ເລືອກບໍລິສັດຂົນສົ່ງ</option><option value="" disabled>LLUX-e (ລະບຸໄວໆນີ້)</option><option value="ອານຸສິດຂົນສົ່ງດ່ວນ">ອານຸສິດຂົນສົ່ງດ່ວນ</option><option value="ຮຸ່ງອາລຸນຂົນສົ່ງດ່ວນ">ຮຸ່ງອາລຸນຂົນສົ່ງດ່ວນ</option><option value="ກຽງໄກ່">ກຽງໄກ່</option><option value="ມີໄຊຂົນສົ່ງດ່ວນ">ມີໄຊຂົນສົ່ງດ່ວນ</option><option value="ຢູນີເທວໂລຈີສຕິກ">ຢູນີເທວໂລຈີສຕິກ</option></select>' +
+        '<label class="lbl">ສາຂາປາຍທາງ (ພິມເອງ)</label><input id="shipBranch" class="inp" placeholder="ເຊັ່ນ: ສາຂາປາກກະຍຸງ, ເມືອງທຸລະຄົມ, ແຂວງວຽງຈັນ">' +
         '<label class="lbl">ເບີໂທຜູ້ຮັບ</label><input id="shipPhone" class="inp" type="tel" value="' + esc(me.phone || "") + '">' +
         '<label class="lbl">ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງຈ່າຍທີ່</label><select id="shipPay" class="inp"><option value="origin">ຕົ້ນທາງ</option><option value="destination">ປາຍທາງ</option></select>' +
         '<p class="note">ລະບົບຈະເລືອກສາຂາທີ່ໃກ້ຈຸດລວມ LLUX ທີ່ສຸດໃຫ້ອັດຕະໂນມັດ ຄ່າຂົນສົ່ງລະຫວ່າງແຂວງລູກຄ້າຈ່າຍໃຫ້ບໍລິສັດຂົນສົ່ງໂດຍກົງ</p>' +
@@ -712,7 +712,7 @@
     $("coSum").innerHTML = html;
   }
 
-  let carriersLoaded = false;
+  let carriersLoaded = true;
   async function loadCarriers() {
     if (carriersLoaded) return;
     try {
@@ -736,6 +736,7 @@
     const carrier = isShip ? $("shipCarrier").value : "";
     if (isShip && !carrier) { $("coMsg").textContent = "ເລືອກບໍລິສັດຂົນສົ່ງກ່ອນ"; return; }
     const branch = isShip ? $("shipBranch").value.trim() : "";
+    if (isShip && !branch) { $("coMsg").textContent = "ພິມສາຂາປາຍທາງກ່ອນ"; return; }
     if (isShip && !branch) { $("coMsg").textContent = "ພິມສາຂາປາຍທາງກ່ອນ"; return; }
     if (!isShip && !coDrop) { $("coMsg").textContent = "ປັກໝຸດຈຸດສົ່ງໃນແຜນທີ່ກ່ອນ"; return; }
     const groups = cartGroups();
