@@ -455,7 +455,7 @@
       btns = '<div class="btns"><button class="good" data-act="confirm_payment" data-row="' + o.row + '">ໄດ້ຮັບຍອດໂອນແລ້ວ · ໃຫ້ຈັດຂອງເລີຍ</button>' +
              '<button class="danger" data-act="reject" data-row="' + o.row + '">ຍົກເລີກອໍເດີ</button></div>';
     } else if (o.status === "accepted" || o.status === "open_for_rider") {
-      btns = '<button class="good" data-act="ready" data-row="' + o.row + '">ກຳລັງແພັກ · ແພັກແລ້ວ ລໍໄຣເດີມາຮັບ</button>';
+      btns = '<button class="water" data-act="ready" data-row="' + o.row + '">ກຳລັງແພັກ · ແພັກແລ້ວ ລໍໄຣເດີມາຮັບ</button>';
     } else if (o.status === "ready") {
       // ຮ້ານຈ່າຍຄ່າສົ່ງ ແລະ ມອບຂອງໃຫ້ໄຣເດີ (ກົດຄັ້ງດຽວ) — ຈົນກວ່າກົດແລ້ວປຸ່ມຍັງຢູ່ ບໍ່ຫາຍ
       if (o.serviceType === "buy" && o.feePaymentStatus === "confirmed" && o.deliveryType !== "ship") {
