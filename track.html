@@ -56,6 +56,14 @@
     <div class="status">ກະລຸນາລໍຖ້າໄຣເດີຮັບງານ<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
     <p class="muted" id="nearbyTxt" style="margin:8px 0 0;"></p>
   </div>
+  <div id="timeoutBox" class="card wait hidden">
+    <div class="status">ໝົດເວລາ 5 ນາທີ ຍັງບໍ່ມີໄຣເດີຮັບງານ</div>
+    <p class="muted" style="margin:8px 0 12px;">ກົດລອງໃໝ່ເພື່ອແຈ້ງໄຣເດີອີກຄັ້ງ ຫຼື ຍົກເລີກອໍເດີ</p>
+    <div style="display:flex;gap:10px;">
+      <button id="btnRetry" style="flex:1;padding:12px;border:0;border-radius:10px;background:#2563eb;color:#fff;font-size:18px;font-weight:700;">ລອງໃໝ່</button>
+      <button id="btnCancelOrder" style="flex:1;padding:12px;border:0;border-radius:10px;background:#dc2626;color:#fff;font-size:18px;font-weight:700;">ຍົກເລີກອໍເດີ</button>
+    </div>
+  </div>
   <div id="riderCard" class="card hidden">
     <h2>ໄຣເດີຜູ້ຮັບງານ</h2>
     <div class="row"><span class="muted">ຊື່</span><span id="rName">-</span></div>
@@ -104,7 +112,8 @@
     accepted: "ໄຣເດີຮັບງານແລ້ວ ກຳລັງໄປຮັບສິນຄ້າ",
     ready: "ໄຣເດີຮັບງານແລ້ວ ລໍຖ້າຮັບສິນຄ້າ",
     picked_up: "ກຳລັງນຳສົ່ງຫາທ່ານ",
-    delivered: "ສົ່ງສຳເລັດແລ້ວ"
+    delivered: "ສົ່ງສຳເລັດແລ້ວ",
+    cancelled_by_customer: "ທ່ານຍົກເລີກອໍເດີແລ້ວ"
   };
   const money = (n) => Number(n || 0).toLocaleString("en-US") + " ກີບ";
 
@@ -112,8 +121,16 @@
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap"
   }).addTo(map);
-  const pickMarker = L.circleMarker([0, 0], { radius: 8, color: "#16a34a", fillOpacity: 1 });
-  const dropMarker = L.circleMarker([0, 0], { radius: 8, color: "#dc2626", fillOpacity: 1 });
+  // ປ້າຍຊັດເຈນ: ຮັບ (ສີຂຽວ) ແລະ ສົ່ງ (ສີແດງ)
+  function pinIcon(label, color) {
+    return L.divIcon({
+      className: "",
+      html: '<div style="background:' + color + ';color:#fff;font-weight:700;font-size:14px;padding:4px 10px;border-radius:14px;white-space:nowrap;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.45);">' + label + '</div>',
+      iconAnchor: [28, 14]
+    });
+  }
+  const pickMarker = L.marker([0, 0], { icon: pinIcon("📦 ຮັບ", "#16a34a") });
+  const dropMarker = L.marker([0, 0], { icon: pinIcon("🏠 ສົ່ງ", "#dc2626") });
   let fitted = false;
 
   // ໄອຄອນມໍເຕີໄຊໄຟຟ້າ (ຫັນຕາມທິດທາງໄດ້). ຖ້າຮູບຫັນຜິດທິດ ປັບ ICON_OFFSET
@@ -283,6 +300,13 @@
     } else {
       etaSecs = null;
       renderEta();
+      // ຍັງບໍ່ມີໄຣເດີ: ສະແດງເສັ້ນທາງຈາກຈຸດຮັບໄປຈຸດສົ່ງ
+      if (o.status === "pending" && pts.length === 2) {
+        const r = await fetchRoute([o.pickLat, o.pickLng], [o.dropLat, o.dropLng]);
+        routeLine.setLatLngs(r.pts);
+      } else if (o.status !== "picked_up" && o.status !== "accepted" && o.status !== "ready") {
+        routeLine.setLatLngs([]);
+      }
     }
     if (!fitted && pts.length) { map.fitBounds(pts, { padding: [30, 30] }); fitted = true; }
   }
@@ -329,7 +353,11 @@
         const noteTxt = o.paymentStatus === "claimed" ? "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນການຮັບເງິນ" : "";
         $("payNote").textContent = noteTxt;
       }
-      $("waitBox").classList.toggle("hidden", o.status !== "pending");
+      const waiting = o.status === "pending";
+      const posted = o.postedAt ? new Date(o.postedAt).getTime() : 0;
+      const timedOut = waiting && posted > 0 && (Date.now() - posted) > 5 * 60 * 1000;
+      $("waitBox").classList.toggle("hidden", !waiting || timedOut);
+      $("timeoutBox").classList.toggle("hidden", !timedOut);
       const showConfirm = isConfirmed && !!rider;
       $("confirmBox").classList.toggle("hidden", !showConfirm);
       $("cfmAmt").textContent = "ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ ຈຳນວນ: " + Number(o.fee || 0).toLocaleString("en-US") + " LAK.";
@@ -368,6 +396,29 @@
       alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້ ລອງໃໝ່");
     }
     $("btnPaid").disabled = false;
+  };
+
+  async function postAct(type) {
+    try {
+      const r = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ type: type, orderId: orderId })
+      });
+      const j = await r.json();
+      if (!j.ok) { alert("ດຳເນີນການບໍ່ໄດ້ (" + (j.reason || "ລອງໃໝ່") + ")"); return false; }
+      return true;
+    } catch (e) {
+      alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້ ລອງໃໝ່");
+      return false;
+    }
+  }
+  $("btnRetry").onclick = async function () {
+    if (await postAct("retry")) refresh();
+  };
+  $("btnCancelOrder").onclick = async function () {
+    if (!confirm("ຍົກເລີກອໍເດີນີ້ແທ້ບໍ?")) return;
+    if (await postAct("cancel")) refresh();
   };
 
   refresh();
