@@ -64,6 +64,11 @@
       <button id="btnCancelOrder" style="flex:1;padding:12px;border:0;border-radius:10px;background:#dc2626;color:#fff;font-size:18px;font-weight:700;">ຍົກເລີກອໍເດີ</button>
     </div>
   </div>
+  <div id="photoBox" class="card hidden">
+    <h2>ຮູບຢືນຢັນການສົ່ງ</h2>
+    <a id="photoLink" href="#" target="_blank" rel="noopener"><img id="photoImg" alt="ຮູບການສົ່ງ" style="width:100%;border-radius:10px;display:block;"></a>
+    <p class="muted" id="photoTime" style="margin:8px 0 0;"></p>
+  </div>
   <div id="riderCard" class="card hidden">
     <h2>ໄຣເດີຜູ້ຮັບງານ</h2>
     <div class="row"><span class="muted">ຊື່</span><span id="rName">-</span></div>
@@ -357,6 +362,13 @@
       const posted = o.postedAt ? new Date(o.postedAt).getTime() : 0;
       const timedOut = waiting && posted > 0 && (Date.now() - posted) > 5 * 60 * 1000;
       $("waitBox").classList.toggle("hidden", !waiting || timedOut);
+      const hasPhoto = o.status === "delivered" && !!o.deliveryPhotoUrl;
+      $("photoBox").classList.toggle("hidden", !hasPhoto);
+      if (hasPhoto) {
+        $("photoImg").src = o.deliveryPhotoUrl;
+        $("photoLink").href = o.deliveryPhotoUrl;
+        $("photoTime").textContent = o.deliveredAt ? "ເວລາສົ່ງ: " + new Date(o.deliveredAt).toLocaleString("lo-LA") : "";
+      }
       $("timeoutBox").classList.toggle("hidden", !timedOut);
       const showConfirm = isConfirmed && !!rider;
       $("confirmBox").classList.toggle("hidden", !showConfirm);
