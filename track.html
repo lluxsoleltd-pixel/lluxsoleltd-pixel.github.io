@@ -24,6 +24,19 @@
   a { color:#9be7ff; font-size:19px; font-weight:700; text-decoration:underline; text-underline-offset:3px; }
   .hidden { display:none !important; }
   .callBtn { display:inline-block; padding:12px 16px; border-radius:12px; background:#0369a1; color:#fff; font-size:18px; font-weight:700; text-decoration:none; text-shadow:none; }
+  /* ໂໝດລໍຖ້າໄຣເດີ: ວົງກະພິບ + ຈຸດເຄື່ອນໄຫວເທື່ອລະເມັດ */
+  .waitRing { width:46px; height:46px; border-radius:50%; background:#3b82f6; margin:4px auto 10px; position:relative; }
+  .waitRing:before, .waitRing:after { content:""; position:absolute; inset:0; border-radius:50%; border:3px solid #3b82f6; animation:ring 1.8s ease-out infinite; }
+  .waitRing:after { animation-delay:.9s; }
+  @keyframes ring { from { transform:scale(1); opacity:.9; } to { transform:scale(2.4); opacity:0; } }
+  .dots span { opacity:.15; animation:blink 1.4s infinite; }
+  .dots span:nth-child(2) { animation-delay:.25s; }
+  .dots span:nth-child(3) { animation-delay:.5s; }
+  @keyframes blink { 0%,100% { opacity:.15; } 40% { opacity:1; } }
+  .wait { text-align:center; }
+  .rdot { font-size:24px; line-height:24px; text-align:center; }
+  .rdot .arrow { display:inline-block; transition:transform .8s linear; }
+  .rdot.parked { opacity:.7; }
 </style>
 </head>
 <body>
@@ -38,6 +51,11 @@
     <div id="netMsg" class="muted"></div>
   </div>
 
+  <div id="waitBox" class="card wait hidden">
+    <div class="waitRing"></div>
+    <div class="status">ກະລຸນາລໍຖ້າໄຣເດີຮັບງານ<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+    <p class="muted" id="nearbyTxt" style="margin:8px 0 0;"></p>
+  </div>
   <div id="riderCard" class="card hidden">
     <h2>ໄຣເດີຜູ້ຮັບງານ</h2>
     <div class="row"><span class="muted">ຊື່</span><span id="rName">-</span></div>
@@ -82,7 +100,7 @@
   const $ = (id) => document.getElementById(id);
   const orderId = new URLSearchParams(location.search).get("id") || "";
   const STATUS_TXT = {
-    pending: "ກຳລັງລໍຖ້າໄຣເດີຮັບງານ",
+    pending: "ກະລຸນາລໍຖ້າໄຣເດີຮັບງານ",
     accepted: "ໄຣເດີຮັບງານແລ້ວ ກຳລັງໄປຮັບສິນຄ້າ",
     ready: "ໄຣເດີຮັບງານແລ້ວ ລໍຖ້າຮັບສິນຄ້າ",
     picked_up: "ກຳລັງນຳສົ່ງຫາທ່ານ",
@@ -109,6 +127,35 @@
     });
   }
   const riderMarker = L.marker([0, 0], { icon: makeRiderIcon() });
+  const nearbyLayer = L.layerGroup().addTo(map);
+  let nearbyPickup = null;
+
+  // ໄຣເດີໃກ້ຄຽງ: ວິ່ງຢູ່ / ຈອດຢູ່ ແລະ ກຳລັງໄປທິດໃດ (ອັບເດດທຸກ 5 ວິນາທີ)
+  function nearbyIcon(r) {
+    const deg = r.moving && r.heading != null ? r.heading : 0;
+    return L.divIcon({
+      className: "",
+      html: '<div class="rdot ' + (r.moving ? "" : "parked") + '"><span class="arrow" style="transform:rotate(' + deg + 'deg)">🛵</span></div>',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
+    });
+  }
+  async function loadNearby() {
+    if (!nearbyPickup) return;
+    try {
+      const r = await fetch(API + "?type=riders&lat=" + nearbyPickup[0] + "&lng=" + nearbyPickup[1], { cache: "no-store" });
+      const list = await r.json();
+      nearbyLayer.clearLayers();
+      (Array.isArray(list) ? list : []).forEach(function (x) {
+        L.marker([x.lat, x.lng], { icon: nearbyIcon(x), interactive: false }).addTo(nearbyLayer);
+      });
+      const moving = (list || []).filter(function (x) { return x.moving; }).length;
+      $("nearbyTxt").textContent = list && list.length
+        ? "ມີໄຣເດີໃກ້ຄຽງ " + list.length + " ຄັນ (" + moving + " ຄັນກຳລັງວິ່ງ)"
+        : "ຍັງບໍ່ເຫັນໄຣເດີໃກ້ຄຽງ ລະບົບກຳລັງຊອກຢູ່";
+    } catch (e) { /* ລອງໃໝ່ຮອບຕໍ່ໄປ */ }
+  }
+  setInterval(loadNearby, 5 * 1000);
   const routeLine = L.polyline([], { color: "#d62828", weight: 5, opacity: 0.6 }).addTo(map);
   const routeCache = {};
 
@@ -262,6 +309,7 @@
       $("netMsg").textContent = "";
 
       const rider = o.rider;
+      if (o.pickLat && o.pickLng) nearbyPickup = [Number(o.pickLat), Number(o.pickLng)];
       // ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ = ເຊື່ອງ QR ແລະ ສະແດງຂໍ້ຄວາມ + ແຜນທີ່ໃຫຍ່
       const isConfirmed = o.paymentStatus === "confirmed" && o.status !== "delivered";
       if (rider) {
@@ -281,6 +329,7 @@
         const noteTxt = o.paymentStatus === "claimed" ? "ແຈ້ງໂອນແລ້ວ ລໍຖ້າໄຣເດີຢືນຢັນການຮັບເງິນ" : "";
         $("payNote").textContent = noteTxt;
       }
+      $("waitBox").classList.toggle("hidden", o.status !== "pending");
       const showConfirm = isConfirmed && !!rider;
       $("confirmBox").classList.toggle("hidden", !showConfirm);
       $("cfmAmt").textContent = "ໄຣເດີຢືນຢັນການຮັບເງິນແລ້ວ ຈຳນວນ: " + Number(o.fee || 0).toLocaleString("en-US") + " LAK.";

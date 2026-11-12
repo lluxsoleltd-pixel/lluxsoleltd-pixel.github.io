@@ -384,6 +384,12 @@
             location.href = 'track.html?id=' + encodeURIComponent(res.orderId);
             return;
           }
+          if (!res || !res.ok) {
+            msg.textContent = 'ສົ່ງຄຳສັ່ງບໍ່ໄດ້ (' + ((res && res.reason) || 'ລອງໃໝ່') + ') ກະລຸນາລອງໃໝ່';
+            submitBtn.disabled = false;
+            updateSubmit();
+            return;
+          }
           msg.textContent = 'ສົ່ງຄຳສັ່ງແລ້ວ';
           branchEl.value = '';
           itemDescEl.value = '';
