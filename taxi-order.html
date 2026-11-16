@@ -30,7 +30,8 @@
   button.mode.on { background:#fff; color:#111; }
   button.small { width:auto; padding:10px 14px; font-size:16px; margin:0; }
   button:disabled { opacity:.5; cursor:default; }
-  #map { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:10px; }
+  #map, #rideMap { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:10px; }
+  .car { font-size:30px; text-align:center; line-height:30px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
   .modes { display:flex; gap:8px; margin-bottom:8px; }
   .hidden { display:none !important; }
   .msg { min-height:22px; margin-top:8px; font-size:17px; }
@@ -84,7 +85,9 @@
     <div class="card">
       <h2 id="waitTitle">ລໍຖ້າຄົນຂັບຮັບງານ<span class="dots"></span></h2>
       <div class="muted" id="waitSub">ກະລຸນາລໍຖ້າ</div>
+      <div class="row" id="etaRow" style="margin-top:8px"><span>ເວລາໂດຍປະມານ</span><b id="etaTxt">-</b></div>
     </div>
+    <div id="rideMap"></div>
     <div id="driverBox" class="card hidden">
       <h2>ຄົນຂັບຂອງທ່ານ</h2>
       <div class="row"><b id="drvName"></b><span class="tag" id="drvPlate"></span></div>
@@ -248,9 +251,79 @@
   }
   window.chooseDriver = chooseDriver;
 
-  // ===== 5. ຕິດຕາມ =====
+  // ===== 5. ຕິດຕາມ (ແຜນທີ່ຄືກັບໜ້າຕິດຕາມໄຣເດີ) =====
+  let rMap = null, rPick = null, rDrop = null, rCar = null, rLine = null, rFitDone = false;
+  const routeCache = {};
+
+  function initRideMap() {
+    if (rMap) return;
+    rMap = L.map("rideMap").setView([17.9757, 102.6331], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(rMap);
+  }
+
+  function carIcon(heading) {
+    return L.divIcon({ className: "", html: '<div class="car">🚖</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
+  }
+
+  async function fetchRoute(from, to) {
+    const key = from.lat + "," + from.lng + ">" + to.lat + "," + to.lng;
+    const c = routeCache[key];
+    if (c && Date.now() - c.at < 60000) return c;
+    let res = { pts: [], dur: null, at: Date.now() };
+    try {
+      const r = await fetch("https://router.project-osrm.org/route/v1/driving/" + from.lng + "," + from.lat + ";" + to.lng + "," + to.lat + "?overview=full&geometries=geojson");
+      const j = await r.json();
+      const rt = j.routes && j.routes[0];
+      if (rt) res = { pts: rt.geometry.coordinates.map((p) => [p[1], p[0]]), dur: rt.duration, at: Date.now() };
+    } catch (e) {}
+    routeCache[key] = res;
+    return res;
+  }
+
+  function straightKm(a, b) {
+    const R = 6371, toR = Math.PI / 180;
+    const dLat = (b.lat - a.lat) * toR, dLng = (b.lng - a.lng) * toR;
+    const x = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * toR) * Math.cos(b.lat * toR) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(x));
+  }
+
+  function renderRideMap(r) {
+    initRideMap();
+    const pick = r.pickup, drop = r.drop;
+    if (!rPick) rPick = L.marker([pick.lat, pick.lng], { title: "ຈຸດຮັບ" }).addTo(rMap);
+    if (!rDrop) rDrop = L.marker([drop.lat, drop.lng], { title: "ຈຸດສົ່ງ", icon: L.divIcon({ className: "", html: "🏁", iconSize: [24, 24], iconAnchor: [12, 24] }) }).addTo(rMap);
+
+    const dl = r.driverLoc;
+    const target = r.status === "picked_up" ? drop : pick;
+    if (dl && (r.status === "accepted" || r.status === "picked_up")) {
+      const here = { lat: dl.lat, lng: dl.lng };
+      if (!rCar) rCar = L.marker([here.lat, here.lng], { icon: carIcon(), title: "ລົດ" }).addTo(rMap);
+      else rCar.setLatLng([here.lat, here.lng]);
+      fetchRoute(here, target).then((rt) => {
+        if (rLine) rMap.removeLayer(rLine);
+        if (rt.pts.length) rLine = L.polyline(rt.pts, { color: "#2563eb", weight: 5, opacity: 0.8 }).addTo(rMap);
+        const mins = rt.dur ? Math.max(1, Math.round(rt.dur / 60)) : Math.max(1, Math.round((straightKm(here, target) / 30) * 60));
+        $("etaTxt").textContent = "ປະມານ " + mins + " ນາທີ";
+      });
+    } else {
+      if (rCar) { rMap.removeLayer(rCar); rCar = null; }
+      if (rLine) { rMap.removeLayer(rLine); rLine = null; }
+      $("etaTxt").textContent = r.status === "pending" ? "ລໍຖ້າຄົນຂັບຮັບງານ" : "-";
+    }
+
+    if (!rFitDone) {
+      const pts = [[pick.lat, pick.lng], [drop.lat, drop.lng]];
+      if (dl) pts.push([dl.lat, dl.lng]);
+      rMap.fitBounds(pts, { padding: [40, 40] });
+      rFitDone = true;
+    }
+    setTimeout(() => rMap.invalidateSize(), 50);
+  }
+
   function enterWait() {
     show("wait");
+    initRideMap();
+    rFitDone = false;
     pollRide();
     clearInterval(pollTimer);
     pollTimer = setInterval(pollRide, POLL_MS);
@@ -267,6 +340,7 @@
   }
 
   function renderRide(r) {
+    if (r.pickup && r.drop) renderRideMap(r);
     $("waitFare").textContent = money(r.fare);
     $("waitKm").textContent = km(r.km);
     const st = r.status;
@@ -311,6 +385,10 @@
     clearInterval(pollTimer);
     chosenDriver = null; rideId = null;
     pickup = null; drop = null; fare = null;
+    if (rMap) {
+      [rPick, rDrop, rCar, rLine].forEach((l) => { if (l) rMap.removeLayer(l); });
+      rPick = rDrop = rCar = rLine = null;
+    }
     if (pickMarker) { map.removeLayer(pickMarker); pickMarker = null; }
     if (dropMarker) { map.removeLayer(dropMarker); dropMarker = null; }
     $("fareCard").classList.add("hidden");
