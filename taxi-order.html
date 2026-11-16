@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LLUX ເອີ້ນແທັກຊີ່">
+<title>LLUX ເອີ້ນແທັກຊີ່</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root { --bg:#ea2f2f; --card:#2b7d4f; --text:#ffffff; --warn:#f59e0b; --btn:#1f8a4c; --line:#2f7f52; --accept:#d62828; --blue:#2563eb; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; font-size:19px; font-weight:500; text-shadow:0 0 1px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.35); }
+  .wrap { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:27px; font-weight:800; margin:8px 0 12px; }
+  h2 { font-size:21px; font-weight:700; margin:0 0 6px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .muted { font-size:17px; opacity:.92; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; font-size:19px; flex-wrap:wrap; }
+  .big { font-size:34px; font-weight:800; margin:6px 0; }
+  .tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:14px; background:var(--line); }
+  .tag.ok { background:#16a34a; }
+  .tag.warn { background:var(--warn); color:#111; }
+  input[type=text], input[type=tel] { width:100%; padding:12px; border:1px solid var(--line); border-radius:10px; font-size:18px; margin:6px 0 10px; background:#fff; color:#111; }
+  button { width:100%; padding:14px; border:0; border-radius:12px; font-size:20px; font-weight:700; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
+  button.accept { background:var(--accept); }
+  button.blue { background:var(--blue); }
+  button.ghost { background:transparent; border:1px solid #fff; font-size:17px; }
+  button.mode { width:auto; flex:1; margin:0; padding:10px; font-size:17px; background:#3f9e6a; }
+  button.mode.on { background:#fff; color:#111; }
+  button.small { width:auto; padding:10px 14px; font-size:16px; margin:0; }
+  button:disabled { opacity:.5; cursor:default; }
+  #map { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:10px; }
+  .modes { display:flex; gap:8px; margin-bottom:8px; }
+  .hidden { display:none !important; }
+  .msg { min-height:22px; margin-top:8px; font-size:17px; }
+  .dots::after { content:""; animation: dots 1.4s steps(4,end) infinite; }
+  @keyframes dots { 0%{content:""} 25%{content:"."} 50%{content:".."} 75%{content:"..."} }
+  a.link { color:#bfe9ff; text-decoration:underline; font-size:17px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>LLUX ເອີ້ນແທັກຊີ່</h1>
+
+  <!-- 1. ຂໍ້ມູນຜູ້ໂດຍສານ -->
+  <div id="stepContact" class="card">
+    <h2>ຂໍ້ມູນຂອງທ່ານ</h2>
+    <input id="cName" type="text" placeholder="ຊື່ຂອງທ່ານ">
+    <input id="cPhone" type="tel" placeholder="ເບີໂທ">
+    <button id="btnContactOk">ຕໍ່ໄປ</button>
+    <div id="contactMsg" class="msg"></div>
+  </div>
+
+  <!-- 2. ເລືອກຈຸດ -->
+  <div id="stepMap" class="hidden">
+    <div class="card">
+      <h2>ເລືອກຈຸດຮັບ ແລະ ຈຸດສົ່ງ</h2>
+      <div class="modes">
+        <button class="mode on" data-mode="pickup">ຈຸດຮັບ</button>
+        <button class="mode" data-mode="drop">ຈຸດສົ່ງ</button>
+      </div>
+      <div id="map"></div>
+      <button class="ghost" id="btnMyPos">ໃຊ້ຕຳແໜ່ງຂອງຂ້ອຍເປັນຈຸດຮັບ</button>
+      <div id="mapMsg" class="msg muted">ແຕະແຜນທີ່ເພື່ອປັກຈຸດຮັບ</div>
+    </div>
+
+    <!-- 3. ລາຄາ -->
+    <div id="fareCard" class="card hidden">
+      <div class="row"><span>ໄລຍະທາງ</span><span id="fareKm">-</span></div>
+      <div class="row"><span>ລາຄາ (ຄົງທີ່)</span><span class="big" id="fareAmt">-</span></div>
+      <div class="muted">ລາຄານີ້ຄົງທີ່ ຄົນຂັບບໍ່ສາມາດຕໍ່ລາຄາໄດ້</div>
+    </div>
+
+    <!-- 4. ເລືອກຄົນຂັບ -->
+    <div id="driversCard" class="card hidden">
+      <h2>ເລືອກຄົນຂັບທີ່ຢູ່ໃກ້ທ່ານ</h2>
+      <div id="driversList" class="muted">ກຳລັງຄົ້ນຫາ...</div>
+    </div>
+  </div>
+
+  <!-- 5. ລໍຖ້າ / ຕິດຕາມ -->
+  <div id="stepWait" class="hidden">
+    <div class="card">
+      <h2 id="waitTitle">ລໍຖ້າຄົນຂັບຮັບງານ<span class="dots"></span></h2>
+      <div class="muted" id="waitSub">ກະລຸນາລໍຖ້າ</div>
+    </div>
+    <div id="driverBox" class="card hidden">
+      <h2>ຄົນຂັບຂອງທ່ານ</h2>
+      <div class="row"><b id="drvName"></b><span class="tag" id="drvPlate"></span></div>
+      <div class="row"><a class="link" id="drvTel" href="#">ໂທຫາຄົນຂັບ</a></div>
+    </div>
+    <div class="card">
+      <div class="row"><span>ລາຄາ</span><b id="waitFare">-</b></div>
+      <div class="row"><span>ໄລຍະທາງ</span><span id="waitKm">-</span></div>
+    </div>
+    <button id="btnCancel" class="ghost hidden">ຍົກເລີກການເອີ້ນ</button>
+    <button id="btnNew" class="hidden">ເອີ້ນແທັກຊີ່ໃໝ່</button>
+    <div id="waitMsg" class="msg"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const POLL_MS = 5000;
+  const $ = (id) => document.getElementById(id);
+  let contact = null;            // { name, phone }
+  let pickup = null, drop = null; // { lat, lng }
+  let mode = "pickup";
+  let fare = null;               // { km, fare }
+  let chosenDriver = null;
+  let rideId = null;
+  let map, pickMarker, dropMarker, driversTimer = null, pollTimer = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function km(n) { return (Math.round(Number(n || 0) * 100) / 100).toFixed(2) + " ກມ"; }
+
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function forget(k) { try { localStorage.removeItem(k); } catch (e) {} }
+
+  async function getJson(url) { const r = await fetch(url, { cache: "no-store" }); return r.json(); }
+  async function post(body) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+    return r.json();
+  }
+
+  function show(step) {
+    $("stepContact").classList.toggle("hidden", step !== "contact");
+    $("stepMap").classList.toggle("hidden", step !== "map");
+    $("stepWait").classList.toggle("hidden", step !== "wait");
+  }
+
+  // ===== 1. ຜູ້ໂດຍສານ =====
+  function contactOk() {
+    const name = $("cName").value.trim();
+    const phone = $("cPhone").value.replace(/\D/g, "");
+    if (!name || phone.length < 8) { $("contactMsg").textContent = "ກະລຸນາປ້ອນຊື່ ແລະ ເບີໂທ"; return; }
+    contact = { name: name, phone: phone };
+    save("llux_taxi_cust", contact);
+    openMap();
+  }
+
+  // ===== 2. ແຜນທີ່ =====
+  function openMap() {
+    show("map");
+    if (!map) initMap();
+    setTimeout(() => map.invalidateSize(), 50);
+  }
+
+  function initMap() {
+    map = L.map("map").setView([17.9757, 102.6331], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+    map.on("click", (e) => setPoint(e.latlng.lat, e.latlng.lng));
+  }
+
+  function setPoint(lat, lng) {
+    if (mode === "pickup") {
+      pickup = { lat: lat, lng: lng };
+      if (pickMarker) pickMarker.setLatLng([lat, lng]); else pickMarker = L.marker([lat, lng], { title: "ຈຸດຮັບ" }).addTo(map);
+      $("mapMsg").textContent = drop ? "" : "ແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ";
+      if (!drop) setMode("drop");
+    } else {
+      drop = { lat: lat, lng: lng };
+      if (dropMarker) dropMarker.setLatLng([lat, lng]); else dropMarker = L.marker([lat, lng], { title: "ຈຸດສົ່ງ", icon: L.divIcon({ className: "", html: "🏁", iconSize: [24, 24] }) }).addTo(map);
+    }
+    if (pickup && drop) onBothPoints();
+  }
+
+  function setMode(m) {
+    mode = m;
+    document.querySelectorAll(".mode").forEach((b) => b.classList.toggle("on", b.dataset.mode === m));
+  }
+  document.querySelectorAll(".mode").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+
+  $("btnMyPos").addEventListener("click", () => {
+    if (!navigator.geolocation) { $("mapMsg").textContent = "ບໍ່ມີ GPS"; return; }
+    navigator.geolocation.getCurrentPosition((p) => {
+      map.setView([p.coords.latitude, p.coords.longitude], 16);
+      setMode("pickup");
+      setPoint(p.coords.latitude, p.coords.longitude);
+    }, () => { $("mapMsg").textContent = "ບໍ່ໄດ້ຮັບຕຳແໜ່ງ, ແຕະແຜນທີ່ແທນ"; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+
+  // ===== 3. ລາຄາ + ຄົນຂັບ =====
+  async function onBothPoints() {
+    $("fareCard").classList.remove("hidden");
+    $("driversCard").classList.remove("hidden");
+    $("fareKm").textContent = "ກຳລັງຄິດ...";
+    const q = "type=taxifare&pLat=" + pickup.lat + "&pLng=" + pickup.lng + "&dLat=" + drop.lat + "&dLng=" + drop.lng;
+    try {
+      const res = await getJson(API + "?" + q);
+      if (res && res.ok) {
+        fare = { km: res.km, fare: res.fare };
+        $("fareKm").textContent = km(res.km);
+        $("fareAmt").textContent = money(res.fare);
+      } else { $("fareKm").textContent = "ຄິດລາຄາບໍ່ໄດ້"; }
+    } catch (e) { $("fareKm").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    refreshDrivers();
+    clearInterval(driversTimer);
+    driversTimer = setInterval(refreshDrivers, 8000);
+  }
+
+  async function refreshDrivers() {
+    if (!pickup) return;
+    try {
+      const res = await getJson(API + "?type=taxinearby&pLat=" + pickup.lat + "&pLng=" + pickup.lng);
+      if (!res || !res.ok) return;
+      const list = res.drivers || [];
+      $("driversList").innerHTML = list.length ? list.map((d) =>
+        '<div class="card" style="margin-bottom:8px">' +
+          '<div class="row"><b>' + esc(d.name) + '</b><span class="tag">' + esc(d.plate) + '</span></div>' +
+          '<div class="row"><span>ຫ່າງຈາກທ່ານ</span><span>' + km(d.distKm) + '</span></div>' +
+          '<button class="blue" onclick="chooseDriver(\'' + esc(d.name).replace(/'/g, "") + '\')" ' + (fare && contact ? "" : "disabled") + '>ເລືອກຄົນນີ້ — ' + money(fare && fare.fare) + '</button>' +
+        '</div>'
+      ).join("") : '<div class="muted">ຍັງບໍ່ມີຄົນຂັບໃກ້ຈຸດຮັບ, ກຳລັງລໍຖ້າ...</div>';
+    } catch (e) {}
+  }
+
+  // ===== 4. ເລືອກຄົນຂັບ ແລ້ວເອີ້ນ =====
+  async function chooseDriver(name) {
+    if (!contact || !pickup || !drop) return;
+    if (!confirm("ເອີ້ນ " + name + " ໃນລາຄາ " + money(fare.fare) + "?")) return;
+    clearInterval(driversTimer);
+    try {
+      const res = await post({
+        type: "taxirequest", customerName: contact.name, customerPhone: contact.phone,
+        pLat: pickup.lat, pLng: pickup.lng, dLat: drop.lat, dLng: drop.lng, driverName: name
+      });
+      if (res && res.ok) {
+        rideId = res.rideId;
+        save("llux_taxi_ride", { rideId: rideId, phone: contact.phone });
+        chosenDriver = name;
+        enterWait();
+        return;
+      }
+      const msgs = { driverunavailable: "ຄົນຂັບນີ້ບໍ່ວ່າງແລ້ວ, ເລືອກຄົນອື່ນ", driver: "ກະລຸນາເລືອກຄົນຂັບ" };
+      alert(msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່");
+      driversTimer = setInterval(refreshDrivers, 8000);
+    } catch (e) {
+      alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້");
+      driversTimer = setInterval(refreshDrivers, 8000);
+    }
+  }
+  window.chooseDriver = chooseDriver;
+
+  // ===== 5. ຕິດຕາມ =====
+  function enterWait() {
+    show("wait");
+    pollRide();
+    clearInterval(pollTimer);
+    pollTimer = setInterval(pollRide, POLL_MS);
+  }
+
+  async function pollRide() {
+    const saved = load("llux_taxi_ride");
+    if (!saved) return;
+    try {
+      const res = await getJson(API + "?type=taxiride&rideId=" + encodeURIComponent(saved.rideId) + "&phone=" + encodeURIComponent(saved.phone));
+      if (!res || !res.ok) return;
+      renderRide(res);
+    } catch (e) {}
+  }
+
+  function renderRide(r) {
+    $("waitFare").textContent = money(r.fare);
+    $("waitKm").textContent = km(r.km);
+    const st = r.status;
+    const titles = {
+      pending: ["ລໍຖ້າຄົນຂັບຮັບງານ", "ກຳລັງລໍຖ້າ " + (chosenDriver || "ຄົນຂັບ") + " ຮັບງານ"],
+      accepted: ["ຄົນຂັບກຳລັງມາຮັບທ່ານ", "ກະລຸນາລໍຖ້າຢູ່ຈຸດຮັບ"],
+      picked_up: ["ກຳລັງເດີນທາງໄປຈຸດສົ່ງ", "ໃຫ້ຄົນຂັບພາທ່ານໄປຮອດ"],
+      completed: ["ເດີນທາງສຳເລັດ", "ຂອບໃຈທີ່ໃຊ້ LLUX-e"],
+      cancelled_by_customer: ["ຍົກເລີກແລ້ວ", ""],
+      cancelled: ["ຍົກເລີກແລ້ວ", ""]
+    };
+    const t = titles[st] || ["ກຳລັງກວດ...", ""];
+    $("waitTitle").innerHTML = esc(t[0]) + (st === "pending" || st === "accepted" || st === "picked_up" ? '<span class="dots"></span>' : "");
+    $("waitSub").textContent = t[1];
+
+    const d = r.driver;
+    if (d) {
+      $("driverBox").classList.remove("hidden");
+      $("drvName").textContent = d.name;
+      $("drvPlate").textContent = d.plate;
+      $("drvTel").href = "tel:" + String(d.phone || "").replace(/[^\d+]/g, "");
+    } else {
+      $("driverBox").classList.add("hidden");
+    }
+
+    $("btnCancel").classList.toggle("hidden", st !== "pending");
+    const done = st === "completed" || st.indexOf("cancel") === 0;
+    $("btnNew").classList.toggle("hidden", !done);
+    if (done) { clearInterval(pollTimer); forget("llux_taxi_ride"); }
+  }
+
+  async function cancelRide() {
+    const saved = load("llux_taxi_ride");
+    if (!saved) return;
+    const res = await post({ type: "taxicancel", rideId: saved.rideId, customerPhone: saved.phone }).catch(() => null);
+    if (res && res.ok) { pollRide(); }
+    else { $("waitMsg").textContent = "ຍົກເລີກບໍ່ໄດ້ແລ້ວ, ຄົນຂັບຮັບງານໄປແລ້ວ"; }
+  }
+
+  function newRide() {
+    forget("llux_taxi_ride");
+    clearInterval(pollTimer);
+    chosenDriver = null; rideId = null;
+    pickup = null; drop = null; fare = null;
+    if (pickMarker) { map.removeLayer(pickMarker); pickMarker = null; }
+    if (dropMarker) { map.removeLayer(dropMarker); dropMarker = null; }
+    $("fareCard").classList.add("hidden");
+    $("driversCard").classList.add("hidden");
+    $("driversList").innerHTML = "ກຳລັງຄົ້ນຫາ...";
+    $("waitMsg").textContent = "";
+    setMode("pickup");
+    show("map");
+  }
+
+  $("btnContactOk").addEventListener("click", contactOk);
+  $("btnCancel").addEventListener("click", cancelRide);
+  $("btnNew").addEventListener("click", newRide);
+
+  // ເປີດໜ້າ: ກູ້ການເອີ້ນທີ່ຍັງບໍ່ຈົບ ຫຼື ຂໍ້ມູນເກົ່າ
+  (function init() {
+    const ride = load("llux_taxi_ride");
+    const c = load("llux_taxi_cust");
+    if (c) { contact = c; $("cName").value = c.name; $("cPhone").value = c.phone; }
+    if (ride) { enterWait(); return; }
+    if (contact) openMap();
+  })();
+</script>
+</body>
+</html>
