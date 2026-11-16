@@ -7,28 +7,38 @@
 <meta name="apple-mobile-web-app-title" content="LLUX ແທັກຊີ່">
 <title>LLUX ແທັກຊີ່</title>
 <style>
-  /* ໂທນສີ LLUX: ພື້ນແດງ, ກ່ອງຂຽວ, ຕົວໜັງສືຂາວ */
-  :root { --bg:#ea2f2f; --card:#2b7d4f; --text:#ffffff; --muted:#e8fbef; --warn:#f59e0b; --bad:#dc2626; --btn:#1f8a4c; --line:#2f7f52; }
+  :root { --bg:#ea2f2f; --card:#2b7d4f; --text:#ffffff; --muted:#e8fbef; --ok:#16a34a; --warn:#f59e0b; --bad:#dc2626; --btn:#1f8a4c; --line:#2f7f52; --accept:#d62828; --blue:#2563eb; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; font-size:18px; font-weight:500; text-shadow:0 0 1px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.35); }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; font-size:19px; font-weight:500; text-shadow:0 0 1px rgba(0,0,0,.55), 0 1px 2px rgba(0,0,0,.35); }
   .wrap { max-width:560px; margin:0 auto; padding:16px; }
-  h1 { font-size:26px; font-weight:800; margin:8px 0 12px; }
-  h2 { font-size:20px; font-weight:700; margin:0 0 8px; }
+  h1 { font-size:27px; font-weight:800; margin:8px 0 12px; }
+  h2 { font-size:21px; font-weight:700; margin:0 0 6px; }
   .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
   .card.alert { border-color:var(--warn); box-shadow:0 0 0 2px rgba(245,158,11,.35); }
-  .muted { color:var(--muted); font-size:15px; }
-  .row { display:flex; justify-content:space-between; gap:8px; padding:6px 0; font-size:17px; }
+  .muted { color:var(--muted); font-size:17px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:6px 0; font-size:20px; flex-wrap:wrap; }
   .big { font-size:34px; font-weight:800; margin:6px 0; }
-  .item { border-top:1px solid var(--line); padding:8px 0; font-size:16px; }
+  .tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:14px; background:var(--line); }
+  .tag.ok { background:var(--ok); }
+  .tag.warn { background:var(--warn); color:#111; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#9ca3af; margin-right:6px; }
+  .dot.on { background:#22c55e; }
+  .tabs { display:flex; gap:8px; margin-bottom:12px; }
+  .tabs button { flex:1; background:var(--card); border:1px solid var(--line); margin:0; padding:10px 6px; font-size:17px; }
+  .tabs button.on { background:#3f9e6a; }
   input[type=text], input[type=password], input[type=tel] { width:100%; padding:12px; border:1px solid var(--line); border-radius:10px; font-size:18px; margin:6px 0 10px; background:#fff; color:#111; }
-  button { width:100%; padding:14px; border:0; border-radius:12px; font-size:19px; font-weight:700; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
-  button.ghost { background:transparent; border:1px solid #fff; }
+  button { width:100%; padding:14px; border:0; border-radius:12px; font-size:20px; font-weight:700; background:var(--btn); color:#fff; cursor:pointer; margin-top:8px; }
+  button.accept { background:var(--accept); }
+  button.blue { background:var(--blue); }
+  button.ghost { background:transparent; border:1px solid #fff; font-size:17px; }
+  button.small { width:auto; padding:8px 12px; font-size:15px; margin:4px 4px 0 0; background:#2f8a5a; }
   button:disabled { opacity:.5; cursor:default; }
+  a.link { color:#bfe9ff; text-decoration:underline; font-size:17px; }
   .qr { display:block; max-width:260px; width:100%; margin:10px auto; background:#fff; border-radius:12px; padding:8px; }
   .slip-preview { display:block; max-width:100%; max-height:300px; margin:10px auto; border-radius:10px; }
+  .item { border-top:1px solid var(--line); padding:8px 0; font-size:17px; }
   .hidden { display:none !important; }
-  .msg { min-height:22px; margin-top:8px; font-size:16px; }
-  .tag { display:inline-block; padding:3px 10px; border-radius:999px; font-size:13px; background:var(--line); }
+  .msg { min-height:22px; margin-top:8px; font-size:17px; }
 </style>
 </head>
 <body>
@@ -45,60 +55,76 @@
     <div id="loginMsg" class="msg"></div>
   </div>
 
-  <!-- ໜ້າຫຼັກ -->
   <div id="mainBox" class="hidden">
+    <!-- ກ່ອງສະຖານະ (ຄືກັບໜ້າໄຣເດີ) -->
     <div class="card">
-      <div class="row"><span id="pName" style="font-weight:800;font-size:20px"></span><span id="pPlate" class="tag"></span></div>
-      <div class="row muted"><span>ເບີໂທ</span><span id="pPhone"></span></div>
+      <div class="row"><span style="font-weight:800;font-size:22px" id="pName"></span><span class="tag" id="pPlate"></span></div>
+      <div class="row muted"><span id="pPhone"></span><span><span class="dot" id="onDot"></span><span id="locTxt">ກຳລັງຫາຕຳແໜ່ງ...</span></span></div>
     </div>
+
+    <div class="tabs">
+      <button data-tab="avail" class="on">ງານລໍຖ້າ</button>
+      <button data-tab="mine">ງານຂອງຂ້ອຍ</button>
+      <button data-tab="pay">ຍອດ</button>
+    </div>
+
+    <!-- ງານລໍຖ້າ -->
+    <div id="tab-avail"><div id="jobsAvail" class="muted">ກຳລັງໂຫລດ...</div></div>
+
+    <!-- ງານຂອງຂ້ອຍ -->
+    <div id="tab-mine" class="hidden"><div id="jobsMine" class="muted">ຍັງບໍ່ມີງານ</div></div>
 
     <!-- ຍອດ -->
-    <div id="balanceCard" class="card">
-      <h2>ຍອດທີ່ຕ້ອງຈ່າຍ</h2>
-      <div class="big" id="totalDue">0 ກີບ</div>
-      <div class="row"><span>ວັນນີ້</span><span id="todayDue">0 ກີບ</span></div>
-      <div class="row"><span>7 ວັນນີ້</span><span id="weekDue">0 ກີບ</span></div>
-      <div id="lockWarn" class="msg hidden"></div>
-      <button id="btnPayOpen">ຈ່າຍຍອດ</button>
+    <div id="tab-pay" class="hidden">
+      <div id="balanceCard" class="card">
+        <h2>ຍອດທີ່ຕ້ອງຈ່າຍ</h2>
+        <div class="big" id="totalDue">0 ກີບ</div>
+        <div class="row"><span>ວັນນີ້</span><span id="todayDue">0 ກີບ</span></div>
+        <div class="row"><span>7 ວັນນີ້</span><span id="weekDue">0 ກີບ</span></div>
+        <div id="lockWarn" class="msg hidden"></div>
+        <button id="btnPayOpen" disabled>ຈ່າຍຍອດ</button>
+      </div>
+
+      <div id="payBox" class="card hidden">
+        <h2>ໂອນເງິນໃຫ້ LLUX-e</h2>
+        <div class="muted">ສະແກນ QR ໂອນ ແລ້ວແນບສລິບ</div>
+        <img id="luxQr" class="qr hidden" alt="LLUX-e QR">
+        <div class="row"><span>ຍອດທີ່ຈ່າຍ</span><span id="payAmount">0 ກີບ</span></div>
+        <label class="muted">ແນບສລິບການໂອນ (ບັງຄັບ)</label>
+        <input id="slipFile" type="file" accept="image/*" capture="environment">
+        <img id="slipPreview" class="slip-preview hidden" alt="ສລິບ">
+        <button id="btnPaySend" disabled>ຂ້ອຍໂອນແລ້ວ</button>
+        <button id="btnPayCancel" class="ghost">ຍົກເລີກ</button>
+        <div id="payMsg" class="msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>ລາຍການຄ້າງ</h2>
+        <div id="items" class="muted">ບໍ່ມີລາຍການຄ້າງ</div>
+      </div>
+      <div class="card">
+        <h2>ປະຫວັດການຈ່າຍ</h2>
+        <div id="history" class="muted">ຍັງບໍ່ມີ</div>
+      </div>
     </div>
 
-    <!-- ຟອມຈ່າຍ -->
-    <div id="payBox" class="card hidden">
-      <h2>ໂອນເງິນໃຫ້ LLUX-e</h2>
-      <div class="muted">ສະແກນ QR ໂອນ ແລ້ວແນບສລິບ</div>
-      <img id="luxQr" class="qr hidden" alt="LLUX-e QR">
-      <div class="row"><span>ຍອດທີ່ຈ່າຍ</span><span id="payAmount">0 ກີບ</span></div>
-      <label class="muted">ແນບສລິບການໂອນ (ບັງຄັບ)</label>
-      <input id="slipFile" type="file" accept="image/*" capture="environment">
-      <img id="slipPreview" class="slip-preview hidden" alt="ສລິບ">
-      <button id="btnPaySend" disabled>ຂ້ອຍໂອນແລ້ວ</button>
-      <button id="btnPayCancel" class="ghost">ຍົກເລີກ</button>
-      <div id="payMsg" class="msg"></div>
-    </div>
-
-    <!-- ລາຍການຄ້າງ -->
-    <div class="card">
-      <h2>ລາຍການຄ້າງ</h2>
-      <div id="items" class="muted">ບໍ່ມີລາຍການຄ້າງ</div>
-    </div>
-
-    <!-- ປະຫວັດ -->
-    <div class="card">
-      <h2>ປະຫວັດການຈ່າຍ</h2>
-      <div id="history" class="muted">ຍັງບໍ່ມີ</div>
-    </div>
-
-    <button id="btnLogout" class="ghost">ອອກຈາກລະບົບ</button>
+    <button class="ghost" id="btnLogout">ອອກຈາກລະບົບ</button>
   </div>
 </div>
 
 <script>
   const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
-  const $ = (id) => document.getElementById(id);
-  let session = null;      // { name, pin }
-  let summary = null;      // ຂໍ້ມູນຈາກ type=ledger
-  let slipB64 = null;      // ຮູບສລິບທີ່ຫຍໍ້ແລ້ວ
+  const POLL_MS = 8000;
+  const LOC_MS = 15000;
   const DAY = 24 * 3600 * 1000;
+  const $ = (id) => document.getElementById(id);
+
+  let session = null;   // { name, pin }
+  let summary = null;   // ຂໍ້ມູນຍອດ
+  let myPos = null;     // { lat, lng, at }
+  let tab = "avail";
+  let slipB64 = null;
+  let pollTimer = null, locTimer = null, sumTimer = null;
 
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -106,8 +132,11 @@
   function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
   function fmtDate(ms) {
     if (!ms) return "";
-    return new Date(ms).toLocaleString("en-GB", { timeZone: "Asia/Vientiane", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+    return new Date(ms).toLocaleString("en-GB", { timeZone: "Asia/Vientiane", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
   }
+  function km(n) { return (Math.round(Number(n || 0) * 100) / 100).toFixed(2) + " ກມ"; }
+  function osmLink(p) { return "https://www.openstreetmap.org/?mlat=" + p.lat + "&mlon=" + p.lng + "#map=17/" + p.lat + "/" + p.lng; }
+  function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
 
   function saveSession() { try { localStorage.setItem("llux_taxi", JSON.stringify(session)); } catch (e) {} }
   function loadSession() { try { return JSON.parse(localStorage.getItem("llux_taxi") || "null"); } catch (e) { return null; } }
@@ -117,20 +146,19 @@
     const r = await fetch(url, { cache: "no-store" });
     return r.json();
   }
-  // ໃຊ້ text/plain ເພື່ອຫຼີກ preflight
   async function post(body) {
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
     return r.json();
   }
+  function authQ() { return "name=" + encodeURIComponent(session.name) + "&pin=" + encodeURIComponent(session.pin); }
 
-  // ຫຍໍ້ຮູບໃຫ້ບໍ່ເກີນ 1280px ແລ້ວແປງເປັນ base64 JPEG
+  // ຫຍໍ້ຮູບ ແລ້ວແປງເປັນ base64 JPEG
   function compressImage(file) {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
-        const max = 1280;
-        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
         const c = document.createElement("canvas");
         c.width = Math.round(img.width * scale);
         c.height = Math.round(img.height * scale);
@@ -143,6 +171,7 @@
     });
   }
 
+  // ===== ເຂົ້າ/ອອກ =====
   async function login() {
     const name = $("taxiName").value.trim();
     const pin = $("taxiPin").value.trim();
@@ -151,36 +180,129 @@
     try {
       const res = await post({ type: "taxilogin", name: name, pin: pin });
       if (!res || !res.ok) {
-        $("loginMsg").textContent = res && res.reason === "auth" ? "ຊື່ ຫຼື PIN ບໍ່ຖືກຕ້ອງ, ຫຼື ບັນຊີຖືກລັອກ" : "ເຂົ້າສູ່ລະບົບບໍ່ໄດ້, ລອງໃໝ່";
+        $("loginMsg").textContent = "ຊື່ ຫຼື PIN ບໍ່ຖືກຕ້ອງ, ຫຼື ບັນຊີຖືກລັອກ";
         return;
       }
       session = { name: name, pin: pin };
       saveSession();
       $("loginMsg").textContent = "";
-      showMain(res.profile);
-      loadSummary();
+      enterApp(res.profile);
     } catch (e) {
       $("loginMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້, ກວດອິນເຕີເນັດ";
     }
   }
 
-  function showMain(profile) {
+  function enterApp(profile) {
     $("loginBox").classList.add("hidden");
     $("mainBox").classList.remove("hidden");
     $("pName").textContent = profile.name;
     $("pPlate").textContent = profile.plate;
     $("pPhone").textContent = profile.phone;
+    updateLocation();
+    refreshSummary();
+    startTimers();
+    setTab("avail");
   }
 
-  async function loadSummary() {
+  function logout() {
+    session = null; summary = null;
+    clearSession();
+    stopTimers();
+    $("mainBox").classList.add("hidden");
+    $("loginBox").classList.remove("hidden");
+    $("taxiPin").value = "";
+  }
+
+  function startTimers() {
+    stopTimers();
+    pollTimer = setInterval(refreshJobs, POLL_MS);
+    locTimer = setInterval(updateLocation, LOC_MS);
+    sumTimer = setInterval(refreshSummary, 60000);
+  }
+  function stopTimers() {
+    clearInterval(pollTimer); clearInterval(locTimer); clearInterval(sumTimer);
+  }
+
+  // ===== ຕຳແໜ່ງ =====
+  function updateLocation() {
+    if (!session || !navigator.geolocation) { $("locTxt").textContent = "ບໍ່ມີ GPS"; return; }
+    navigator.geolocation.getCurrentPosition(function (p) {
+      myPos = { lat: p.coords.latitude, lng: p.coords.longitude, at: Date.now() };
+      $("onDot").classList.add("on");
+      $("locTxt").textContent = "ອັບເດດຕຳແໜ່ງແລ້ວ " + fmtDate(myPos.at);
+      post({ type: "taxiloc", name: session.name, pin: session.pin, lat: myPos.lat, lng: myPos.lng }).catch(function () {});
+      refreshJobs();
+    }, function () {
+      $("onDot").classList.remove("on");
+      $("locTxt").textContent = "ບໍ່ໄດ້ຮັບຕຳແໜ່ງ";
+    }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 });
+  }
+
+  // ===== ງານ =====
+  async function refreshJobs() {
     if (!session) return;
+    let url = API + "?type=taxijobs&" + authQ();
+    if (myPos) url += "&lat=" + myPos.lat + "&lng=" + myPos.lng;
     try {
-      const q = "type=ledger&role=taxi&name=" + encodeURIComponent(session.name) + "&pin=" + encodeURIComponent(session.pin);
-      const res = await getJson(API + "?" + q);
-      if (!res || !res.ok) {
-        if (res && res.reason === "auth") { logout(); $("loginMsg").textContent = "ບັນຊີຖືກລັອກ ຫຼື PIN ປ່ຽນແລ້ວ"; }
+      const res = await getJson(url);
+      if (!res || !res.ok) { if (res && res.reason === "auth") logout(); return; }
+      renderJobs(res);
+    } catch (e) {}
+  }
+
+  function renderJobs(res) {
+    const jobs = res.jobs || [];
+    $("jobsAvail").innerHTML = jobs.length ? jobs.map((j) =>
+      '<div class="card">' +
+        '<div class="row"><b>ງານ ' + esc(j.rideId) + '</b><span class="tag ok">' + money(j.fare) + '</span></div>' +
+        '<div class="row"><span>ຫ່າງຈາກທ່ານ</span><span>' + (j.distToPickup === null ? "-" : km(j.distToPickup)) + '</span></div>' +
+        '<div class="row"><span>ໄລຍະທາງ</span><span>' + km(j.km) + '</span></div>' +
+        '<div class="row"><a class="link" href="' + osmLink(j.pickup) + '" target="_blank">ເປີດແຜນທີ່ຈຸດຮັບ</a></div>' +
+        '<button class="accept" onclick="act(\'accept\',\'' + esc(j.rideId) + '\')">ຮັບງານ</button>' +
+      '</div>'
+    ).join("") : '<div class="card muted">ຍັງບໍ່ມີງານລໍຖ້າໃກ້ຕົວ</div>';
+
+    const mine = res.mine || [];
+    $("jobsMine").innerHTML = mine.length ? mine.map((j) => {
+      const picked = j.status === "picked_up";
+      const btns = picked
+        ? '<button class="blue" onclick="act(\'complete\',\'' + esc(j.rideId) + '\')">ສົ່ງສຳເລັດ</button>'
+        : '<button class="blue" onclick="act(\'pickup\',\'' + esc(j.rideId) + '\')">ຮັບລູກຄ້າແລ້ວ</button>' +
+          '<button class="ghost" onclick="act(\'cancel\',\'' + esc(j.rideId) + '\')">ຍົກເລີກງານ</button>';
+      return '<div class="card">' +
+        '<div class="row"><b>' + esc(j.customerName) + '</b><span class="tag ' + (picked ? "warn" : "") + '">' + (picked ? "ກຳລັງໄປສົ່ງ" : "ໄປຮັບ") + '</span></div>' +
+        '<div class="row"><a class="link" href="' + telHref(j.customerPhone) + '">ໂທຫາລູກຄ້າ ' + esc(j.customerPhone) + '</a></div>' +
+        '<div class="row"><span>ໄລຍະທາງ</span><span>' + km(j.km) + '</span></div>' +
+        '<div class="row"><span>ລາຄາ</span><b>' + money(j.fare) + '</b></div>' +
+        '<div class="row"><a class="link" href="' + osmLink(picked ? j.drop : j.pickup) + '" target="_blank">ເປີດແຜນທີ່ ' + (picked ? "ຈຸດສົ່ງ" : "ຈຸດຮັບ") + '</a></div>' +
+        btns +
+      '</div>';
+    }).join("") : '<div class="card muted">ຍັງບໍ່ມີງານຂອງທ່ານ</div>';
+  }
+
+  async function act(action, rideId) {
+    let body;
+    if (action === "accept") body = { type: "taxiaccept", name: session.name, pin: session.pin, rideId: rideId };
+    else body = { type: "taxiprogress", name: session.name, pin: session.pin, rideId: rideId, action: action };
+    try {
+      const res = await post(body);
+      if (res && res.ok) {
+        refreshJobs();
+        if (action === "accept") setTab("mine");
         return;
       }
+      const msgs = { busy: "ທ່ານມີງານຄ້າງຢູ່ແລ້ວ", taken: "ງານນີ້ມີຄົນຮັບແລ້ວ", notyours: "ບໍ່ແມ່ນງານຂອງທ່ານ", state: "ສະຖານະບໍ່ຖືກຕ້ອງ", auth: "ເຂົ້າສູ່ລະບົບໃໝ່" };
+      alert(msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່");
+      if (res && res.reason === "auth") logout();
+    } catch (e) { alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້"); }
+  }
+
+  // ===== ຍອດ =====
+  async function refreshSummary() {
+    if (!session) return;
+    try {
+      const res = await getJson(API + "?type=ledger&role=taxi&" + authQ());
+      if (!res || !res.ok) return;
       summary = res;
       renderSummary();
     } catch (e) {}
@@ -191,6 +313,7 @@
     $("todayDue").textContent = money(summary.todayDue);
     $("weekDue").textContent = money(summary.weekDue);
     $("btnPayOpen").disabled = !(summary.totalDue > 0);
+    $("payAmount").textContent = money(summary.totalDue);
 
     const warn = $("lockWarn");
     const left = summary.lockAt ? summary.lockAt - Date.now() : 0;
@@ -219,7 +342,6 @@
     }).join("") : "ຍັງບໍ່ມີ";
 
     if (summary.lluxQr) { $("luxQr").src = summary.lluxQr; $("luxQr").classList.remove("hidden"); }
-    $("payAmount").textContent = money(summary.totalDue);
   }
 
   function openPay() {
@@ -244,8 +366,7 @@
       $("btnPaySend").disabled = false;
       $("payMsg").textContent = "";
     } catch (e) {
-      slipB64 = null;
-      $("btnPaySend").disabled = true;
+      slipB64 = null; $("btnPaySend").disabled = true;
       $("payMsg").textContent = "ເປີດຮູບບໍ່ໄດ້, ລອງເລືອກໃໝ່";
     }
   }
@@ -257,9 +378,9 @@
     try {
       const res = await post({ type: "ledgerpay", role: "taxi", name: session.name, pin: session.pin, imageBase64: slipB64, mime: "image/jpeg" });
       if (res && res.ok) {
-        $("payMsg").textContent = "ບັນທຶກແລ້ວ ຍອດ " + money(res.total) + " (ລະຫັດ " + res.batch + ") ລໍຖ້າ LLUX-e ກວດສລິບ";
+        $("payMsg").textContent = "ບັນທຶກແລ້ວ ຍອດ " + money(res.total) + " ລໍຖ້າ LLUX-e ກວດສລິບ";
         closePay();
-        loadSummary();
+        refreshSummary();
         return;
       }
       const msgs = { auth: "ເຂົ້າສູ່ລະບົບໃໝ່ອີກຄັ້ງ", nothing: "ບໍ່ມີຍອດຄ້າງໃຫ້ຈ່າຍ", slip: "ຕ້ອງແນບສລິບ" };
@@ -271,20 +392,24 @@
     }
   }
 
-  function logout() {
-    session = null; summary = null;
-    clearSession();
-    $("mainBox").classList.add("hidden");
-    $("loginBox").classList.remove("hidden");
-    $("taxiPin").value = "";
+  // ===== ແຖບ =====
+  function setTab(t) {
+    tab = t;
+    document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+    $("tab-avail").classList.toggle("hidden", t !== "avail");
+    $("tab-mine").classList.toggle("hidden", t !== "mine");
+    $("tab-pay").classList.toggle("hidden", t !== "pay");
+    if (t === "pay") refreshSummary();
+    if (t === "avail" || t === "mine") refreshJobs();
   }
 
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => setTab(b.dataset.tab)));
   $("btnLogin").addEventListener("click", login);
+  $("btnLogout").addEventListener("click", logout);
   $("btnPayOpen").addEventListener("click", openPay);
   $("btnPayCancel").addEventListener("click", closePay);
   $("slipFile").addEventListener("change", onSlipChosen);
   $("btnPaySend").addEventListener("click", sendPay);
-  $("btnLogout").addEventListener("click", logout);
 
   // ເປີດໜ້າໃໝ່: ໃຊ້ session ເກົ່າຖ້າມີ
   (function init() {
@@ -292,11 +417,9 @@
     if (saved && saved.name && saved.pin) {
       session = saved;
       post({ type: "taxilogin", name: saved.name, pin: saved.pin }).then((res) => {
-        if (res && res.ok) { showMain(res.profile); loadSummary(); }
-        else logout();
-      }).catch(() => { showMain({ name: saved.name, plate: "", phone: "" }); loadSummary(); });
+        if (res && res.ok) enterApp(res.profile); else logout();
+      }).catch(() => { $("loginMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; });
     }
-    setInterval(() => { if (session) loadSummary(); }, 60000);
   })();
 </script>
 </body>
