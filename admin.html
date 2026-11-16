@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>LLUX ແອດມິນ</title>
+<style>
+  :root { --bg:#ea2f2f; --card:#2b7d4f; --text:#ffffff; --warn:#f59e0b; --btn:#1f8a4c; --line:#2f7f52; --bad:#b91c1c; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Noto Sans Lao",sans-serif; font-size:17px; font-weight:500; }
+  .wrap { max-width:720px; margin:0 auto; padding:16px; }
+  h1 { font-size:24px; font-weight:800; margin:8px 0 12px; }
+  h2 { font-size:19px; font-weight:700; margin:0 0 8px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .muted { font-size:14px; opacity:.9; }
+  .row { display:flex; justify-content:space-between; gap:8px; padding:4px 0; flex-wrap:wrap; }
+  .tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+  .tabs button { width:auto; flex:1; background:transparent; border:1px solid #fff; }
+  .tabs button.on { background:#fff; color:#111; }
+  input[type=text], input[type=password] { width:100%; padding:11px; border:1px solid var(--line); border-radius:10px; font-size:16px; margin:6px 0 8px; background:#fff; color:#111; }
+  button { padding:11px 14px; border:0; border-radius:10px; font-size:16px; font-weight:700; background:var(--btn); color:#fff; cursor:pointer; margin:4px 4px 4px 0; }
+  button.bad { background:var(--bad); }
+  button.ghost { background:transparent; border:1px solid #fff; }
+  button:disabled { opacity:.5; cursor:default; }
+  .slip { max-width:200px; max-height:260px; border-radius:10px; background:#fff; margin:6px 0; display:block; }
+  .qr { max-width:240px; width:100%; background:#fff; border-radius:12px; padding:8px; display:block; margin:8px 0; }
+  .hidden { display:none !important; }
+  .msg { min-height:20px; margin:6px 0; font-size:15px; }
+  .tag { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; background:var(--line); }
+  .tag.warn { background:var(--warn); color:#111; }
+  .tag.bad { background:var(--bad); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>LLUX ແອດມິນ</h1>
+
+  <div id="loginBox" class="card">
+    <h2>ເຂົ້າສູ່ລະບົບແອດມິນ</h2>
+    <input id="adminPin" type="password" inputmode="numeric" placeholder="ລະຫັດແອດມິນ">
+    <button id="btnLogin">ເຂົ້າ</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="mainBox" class="hidden">
+    <div class="tabs">
+      <button data-tab="pending" class="on">ລໍຖ້າກວດ</button>
+      <button data-tab="drivers">ຄົນຂັບແທັກຊີ່</button>
+      <button data-tab="history">ປະຫວັດ</button>
+      <button data-tab="qr">QR LLUX-e</button>
+    </div>
+    <div class="msg" id="globalMsg"></div>
+
+    <div id="tab-pending"></div>
+    <div id="tab-drivers" class="hidden"></div>
+    <div id="tab-history" class="hidden"></div>
+    <div id="tab-qr" class="hidden">
+      <div class="card">
+        <h2>QR ຂອງ LLUX-e</h2>
+        <img id="qrNow" class="qr hidden" alt="QR ປັດຈຸບັນ">
+        <input id="qrFile" type="file" accept="image/*">
+        <button id="btnQrSave" disabled>ບັນທຶກ QR</button>
+        <div id="qrMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <button class="ghost" id="btnLogout">ອອກຈາກລະບົບ</button>
+  </div>
+</div>
+
+<script>
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const $ = (id) => document.getElementById(id);
+  let adminPin = "";
+  let qrB64 = null;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function fmtDate(ms) {
+    if (!ms) return "";
+    return new Date(ms).toLocaleString("en-GB", { timeZone: "Asia/Vientiane", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
+  }
+  function partyLabel(t) { return { rider: "ໄຣເດີ", shop: "ຮ້ານ", taxi: "ແທັກຊີ່" }[t] || t; }
+
+  function savePin(p) { try { sessionStorage.setItem("llux_admin", p); } catch (e) {} }
+  function loadPin() { try { return sessionStorage.getItem("llux_admin") || ""; } catch (e) { return ""; } }
+  function clearPin() { try { sessionStorage.removeItem("llux_admin"); } catch (e) {} }
+
+  async function getJson(url) {
+    const r = await fetch(url, { cache: "no-store" });
+    return r.json();
+  }
+  async function post(body) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+    return r.json();
+  }
+  function flash(t) { $("globalMsg").textContent = t; setTimeout(() => { if ($("globalMsg").textContent === t) $("globalMsg").textContent = ""; }, 4000); }
+
+  // ຫຍໍ້ຮູບ ແລ້ວແປງເປັນ base64 JPEG
+  function compressImage(file, max) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.85).split(",")[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  }
+
+  async function login() {
+    const p = $("adminPin").value.trim();
+    if (!p) { $("loginMsg").textContent = "ກະລຸນາປ້ອນລະຫັດ"; return; }
+    const res = await getJson(API + "?type=ledgeradmin&adminPin=" + encodeURIComponent(p)).catch(() => null);
+    if (!res || !res.ok) { $("loginMsg").textContent = "ລະຫັດບໍ່ຖືກຕ້ອງ"; return; }
+    adminPin = p; savePin(p);
+    showMain();
+    renderPending(res);
+    if (res.lluxQr) setQrPreview(res.lluxQr);
+  }
+
+  function showMain() {
+    $("loginBox").classList.add("hidden");
+    $("mainBox").classList.remove("hidden");
+    showTab(currentTab());
+  }
+  function currentTab() {
+    const b = document.querySelector(".tabs button.on");
+    return b ? b.dataset.tab : "pending";
+  }
+  function showTab(name) {
+    document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === name));
+    ["pending", "drivers", "history", "qr"].forEach((t) => $("tab-" + t).classList.toggle("hidden", t !== name));
+    if (name === "pending" || name === "history") loadLedger();
+    if (name === "drivers") loadDrivers();
+  }
+
+  async function loadLedger() {
+    const res = await getJson(API + "?type=ledgeradmin&adminPin=" + encodeURIComponent(adminPin)).catch(() => null);
+    if (!res || !res.ok) { logout(); return; }
+    renderPending(res);
+    renderHistory(res);
+    if (res.lluxQr) setQrPreview(res.lluxQr);
+  }
+
+  function renderPending(res) {
+    const list = res.pending || [];
+    $("tab-pending").innerHTML = list.length ? list.map((g) =>
+      '<div class="card">' +
+        '<div class="row"><b>' + esc(g.party) + '</b><span class="tag">' + partyLabel(g.partyType) + '</span></div>' +
+        '<div class="row"><span>ຍອດ</span><b>' + money(g.total) + '</b></div>' +
+        '<div class="row muted"><span>' + g.count + ' ລາຍການ · ' + esc(fmtDate(g.paidAt)) + '</span><span>ລະຫັດ ' + esc(g.batch) + '</span></div>' +
+        '<div class="muted">ອໍເດີ: ' + esc((g.orderIds || []).join(", ")) + '</div>' +
+        (g.slipUrl ? '<a href="' + esc(g.slipUrl) + '" target="_blank"><img class="slip" src="' + esc(g.slipUrl) + '" alt="ສລິບ"></a>' : '<div class="msg">ບໍ່ມີສລິບ</div>') +
+        '<button onclick="verify(\'' + esc(g.batch) + '\',\'approve\')">✔ ຢືນຢັນ</button>' +
+        '<button class="bad" onclick="verify(\'' + esc(g.batch) + '\',\'reject\')">✖ ປະຕິເສດ</button>' +
+      '</div>'
+    ).join("") : '<div class="card">ບໍ່ມີລາຍການລໍຖ້າກວດ</div>';
+  }
+
+  function renderHistory(res) {
+    const list = res.history || [];
+    $("tab-history").innerHTML = list.length ? list.map((g) => {
+      const tag = g.verify === "ok" ? '<span class="tag">ກວດແລ້ວ</span>' : '<span class="tag bad">ຖືກປະຕິເສດ</span>';
+      return '<div class="card"><div class="row"><b>' + esc(g.party) + '</b>' + tag + '</div>' +
+        '<div class="row"><span>' + partyLabel(g.partyType) + ' · ' + esc(fmtDate(g.paidAt)) + '</span><b>' + money(g.total) + '</b></div>' +
+        '<div class="muted">ລະຫັດ ' + esc(g.batch) + ' · ' + g.count + ' ລາຍການ</div></div>';
+    }).join("") : '<div class="card">ຍັງບໍ່ມີປະຫວັດ</div>';
+  }
+
+  async function verify(batch, action) {
+    if (action === "reject" && !confirm("ປະຕິເສດສລິບນີ້? ຍອດຈະກັບມາເປັນຄ້າງ")) return;
+    const res = await post({ type: "ledgerverify", adminPin: adminPin, batch: batch, action: action }).catch(() => null);
+    if (res && res.ok) { flash(action === "approve" ? "ຢືນຢັນແລ້ວ" : "ປະຕິເສດແລ້ວ, ຍອດກັບມາຄ້າງ"); loadLedger(); }
+    else flash("ບໍ່ສຳເລັດ, ລອງໃໝ່");
+  }
+
+  async function loadDrivers() {
+    const res = await getJson(API + "?type=taxidrivers&adminPin=" + encodeURIComponent(adminPin)).catch(() => null);
+    if (!res || !res.ok) { logout(); return; }
+    const list = res.drivers || [];
+    $("tab-drivers").innerHTML = list.length ? list.map((d) => {
+      const locked = d.status === "locked";
+      const tagCls = d.status === "approved" ? "" : (locked ? "bad" : "warn");
+      const id = esc(d.name).replace(/[^a-zA-Z0-9ກ-໿]/g, "_");
+      return '<div class="card">' +
+        '<div class="row"><b>' + esc(d.name) + '</b><span class="tag ' + tagCls + '">' + esc(d.status) + '</span></div>' +
+        '<div class="muted">' + esc(d.plate) + ' · ' + esc(d.phone) + (d.pinSet ? '' : ' · ບໍ່ມີ PIN') + '</div>' +
+        (d.status === "approved"
+          ? '<button class="bad" onclick="driverStatus(\'' + esc(d.name).replace(/'/g, "\\'") + '\',\'suspended\')">ລະງັບ</button>'
+          : '<input type="text" id="pin_' + id + '" placeholder="PIN ໃໝ່ (4 ຕົວ)" inputmode="numeric">' +
+            '<button onclick="driverStatus(\'' + esc(d.name).replace(/'/g, "\\'") + '\',\'approved\',\'pin_' + id + '\')">ເປີດໃຊ້ / ປົດລັອກ</button>') +
+      '</div>';
+    }).join("") : '<div class="card">ຍັງບໍ່ມີຄົນຂັບ</div>';
+  }
+
+  async function driverStatus(name, status, pinId) {
+    const body = { type: "taxistatus", adminPin: adminPin, name: name, status: status };
+    if (pinId) {
+      const pin = ($(pinId) && $(pinId).value.trim()) || "";
+      if (!/^\d{4}$/.test(pin)) { flash("ໃສ່ PIN ໃໝ່ 4 ຕົວເລກ"); return; }
+      body.pin = pin;
+    }
+    const res = await post(body).catch(() => null);
+    if (res && res.ok) { flash("ອັບເດດແລ້ວ"); loadDrivers(); }
+    else flash("ບໍ່ສຳເລັດ, ລອງໃໝ່");
+  }
+
+  function setQrPreview(url) {
+    $("qrNow").src = url;
+    $("qrNow").classList.remove("hidden");
+  }
+
+  async function onQrChosen() {
+    const f = $("qrFile").files[0];
+    if (!f) { qrB64 = null; $("btnQrSave").disabled = true; return; }
+    try {
+      qrB64 = await compressImage(f, 1024);
+      $("btnQrSave").disabled = false;
+      $("qrMsg").textContent = "";
+    } catch (e) {
+      qrB64 = null; $("btnQrSave").disabled = true;
+      $("qrMsg").textContent = "ເປີດຮູບບໍ່ໄດ້";
+    }
+  }
+
+  async function saveQr() {
+    if (!qrB64) return;
+    $("btnQrSave").disabled = true;
+    $("qrMsg").textContent = "ກຳລັງບັນທຶກ...";
+    const res = await post({ type: "adminqr", adminPin: adminPin, imageBase64: qrB64, mime: "image/jpeg" }).catch(() => null);
+    if (res && res.ok) { setQrPreview(res.lluxQr); $("qrMsg").textContent = "ບັນທຶກ QR ແລ້ວ"; qrB64 = null; $("qrFile").value = ""; }
+    else { $("qrMsg").textContent = "ບໍ່ສຳເລັດ, ລອງໃໝ່"; $("btnQrSave").disabled = false; }
+  }
+
+  function logout() {
+    adminPin = ""; clearPin();
+    $("mainBox").classList.add("hidden");
+    $("loginBox").classList.remove("hidden");
+    $("adminPin").value = "";
+  }
+
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  $("btnLogin").addEventListener("click", login);
+  $("btnLogout").addEventListener("click", logout);
+  $("qrFile").addEventListener("change", onQrChosen);
+  $("btnQrSave").addEventListener("click", saveQr);
+
+  // ເປີດໜ້າໃໝ່ໃນແທັບດຽວກັນ: ໃຊ້ລະຫັດເກົ່າຖ້າຍັງຢູ່
+  (function init() {
+    const saved = loadPin();
+    if (saved) { $("adminPin").value = saved; login(); }
+    setInterval(() => { if (adminPin) loadLedger(); }, 60000);
+  })();
+</script>
+</body>
+</html>
