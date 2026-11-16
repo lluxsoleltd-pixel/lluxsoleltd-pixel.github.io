@@ -28,6 +28,8 @@
   button.ghost { background:transparent; border:1px solid #fff; font-size:17px; }
   button.mode { width:auto; flex:1; margin:0; padding:10px; font-size:17px; background:#3f9e6a; }
   button.mode.on { background:#fff; color:#111; }
+  button.pbtn { width:auto; flex:1; margin:0 0 8px; padding:10px; font-size:16px; background:#3f9e6a; }
+  button.pbtn.on { background:#fff; color:#111; }
   button.small { width:auto; padding:10px 14px; font-size:16px; margin:0; }
   button:disabled { opacity:.5; cursor:default; }
   #map, #rideMap { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:10px; }
@@ -75,8 +77,27 @@
 
     <!-- 4. ເລືອກຄົນຂັບ -->
     <div id="driversCard" class="card hidden">
-      <h2>ເລືອກຄົນຂັບທີ່ຢູ່ໃກ້ທ່ານ</h2>
-      <div id="driversList" class="muted">ກຳລັງຄົ້ນຫາ...</div>
+      <h2>ເລືອກວິທີເອີ້ນແທັກຊີ່</h2>
+      <div class="modes">
+        <button class="pbtn on" data-pmode="nearest">ຄັນໃກ້ສຸດ</button>
+        <button class="pbtn" data-pmode="pick">ເລືອກເອງ</button>
+        <button class="pbtn" data-pmode="direct">ເອີ້ນສະເພາະ</button>
+      </div>
+      <div id="pm-nearest">
+        <div class="muted">ລະບົບສົ່ງງານໃຫ້ຄັນທີ່ຢູ່ໃກ້ທ່ານທີ່ສຸດ</div>
+        <button class="blue" id="btnNearest" disabled>ເອີ້ນຄັນໃກ້ສຸດ</button>
+      </div>
+      <div id="pm-pick" class="hidden">
+        <div class="muted">ເລືອກຄົນຂັບທີ່ຢູ່ໃກ້ທ່ານ</div>
+        <div id="driversList" class="muted" style="margin-top:8px">ກຳລັງຄົ້ນຫາ...</div>
+      </div>
+      <div id="pm-direct" class="hidden">
+        <div class="muted">ປ້ອນທະບຽນລົດ ແລະ ຊື່ ຫຼື ເບີຂອງຄົນຂັບທີ່ທ່ານຕ້ອງການ</div>
+        <input id="dPlate" type="text" placeholder="ທະບຽນລົດ ເຊັ່ນ ກພ 2429">
+        <input id="dWho" type="text" placeholder="ຊື່ຄົນຂັບ ຫຼື ເບີໂທ">
+        <button class="blue" id="btnDirect">ເອີ້ນຄົນນີ້</button>
+      </div>
+      <div id="pickMsg" class="msg"></div>
     </div>
   </div>
 
@@ -225,31 +246,69 @@
   }
 
   // ===== 4. ເລືອກຄົນຂັບ ແລ້ວເອີ້ນ =====
-  async function chooseDriver(name) {
+  // ສົ່ງຄຳຂໍເອີ້ນ ດ້ວຍ mode ທີ່ເລືອກ
+  async function sendRide(extra, label) {
     if (!contact || !pickup || !drop) return;
-    if (!confirm("ເອີ້ນ " + name + " ໃນລາຄາ " + money(fare.fare) + "?")) return;
     clearInterval(driversTimer);
+    const body = Object.assign({
+      type: "taxirequest", customerName: contact.name, customerPhone: contact.phone,
+      pLat: pickup.lat, pLng: pickup.lng, dLat: drop.lat, dLng: drop.lng
+    }, extra);
     try {
-      const res = await post({
-        type: "taxirequest", customerName: contact.name, customerPhone: contact.phone,
-        pLat: pickup.lat, pLng: pickup.lng, dLat: drop.lat, dLng: drop.lng, driverName: name
-      });
+      const res = await post(body);
       if (res && res.ok) {
         rideId = res.rideId;
         save("llux_taxi_ride", { rideId: rideId, phone: contact.phone });
-        chosenDriver = name;
+        chosenDriver = label || null;
         enterWait();
         return;
       }
-      const msgs = { driverunavailable: "ຄົນຂັບນີ້ບໍ່ວ່າງແລ້ວ, ເລືອກຄົນອື່ນ", driver: "ກະລຸນາເລືອກຄົນຂັບ" };
-      alert(msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່");
-      driversTimer = setInterval(refreshDrivers, 8000);
+      const msgs = {
+        driverunavailable: "ຄົນຂັບນີ້ບໍ່ວ່າງ, ເລືອກຄົນອື່ນ",
+        driver: "ກະລຸນາເລືອກຄົນຂັບ",
+        nodriver: "ບໍ່ມີຄັນໃກ້ທ່ານໃນຂະນະນີ້",
+        notfound_driver: "ບໍ່ພົບຄົນຂັບທີ່ມີທະບຽນນີ້, ກວດຊື່/ເບີ ແລະ ທະບຽນລົດ"
+      };
+      $("pickMsg").textContent = msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່";
     } catch (e) {
-      alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້");
-      driversTimer = setInterval(refreshDrivers, 8000);
+      $("pickMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້";
     }
+    driversTimer = setInterval(refreshDrivers, 8000);
+  }
+
+  async function chooseDriver(name) {
+    if (!confirm("ເອີ້ນ " + name + " ໃນລາຄາ " + money(fare && fare.fare) + "?")) return;
+    sendRide({ mode: "pick", driverName: name }, name);
   }
   window.chooseDriver = chooseDriver;
+
+  function chooseNearest() {
+    if (!confirm("ເອີ້ນຄັນທີ່ໃກ້ທ່ານທີ່ສຸດ ໃນລາຄາ " + money(fare && fare.fare) + "?")) return;
+    sendRide({ mode: "nearest" }, "ຄັນໃກ້ສຸດ");
+  }
+
+  function callDirect() {
+    const plate = $("dPlate").value.trim();
+    const who = $("dWho").value.trim();
+    if (!plate || !who) { $("pickMsg").textContent = "ກະລຸນາປ້ອນທະບຽນ ແລະ ຊື່ ຫຼື ເບີ"; return; }
+    const isPhone = /^[\d\s+\-]+$/.test(who);
+    const extra = { mode: "direct", plate: plate };
+    if (isPhone) extra.phone = who; else extra.driverName = who;
+    if (!confirm("ເອີ້ນຄົນນີ້ໃນລາຄາ " + money(fare && fare.fare) + "?")) return;
+    sendRide(extra, who);
+  }
+
+  // ສະຫຼັບແຖບວິທີເລືອກ
+  document.querySelectorAll("[data-pmode]").forEach((b) => b.addEventListener("click", () => {
+    const m = b.dataset.pmode;
+    document.querySelectorAll("[data-pmode]").forEach((x) => x.classList.toggle("on", x === b));
+    $("pm-nearest").classList.toggle("hidden", m !== "nearest");
+    $("pm-pick").classList.toggle("hidden", m !== "pick");
+    $("pm-direct").classList.toggle("hidden", m !== "direct");
+    $("pickMsg").textContent = "";
+  }));
+  $("btnNearest").addEventListener("click", chooseNearest);
+  $("btnDirect").addEventListener("click", callDirect);
 
   // ===== 5. ຕິດຕາມ (ແຜນທີ່ຄືກັບໜ້າຕິດຕາມໄຣເດີ) =====
   let rMap = null, rPick = null, rDrop = null, rCar = null, rLine = null, rFitDone = false;
