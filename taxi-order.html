@@ -207,7 +207,7 @@
   function openMap() {
     show("map");
     if (!map) initMap();
-    setTimeout(() => map.invalidateSize(), 50);
+    setTimeout(() => { map.invalidateSize(); startNearbyPolling(); }, 50);
   }
 
   function initMap() {
@@ -271,9 +271,7 @@
       } else { $("fareKm").textContent = "ຄິດລາຄາບໍ່ໄດ້"; }
     } catch (e) { $("fareKm").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
     drawMapRoute();
-    refreshDrivers();
-    clearInterval(driversTimer);
-    driversTimer = setInterval(refreshDrivers, 8000);
+    startNearbyPolling();
   }
 
   // ເສັ້ນທາງສີຟ້າ ລະຫວ່າງຈຸດຮັບ ແລະ ຈຸດສົ່ງ (ຄືກັບໜ້າໄຣເດີ)
@@ -291,12 +289,45 @@
     map.fitBounds(mapLine.getBounds(), { padding: [30, 30] });
   }
 
+  // ລົດແທັກຊີ່ອອນໄລນ໌ເທິງແຜນທີ່ (ລັດສະໝີ 5 ກມ ຈາກຈຸດຮັບ ຫຼື ກາງແຜນທີ່), ອັບເດດທຸກ 8 ວິນາທີ
+  let nearbyMarkers = {};
+  function clearNearbyMarkers() {
+    Object.keys(nearbyMarkers).forEach((k) => map.removeLayer(nearbyMarkers[k]));
+    nearbyMarkers = {};
+  }
+  function startNearbyPolling() {
+    clearInterval(driversTimer);
+    refreshDrivers();
+    driversTimer = setInterval(refreshDrivers, 8000);
+  }
+  function stopNearbyPolling() {
+    clearInterval(driversTimer);
+    clearNearbyMarkers();
+  }
+
   async function refreshDrivers() {
-    if (!pickup) return;
+    if (!map) return;
+    const c = pickup || map.getCenter();
     try {
-      const res = await getJson(API + "?type=taxinearby&pLat=" + pickup.lat + "&pLng=" + pickup.lng + "&gender=" + encodeURIComponent(genderFilter));
+      const res = await getJson(API + "?type=taxinearby&pLat=" + c.lat + "&pLng=" + c.lng + "&gender=" + encodeURIComponent(genderFilter));
       if (!res || !res.ok) return;
       const list = res.drivers || [];
+      // ປັກ/ອັບເດດໄອຄອນລົດ
+      const seen = {};
+      list.forEach((d) => {
+        if (d.lat == null || d.lng == null) return;
+        seen[d.name] = true;
+        if (nearbyMarkers[d.name]) {
+          nearbyMarkers[d.name].setLatLng([d.lat, d.lng]);
+          nearbyMarkers[d.name].setIcon(carIcon(d, d.heading));
+        } else {
+          nearbyMarkers[d.name] = L.marker([d.lat, d.lng], { icon: carIcon(d, d.heading), title: d.name }).addTo(map);
+        }
+      });
+      Object.keys(nearbyMarkers).forEach((k) => {
+        if (!seen[k]) { map.removeLayer(nearbyMarkers[k]); delete nearbyMarkers[k]; }
+      });
+      if (!pickup) return;
       $("driversList").innerHTML = list.length ? list.map((d) =>
         '<div class="card" style="margin-bottom:8px">' +
           '<div class="drvhead">' + avatarHtml(d.photo, d.gender) + '<div style="flex:1"><div class="row"><b>' + esc(d.name) + '</b><span class="tag">' + esc(d.plate) + '</span></div>' +
@@ -312,7 +343,7 @@
   // ສົ່ງຄຳຂໍເອີ້ນ ດ້ວຍ mode ທີ່ເລືອກ
   async function sendRide(extra, label) {
     if (!contact || !pickup || !drop) return;
-    clearInterval(driversTimer);
+    stopNearbyPolling();
     const body = Object.assign({
       type: "taxirequest", customerName: contact.name, customerPhone: contact.phone,
       pLat: pickup.lat, pLng: pickup.lng, dLat: drop.lat, dLng: drop.lng
@@ -336,7 +367,7 @@
     } catch (e) {
       $("pickMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້";
     }
-    driversTimer = setInterval(refreshDrivers, 8000);
+    startNearbyPolling();
   }
 
   async function chooseDriver(name) {
@@ -470,6 +501,7 @@
   });
 
   function enterWait() {
+    stopNearbyPolling();
     show("wait");
     initRideMap();
     rFitDone = false;
@@ -552,6 +584,7 @@
     $("waitMsg").textContent = "";
     setMode("pickup");
     show("map");
+    startNearbyPolling();
   }
 
   $("btnContactOk").addEventListener("click", contactOk);
