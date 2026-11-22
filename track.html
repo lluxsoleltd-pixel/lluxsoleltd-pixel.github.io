@@ -71,7 +71,7 @@
   </div>
   <div id="riderCard" class="card hidden">
     <h2>ໄຣເດີຜູ້ຮັບງານ</h2>
-    <div class="row"><span class="muted">ຊື່</span><span id="rName">-</span></div>
+    <div class="row" style="justify-content:flex-start;gap:12px;"><img id="rPhoto" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:#eee;" hidden><span id="rName">-</span></div>
     <div class="row"><span class="muted">ທະບຽນລົດ</span><span id="rPlate">-</span></div>
     <div class="row"><span class="muted">ເບີໂທ</span><span><a id="rPhone" href="#">-</a></span></div>
     <div id="callOpts" class="hidden" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px;">
@@ -344,6 +344,7 @@
       if (rider) {
         $("riderCard").classList.remove("hidden");
         $("rName").textContent = rider.riderName;
+        if (rider.photo) { $("rPhoto").src = rider.photo; $("rPhoto").hidden = false; } else { $("rPhoto").hidden = true; }
         $("rPlate").textContent = rider.plate || "-";
         $("rPhone").textContent = rider.phone || "-";
         $("rPhone").href = "#";

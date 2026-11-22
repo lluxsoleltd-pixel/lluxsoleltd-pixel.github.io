@@ -67,6 +67,12 @@
         </div>
         <button id="btnLogout" class="secondary">ອອກ</button>
       </div>
+      <div class="topbar" style="margin-top:10px;">
+        <img id="myPhoto" alt="" style="width:56px;height:56px;border-radius:50%;object-fit:cover;background:#eee;" hidden>
+        <button id="btnMyPhoto" class="secondary" style="width:auto;">ປ່ຽນຮູບຂອງຂ້ອຍ</button>
+        <input type="file" id="myPhotoFile" accept="image/*" hidden>
+      </div>
+      <p id="photoMsg" class="muted"></p>
     </div>
 
     <div class="card">
@@ -149,10 +155,29 @@
     enterApp();
   }
 
+  // ໄຣເດີອັບໂຫລດຮູບຂອງຕົນເອງ (ໃຊ້ສະແດງໃຫ້ລູກຄ້າເຫັນ)
+  $("btnMyPhoto").onclick = function () { $("myPhotoFile").click(); };
+  $("myPhotoFile").addEventListener("change", async function () {
+    const f = this.files && this.files[0];
+    if (!f || !session) return;
+    $("photoMsg").textContent = "ກຳລັງອັບໂຫລດ...";
+    try {
+      const b64 = await shrinkImage(f);
+      const res = await post({ type: "riderphotoself", riderName: session.riderName, pin: session.pin, imageBase64: b64 });
+      if (res && res.ok) {
+        session.photo = res.photo; saveSession();
+        $("myPhoto").src = res.photo; $("myPhoto").hidden = false;
+        $("photoMsg").textContent = "ອັບໂຫລດຮູບສຳເລັດ";
+      } else { $("photoMsg").textContent = "ບໍ່ສຳເລັດ, ລອງໃໝ່"; }
+    } catch (e) { $("photoMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    this.value = "";
+  });
+
   function enterApp() {
     $("loginView").classList.add("hidden");
     $("riderView").classList.remove("hidden");
     $("riderTitle").textContent = session.riderName;
+    if (session.photo) { $("myPhoto").src = session.photo; $("myPhoto").hidden = false; }
     if (window.riderOneSignal) tagRider(window.riderOneSignal);
     refresh();
     clearInterval(pollTimer);
