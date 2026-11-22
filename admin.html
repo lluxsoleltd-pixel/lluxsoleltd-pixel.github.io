@@ -189,13 +189,20 @@
     const res = await getJson(API + "?type=taxidrivers&adminPin=" + encodeURIComponent(adminPin)).catch(() => null);
     if (!res || !res.ok) { logout(); return; }
     const list = res.drivers || [];
+    window._drivers = list;
     $("tab-drivers").innerHTML = list.length ? list.map((d) => {
       const locked = d.status === "locked";
       const tagCls = d.status === "approved" ? "" : (locked ? "bad" : "warn");
       const id = esc(d.name).replace(/[^a-zA-Z0-9ກ-໿]/g, "_");
+      const nm = esc(d.name).replace(/'/g, "\\'");
       return '<div class="card">' +
         '<div class="row"><b>' + esc(d.name) + '</b><span class="tag ' + tagCls + '">' + esc(d.status) + '</span></div>' +
         '<div class="muted">' + esc(d.plate) + ' · ' + esc(d.phone) + (d.pinSet ? '' : ' · ບໍ່ມີ PIN') + '</div>' +
+        '<div class="row"><span>ເພດ: ' + (d.gender === 'f' ? 'ຍິງ' : (d.gender === 'm' ? 'ຊາຍ' : 'ຍັງບໍ່ໄດ້ກຳນົດ')) + '</span>' +
+          '<span><button class="small" onclick="setGender(\'' + nm + '\',\'f\')">ຍິງ</button>' +
+          '<button class="small" onclick="setGender(\'' + nm + '\',\'m\')">ຊາຍ</button></span></div>' +
+        (d.photo ? '<img src="' + esc(d.photo) + '" alt="" style="width:80px;height:80px;border-radius:50%;object-fit:cover;background:#fff">' : '<div class="muted">ຍັງບໍ່ມີຮູບ</div>') +
+        '<input type="file" accept="image/*" onchange="uploadDriverPhoto(\'' + nm + '\', this)">' +
         (d.status === "approved"
           ? '<button class="bad" onclick="driverStatus(\'' + esc(d.name).replace(/'/g, "\\'") + '\',\'suspended\')">ລະງັບ</button>'
           : '<input type="text" id="pin_' + id + '" placeholder="PIN ໃໝ່ (4 ຕົວ)" inputmode="numeric">' +
@@ -214,6 +221,27 @@
     const res = await post(body).catch(() => null);
     if (res && res.ok) { flash("ອັບເດດແລ້ວ"); loadDrivers(); }
     else flash("ບໍ່ສຳເລັດ, ລອງໃໝ່");
+  }
+
+  // ຕັ້ງເພດ (ຄົງສະຖານະເດີມ; ຖ້າລັອກຢູ່ ຈະບໍ່ປົດລັອກ)
+  async function setGender(name, g) {
+    const cur = (window._drivers || []).find(function (x) { return x.name === name; });
+    const status = cur && (cur.status === "approved" || cur.status === "suspended") ? cur.status : "suspended";
+    const res = await post({ type: "taxistatus", adminPin: adminPin, name: name, status: status, gender: g }).catch(() => null);
+    if (res && res.ok) { flash("ຕັ້ງເພດແລ້ວ"); loadDrivers(); }
+    else flash("ບໍ່ສຳເລັດ, ລອງໃໝ່");
+  }
+
+  // ອັບໂຫລດຮູບໂປຣໄຟລ໌ຄົນຂັບ
+  async function uploadDriverPhoto(name, input) {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    try {
+      const b64 = await compressImage(f, 800);
+      const res = await post({ type: "taxiphoto", adminPin: adminPin, name: name, imageBase64: b64, mime: "image/jpeg" });
+      if (res && res.ok) { flash("ອັບໂຫລດຮູບແລ້ວ"); loadDrivers(); }
+      else flash("ອັບໂຫລດບໍ່ສຳເລັດ");
+    } catch (e) { flash("ເປີດຮູບບໍ່ໄດ້"); }
   }
 
   function setQrPreview(url) {

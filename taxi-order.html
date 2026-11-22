@@ -34,6 +34,17 @@
   button:disabled { opacity:.5; cursor:default; }
   #map, #rideMap { height:320px; border-radius:14px; border:1px solid var(--line); margin-bottom:10px; }
   .car { font-size:30px; text-align:center; line-height:30px; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+  .cwrap { position:relative; width:64px; height:64px; margin-left:-32px; margin-top:-32px; text-align:center; }
+  .cname { position:absolute; left:50%; top:-18px; transform:translateX(-50%); white-space:nowrap; background:#111; color:#fff; font-size:12px; font-weight:700; padding:2px 6px; border-radius:6px; }
+  .cbadge { position:absolute; left:14px; top:14px; width:36px; height:36px; border-radius:50%; background:#fff; border:3px solid #16a34a; overflow:hidden; font-size:20px; line-height:30px; }
+  .cbadge img { width:100%; height:100%; object-fit:cover; }
+  .carrow { position:absolute; left:23px; top:0; width:0; height:0; border-left:9px solid transparent; border-right:9px solid transparent; border-bottom:14px solid #2563eb; transform-origin:9px 32px; }
+  .avatar { width:52px; height:52px; border-radius:50%; background:#fff; overflow:hidden; flex:0 0 52px; display:flex; align-items:center; justify-content:center; font-size:26px; border:2px solid #16a34a; }
+  .avatar img { width:100%; height:100%; object-fit:cover; }
+  .drvhead { display:flex; align-items:center; gap:12px; }
+  .gbtns { display:flex; gap:8px; margin:8px 0; }
+  .gbtns button { flex:1; margin:0; padding:9px; font-size:16px; background:#3f9e6a; }
+  .gbtns button.on { background:#fff; color:#111; }
   .modes { display:flex; gap:8px; margin-bottom:8px; }
   .hidden { display:none !important; }
   .msg { min-height:22px; margin-top:8px; font-size:17px; }
@@ -73,6 +84,7 @@
       <div class="row"><span>ໄລຍະທາງ</span><span id="fareKm">-</span></div>
       <div class="row"><span>ລາຄາ (ຄົງທີ່)</span><span class="big" id="fareAmt">-</span></div>
       <div class="muted">ລາຄານີ້ຄົງທີ່ ຄົນຂັບບໍ່ສາມາດຕໍ່ລາຄາໄດ້</div>
+      <div class="muted" style="margin-top:6px">ຊຳລະຄ່າແທັກຊີ່ໃຫ້ຄົນຂັບເມື່ອຮອດຈຸດສົ່ງ ບໍ່ມີການໂອນກ່ອນເດີນທາງ</div>
     </div>
 
     <!-- 4. ເລືອກຄົນຂັບ -->
@@ -82,6 +94,11 @@
         <button class="pbtn on" data-pmode="nearest">ຄັນໃກ້ສຸດ</button>
         <button class="pbtn" data-pmode="pick">ເລືອກເອງ</button>
         <button class="pbtn" data-pmode="direct">ເອີ້ນສະເພາະ</button>
+      </div>
+      <div class="gbtns" id="genderBtns">
+        <button class="on" data-g="">ທຸກເພດ</button>
+        <button data-g="f">ຄົນຂັບຍິງ</button>
+        <button data-g="m">ຄົນຂັບຊາຍ</button>
       </div>
       <div id="pm-nearest">
         <div class="muted">ລະບົບສົ່ງງານໃຫ້ຄັນທີ່ຢູ່ໃກ້ທ່ານທີ່ສຸດ</div>
@@ -111,7 +128,7 @@
     <div id="rideMap"></div>
     <div id="driverBox" class="card hidden">
       <h2>ຄົນຂັບຂອງທ່ານ</h2>
-      <div class="row"><b id="drvName"></b><span class="tag" id="drvPlate"></span></div>
+      <div class="drvhead"><div id="drvAvatar"></div><div style="flex:1"><div class="row"><b id="drvName"></b><span class="tag" id="drvPlate"></span></div><div class="muted" id="drvGender"></div></div></div>
       <div class="row"><a class="link" id="drvTel" href="#">ໂທຫາຄົນຂັບ</a></div>
     </div>
     <div class="card">
@@ -134,6 +151,7 @@
   let mode = "pickup";
   let fare = null;               // { km, fare }
   let chosenDriver = null;
+  let genderFilter = "";
   let rideId = null;
   let map, pickMarker, dropMarker, driversTimer = null, pollTimer = null;
 
@@ -142,6 +160,11 @@
   }
   function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
   function km(n) { return (Math.round(Number(n || 0) * 100) / 100).toFixed(2) + " ກມ"; }
+  function genderLabel(g) { return g === "f" ? "ຄົນຂັບຍິງ" : (g === "m" ? "ຄົນຂັບຊາຍ" : ""); }
+  function avatarHtml(photo, gender) {
+    const fallback = gender === "f" ? "👩" : (gender === "m" ? "👨" : "🧑");
+    return '<div class="avatar">' + (photo ? '<img src="' + esc(photo) + '" alt="">' : fallback) + '</div>';
+  }
 
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
@@ -232,12 +255,13 @@
   async function refreshDrivers() {
     if (!pickup) return;
     try {
-      const res = await getJson(API + "?type=taxinearby&pLat=" + pickup.lat + "&pLng=" + pickup.lng);
+      const res = await getJson(API + "?type=taxinearby&pLat=" + pickup.lat + "&pLng=" + pickup.lng + "&gender=" + encodeURIComponent(genderFilter));
       if (!res || !res.ok) return;
       const list = res.drivers || [];
       $("driversList").innerHTML = list.length ? list.map((d) =>
         '<div class="card" style="margin-bottom:8px">' +
-          '<div class="row"><b>' + esc(d.name) + '</b><span class="tag">' + esc(d.plate) + '</span></div>' +
+          '<div class="drvhead">' + avatarHtml(d.photo, d.gender) + '<div style="flex:1"><div class="row"><b>' + esc(d.name) + '</b><span class="tag">' + esc(d.plate) + '</span></div>' +
+          '<div class="muted">' + genderLabel(d.gender) + '</div></div></div>' +
           '<div class="row"><span>ຫ່າງຈາກທ່ານ</span><span>' + km(d.distKm) + '</span></div>' +
           '<button class="blue" onclick="chooseDriver(\'' + esc(d.name).replace(/'/g, "") + '\')" ' + (fare && contact ? "" : "disabled") + '>ເລືອກຄົນນີ້ — ' + money(fare && fare.fare) + '</button>' +
         '</div>'
@@ -278,13 +302,13 @@
 
   async function chooseDriver(name) {
     if (!confirm("ເອີ້ນ " + name + " ໃນລາຄາ " + money(fare && fare.fare) + "?")) return;
-    sendRide({ mode: "pick", driverName: name }, name);
+    sendRide({ mode: "pick", driverName: name, gender: genderFilter }, name);
   }
   window.chooseDriver = chooseDriver;
 
   function chooseNearest() {
     if (!confirm("ເອີ້ນຄັນທີ່ໃກ້ທ່ານທີ່ສຸດ ໃນລາຄາ " + money(fare && fare.fare) + "?")) return;
-    sendRide({ mode: "nearest" }, "ຄັນໃກ້ສຸດ");
+    sendRide({ mode: "nearest", gender: genderFilter }, "ຄັນໃກ້ສຸດ");
   }
 
   function callDirect() {
@@ -297,6 +321,13 @@
     if (!confirm("ເອີ້ນຄົນນີ້ໃນລາຄາ " + money(fare && fare.fare) + "?")) return;
     sendRide(extra, who);
   }
+
+  // ເລືອກເພດຄົນຂັບ
+  document.querySelectorAll("#genderBtns button").forEach((b) => b.addEventListener("click", () => {
+    genderFilter = b.dataset.g;
+    document.querySelectorAll("#genderBtns button").forEach((x) => x.classList.toggle("on", x === b));
+    refreshDrivers();
+  }));
 
   // ສະຫຼັບແຖບວິທີເລືອກ
   document.querySelectorAll("[data-pmode]").forEach((b) => b.addEventListener("click", () => {
@@ -320,8 +351,14 @@
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(rMap);
   }
 
-  function carIcon(heading) {
-    return L.divIcon({ className: "", html: '<div class="car">🚖</div>', iconSize: [30, 30], iconAnchor: [15, 15] });
+  function carIcon(driver, heading) {
+    const name = driver && driver.name ? esc(driver.name) : "ລົດແທັກຊີ່";
+    const photo = driver && driver.photo ? '<img src="' + esc(driver.photo) + '" alt="">' : "🚖";
+    const rot = heading == null ? 0 : heading;
+    return L.divIcon({ className: "", iconSize: [64, 64],
+      html: '<div class="cwrap"><div class="cname">' + name + '</div>' +
+        '<div class="carrow" style="transform:rotate(' + rot + 'deg)"></div>' +
+        '<div class="cbadge">' + photo + '</div></div>' });
   }
 
   async function fetchRoute(from, to) {
@@ -356,8 +393,9 @@
     const target = r.status === "picked_up" ? drop : pick;
     if (dl && (r.status === "accepted" || r.status === "picked_up")) {
       const here = { lat: dl.lat, lng: dl.lng };
-      if (!rCar) rCar = L.marker([here.lat, here.lng], { icon: carIcon(), title: "ລົດ" }).addTo(rMap);
-      else rCar.setLatLng([here.lat, here.lng]);
+      const icon = carIcon(r.driver, dl.heading);
+      if (!rCar) rCar = L.marker([here.lat, here.lng], { icon: icon, title: "ລົດ" }).addTo(rMap);
+      else { rCar.setLatLng([here.lat, here.lng]); rCar.setIcon(icon); }
       fetchRoute(here, target).then((rt) => {
         if (rLine) rMap.removeLayer(rLine);
         if (rt.pts.length) rLine = L.polyline(rt.pts, { color: "#2563eb", weight: 5, opacity: 0.8 }).addTo(rMap);
@@ -421,6 +459,8 @@
       $("drvName").textContent = d.name;
       $("drvPlate").textContent = d.plate;
       $("drvTel").href = "tel:" + String(d.phone || "").replace(/[^\d+]/g, "");
+      $("drvGender").textContent = genderLabel(d.gender);
+      $("drvAvatar").innerHTML = avatarHtml(d.photo, d.gender);
     } else {
       $("driverBox").classList.add("hidden");
     }
