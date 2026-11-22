@@ -281,7 +281,8 @@
         '<div class="row"><b>ງານ ' + esc(j.rideId) + '</b><span class="tag ok">' + money(j.fare) + '</span></div>' +
         '<div class="row"><span>ຫ່າງຈາກທ່ານ</span><span>' + (j.distToPickup === null ? "-" : km(j.distToPickup)) + '</span></div>' +
         '<div class="row"><span>ໄລຍະທາງ</span><span>' + km(j.km) + '</span></div>' +
-        '<div class="row"><a class="link" href="' + osmLink(j.pickup) + '" target="_blank">ເປີດແຜນທີ່ຈຸດຮັບ</a></div>' +
+        '<div class="row"><span>🟢 ຈຸດຮັບ</span><a class="link" href="' + osmLink(j.pickup) + '" target="_blank">ເປີດແຜນທີ່</a></div>' +
+        '<div class="row"><span>🔴 ຈຸດສົ່ງ</span><a class="link" href="' + osmLink(j.drop) + '" target="_blank">ເປີດແຜນທີ່</a></div>' +
         '<button class="accept" onclick="act(\'accept\',\'' + esc(j.rideId) + '\')">ຮັບງານ</button>' +
       '</div>'
     ).join("") : '<div class="card muted">ຍັງບໍ່ມີງານລໍຖ້າໃກ້ຕົວ</div>';
@@ -298,7 +299,8 @@
         '<div class="row"><a class="link" href="' + telHref(j.customerPhone) + '">ໂທຫາລູກຄ້າ ' + esc(j.customerPhone) + '</a></div>' +
         '<div class="row"><span>ໄລຍະທາງ</span><span>' + km(j.km) + '</span></div>' +
         '<div class="row"><span>ລາຄາ</span><b>' + money(j.fare) + '</b></div>' +
-        '<div class="row"><a class="link" href="' + osmLink(picked ? j.drop : j.pickup) + '" target="_blank">ເປີດແຜນທີ່ ' + (picked ? "ຈຸດສົ່ງ" : "ຈຸດຮັບ") + '</a></div>' +
+        '<div class="row"><span>' + (picked ? "🔵 ກຳລັງໄປຈຸດສົ່ງ" : "🟢 ໄປຈຸດຮັບ") + '</span><a class="link" href="' + osmLink(picked ? j.drop : j.pickup) + '" target="_blank">ເປີດແຜນທີ່</a></div>' +
+        '<div class="row"><span>' + (picked ? "🔴 ຈຸດສົ່ງ" : "🔴 ຈຸດສົ່ງ (ຫຼັງຮັບລູກຄ້າ)") + '</span><a class="link" href="' + osmLink(j.drop) + '" target="_blank">ເປີດແຜນທີ່</a></div>' +
         btns +
       '</div>';
     }).join("") : '<div class="card muted">ຍັງບໍ່ມີງານຂອງທ່ານ</div>';

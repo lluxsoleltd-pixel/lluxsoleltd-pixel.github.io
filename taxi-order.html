@@ -216,15 +216,27 @@
     map.on("click", (e) => setPoint(e.latlng.lat, e.latlng.lng));
   }
 
+  // ໝຸດຊື່ຊັດເຈນ: A = ຈຸດຮັບ (ສີຂຽວ), B = ຈຸດສົ່ງ (ສີແດງ)
+  function labelIcon(text, color) {
+    return L.divIcon({
+      className: "",
+      html: '<div style="background:' + color + ';color:#fff;font-weight:700;font-size:13px;padding:4px 9px;border-radius:999px;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.4);white-space:nowrap;transform:translate(-50%,-100%);">' + text + '</div>',
+      iconSize: [0, 0],
+      iconAnchor: [0, 0]
+    });
+  }
+  const PICK_ICON = () => labelIcon("A ຈຸດຮັບ", "#16a34a");
+  const DROP_ICON = () => labelIcon("B ຈຸດສົ່ງ", "#dc2626");
+
   function setPoint(lat, lng) {
     if (mode === "pickup") {
       pickup = { lat: lat, lng: lng };
-      if (pickMarker) pickMarker.setLatLng([lat, lng]); else pickMarker = L.marker([lat, lng], { title: "ຈຸດຮັບ" }).addTo(map);
+      if (pickMarker) pickMarker.setLatLng([lat, lng]); else pickMarker = L.marker([lat, lng], { title: "ຈຸດຮັບ", icon: PICK_ICON() }).addTo(map);
       $("mapMsg").textContent = drop ? "" : "ແຕະແຜນທີ່ເພື່ອປັກຈຸດສົ່ງ";
       if (!drop) setMode("drop");
     } else {
       drop = { lat: lat, lng: lng };
-      if (dropMarker) dropMarker.setLatLng([lat, lng]); else dropMarker = L.marker([lat, lng], { title: "ຈຸດສົ່ງ", icon: L.divIcon({ className: "", html: "🏁", iconSize: [24, 24] }) }).addTo(map);
+      if (dropMarker) dropMarker.setLatLng([lat, lng]); else dropMarker = L.marker([lat, lng], { title: "ຈຸດສົ່ງ", icon: DROP_ICON() }).addTo(map);
     }
     if (pickup && drop) onBothPoints();
   }
@@ -413,8 +425,8 @@
   function renderRideMap(r) {
     initRideMap();
     const pick = r.pickup, drop = r.drop;
-    if (!rPick) rPick = L.marker([pick.lat, pick.lng], { title: "ຈຸດຮັບ" }).addTo(rMap);
-    if (!rDrop) rDrop = L.marker([drop.lat, drop.lng], { title: "ຈຸດສົ່ງ", icon: L.divIcon({ className: "", html: "🏁", iconSize: [24, 24], iconAnchor: [12, 24] }) }).addTo(rMap);
+    if (!rPick) rPick = L.marker([pick.lat, pick.lng], { title: "ຈຸດຮັບ", icon: PICK_ICON() }).addTo(rMap);
+    if (!rDrop) rDrop = L.marker([drop.lat, drop.lng], { title: "ຈຸດສົ່ງ", icon: DROP_ICON() }).addTo(rMap);
 
     const dl = r.driverLoc;
     const target = r.status === "picked_up" ? drop : pick;
