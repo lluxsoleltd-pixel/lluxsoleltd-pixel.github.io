@@ -247,9 +247,25 @@
         $("fareAmt").textContent = money(res.fare);
       } else { $("fareKm").textContent = "ຄິດລາຄາບໍ່ໄດ້"; }
     } catch (e) { $("fareKm").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    drawMapRoute();
     refreshDrivers();
     clearInterval(driversTimer);
     driversTimer = setInterval(refreshDrivers, 8000);
+  }
+
+  // ເສັ້ນທາງສີຟ້າ ລະຫວ່າງຈຸດຮັບ ແລະ ຈຸດສົ່ງ (ຄືກັບໜ້າໄຣເດີ)
+  let mapLine = null;
+  async function drawMapRoute() {
+    if (!pickup || !drop || !map) return;
+    const from = pickup, to = drop;
+    const rt = await fetchRoute(from, to);
+    if (pickup !== from || drop !== to) return; // ຈຸດປ່ຽນແລ້ວ, ບໍ່ໃຊ້ເສັ້ນເກົ່າ
+    if (mapLine) { map.removeLayer(mapLine); mapLine = null; }
+    mapLine = rt.pts.length
+      ? L.polyline(rt.pts, { color: "#2563eb", weight: 5, opacity: 0.8 })
+      : L.polyline([[from.lat, from.lng], [to.lat, to.lng]], { color: "#2563eb", weight: 4, opacity: 0.6, dashArray: "6 6" });
+    mapLine.addTo(map);
+    map.fitBounds(mapLine.getBounds(), { padding: [30, 30] });
   }
 
   async function refreshDrivers() {
@@ -491,6 +507,7 @@
     }
     if (pickMarker) { map.removeLayer(pickMarker); pickMarker = null; }
     if (dropMarker) { map.removeLayer(dropMarker); dropMarker = null; }
+    if (mapLine) { map.removeLayer(mapLine); mapLine = null; }
     $("fareCard").classList.add("hidden");
     $("driversCard").classList.add("hidden");
     $("driversList").innerHTML = "ກຳລັງຄົ້ນຫາ...";
