@@ -178,6 +178,11 @@
     $("riderView").classList.remove("hidden");
     $("riderTitle").textContent = session.riderName;
     if (session.photo) { $("myPhoto").src = session.photo; $("myPhoto").hidden = false; }
+    getJson(API + "?type=ledger&role=rider&name=" + encodeURIComponent(session.riderName) + "&pin=" + encodeURIComponent(session.pin))
+      .then(function (res) {
+        const url = res && res.ok && res.qr && res.qr.photo;
+        if (url) { session.photo = url; saveSession(); $("myPhoto").src = url; $("myPhoto").hidden = false; }
+      }).catch(function () {});
     if (window.riderOneSignal) tagRider(window.riderOneSignal);
     refresh();
     clearInterval(pollTimer);

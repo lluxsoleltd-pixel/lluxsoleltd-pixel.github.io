@@ -60,7 +60,7 @@
     <div class="card">
       <div class="row"><span style="font-weight:800;font-size:22px" id="pName"></span><span class="tag" id="pPlate"></span></div>
       <div class="row muted"><span id="pPhone"></span><span><span class="dot" id="onDot"></span><span id="locTxt">ກຳລັງຫາຕຳແໜ່ງ...</span></span></div>
-      <div class="row" style="margin-top:8px"><span class="muted" id="photoMsg"></span><button class="ghost" id="btnPhoto" style="width:auto;padding:6px 12px">ປ່ຽນຮູບຂອງຂ້ອຍ</button></div>
+      <div class="row" style="margin-top:8px"><img id="myPhoto" alt="" style="width:48px;height:48px;border-radius:50%;object-fit:cover;background:#eee;" hidden><span class="muted" id="photoMsg"></span><button class="ghost" id="btnPhoto" style="width:auto;padding:6px 12px">ປ່ຽນຮູບຂອງຂ້ອຍ</button></div>
       <input id="photoFile" type="file" accept="image/*" class="hidden">
     </div>
 
@@ -204,12 +204,19 @@
     try {
       const b64 = await compressImage(f);
       const res = await post({ type: "taxiphotoself", name: session.name, pin: session.pin, imageBase64: b64, mime: "image/jpeg" });
-      $("photoMsg").textContent = res && res.ok ? "ອັບໂຫລດຮູບສຳເລັດ" : "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+      if (res && res.ok) { showMyPhoto(res.photo); $("photoMsg").textContent = "ອັບໂຫລດຮູບສຳເລັດ"; }
+      else { $("photoMsg").textContent = "ບໍ່ສຳເລັດ, ລອງໃໝ່"; }
     } catch (e) { $("photoMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
     this.value = "";
   });
 
+  function showMyPhoto(url) {
+    if (!url) return;
+    $("myPhoto").src = url; $("myPhoto").hidden = false;
+  }
+
   function enterApp(profile) {
+    showMyPhoto(profile && profile.photo);
     $("loginBox").classList.add("hidden");
     $("mainBox").classList.remove("hidden");
     $("pName").textContent = profile.name;
