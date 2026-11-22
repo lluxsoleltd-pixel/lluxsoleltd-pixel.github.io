@@ -137,6 +137,10 @@
       <h2>ຄົນຂັບຂອງທ່ານ</h2>
       <div class="drvhead"><div id="drvAvatar"></div><div style="flex:1"><div class="row"><b id="drvName"></b><span class="tag" id="drvPlate"></span></div><div class="muted" id="drvGender"></div></div></div>
       <div class="row"><a class="link" id="drvTel" href="#">ໂທຫາຄົນຂັບ</a></div>
+      <div id="callOpts" class="hidden" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px;">
+        <a id="btnCall" class="blue" style="width:auto;padding:12px 16px;text-decoration:none;display:inline-block" href="#">ໂທສາຍກົງ</a>
+        <a id="btnWa" class="blue" style="width:auto;padding:12px 16px;text-decoration:none;display:inline-block;background:#25d366" href="#" target="_blank">WhatsApp</a>
+      </div>
     </div>
     <div class="card">
       <div class="row"><span>ລາຄາ</span><b id="waitFare">-</b></div>
@@ -440,6 +444,19 @@
     setTimeout(() => rMap.invalidateSize(), 50);
   }
 
+  // ລິ້ງ WhatsApp: ປ່ຽນເບີລາວ 0xx... ເປັນ 856xx... (ຄືກັບໜ້າໄຣເດີ)
+  function waHref(p) {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.charAt(0) === "0") d = d.slice(1);
+    if (d.indexOf("856") !== 0) d = "856" + d;
+    return "https://wa.me/" + d;
+  }
+  // ກົດເບີຄົນຂັບ = ສະແດງ/ປິດ ທາງເລືອກໂທສາຍກົງ ຫຼື WhatsApp
+  $("drvTel").addEventListener("click", function (e) {
+    e.preventDefault();
+    $("callOpts").classList.toggle("hidden");
+  });
+
   function enterWait() {
     show("wait");
     initRideMap();
@@ -482,7 +499,9 @@
       $("driverBox").classList.remove("hidden");
       $("drvName").textContent = d.name;
       $("drvPlate").textContent = d.plate;
-      $("drvTel").href = "tel:" + String(d.phone || "").replace(/[^\d+]/g, "");
+      const telNum = String(d.phone || "").replace(/[^\d+]/g, "");
+      $("btnCall").href = "tel:" + telNum;
+      $("btnWa").href = waHref(d.phone);
       $("drvGender").textContent = genderLabel(d.gender);
       $("drvAvatar").innerHTML = avatarHtml(d.photo, d.gender);
     } else {
