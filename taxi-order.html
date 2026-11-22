@@ -431,6 +431,7 @@
     if (!saved) return;
     try {
       const res = await getJson(API + "?type=taxiride&rideId=" + encodeURIComponent(saved.rideId) + "&phone=" + encodeURIComponent(saved.phone));
+      if (res && !res.ok && res.reason === "notfound") { backToMap(); return; }
       if (!res || !res.ok) return;
       renderRide(res);
     } catch (e) {}
@@ -503,11 +504,24 @@
   $("btnNew").addEventListener("click", newRide);
 
   // ເປີດໜ້າ: ກູ້ການເອີ້ນທີ່ຍັງບໍ່ຈົບ ຫຼື ຂໍ້ມູນເກົ່າ
-  (function init() {
-    const ride = load("llux_taxi_ride");
+  // ກັບໄປໜ້າແຜນທີ່ເພື່ອປັກຈຸດໃໝ່ (ລ້າງງານເກົ່າທີ່ບໍ່ມີແລ້ວ)
+  function backToMap() {
+    forget("llux_taxi_ride");
+    clearInterval(pollTimer);
+    newRide();
+  }
+
+  (async function init() {
     const c = load("llux_taxi_cust");
     if (c) { contact = c; $("cName").value = c.name; $("cPhone").value = c.phone; }
-    if (ride) { enterWait(); return; }
+    const ride = load("llux_taxi_ride");
+    if (ride) {
+      try {
+        const res = await getJson(API + "?type=taxiride&rideId=" + encodeURIComponent(ride.rideId) + "&phone=" + encodeURIComponent(ride.phone));
+        if (res && res.ok && res.status !== "completed" && String(res.status).indexOf("cancel") !== 0) { enterWait(); return; }
+      } catch (e) { enterWait(); return; }
+      forget("llux_taxi_ride");
+    }
     if (contact) openMap();
   })();
 </script>
