@@ -60,6 +60,8 @@
     <div class="card">
       <div class="row"><span style="font-weight:800;font-size:22px" id="pName"></span><span class="tag" id="pPlate"></span></div>
       <div class="row muted"><span id="pPhone"></span><span><span class="dot" id="onDot"></span><span id="locTxt">ກຳລັງຫາຕຳແໜ່ງ...</span></span></div>
+      <div class="row" style="margin-top:8px"><span class="muted" id="photoMsg"></span><button class="ghost" id="btnPhoto" style="width:auto;padding:6px 12px">ປ່ຽນຮູບຂອງຂ້ອຍ</button></div>
+      <input id="photoFile" type="file" accept="image/*" class="hidden">
     </div>
 
     <div class="tabs">
@@ -191,6 +193,20 @@
       $("loginMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້, ກວດອິນເຕີເນັດ";
     }
   }
+
+  // ຄົນຂັບອັບໂຫລດຮູບຂອງຕົນເອງ (ຮູບນີ້ຈະສະແດງໃຫ້ລູກຄ້າເຫັນເທິງແຜນທີ່)
+  $("btnPhoto").addEventListener("click", function () { $("photoFile").click(); });
+  $("photoFile").addEventListener("change", async function () {
+    const f = this.files && this.files[0];
+    if (!f) return;
+    $("photoMsg").textContent = "ກຳລັງອັບໂຫລດ...";
+    try {
+      const b64 = await compressImage(f);
+      const res = await post({ type: "taxiphotoself", name: session.name, pin: session.pin, imageBase64: b64, mime: "image/jpeg" });
+      $("photoMsg").textContent = res && res.ok ? "ອັບໂຫລດຮູບສຳເລັດ" : "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+    } catch (e) { $("photoMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    this.value = "";
+  });
 
   function enterApp(profile) {
     $("loginBox").classList.add("hidden");
