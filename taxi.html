@@ -137,7 +137,8 @@
     return new Date(ms).toLocaleString("en-GB", { timeZone: "Asia/Vientiane", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" });
   }
   function km(n) { return (Math.round(Number(n || 0) * 100) / 100).toFixed(2) + " ກມ"; }
-  function osmLink(p) { return "https://www.openstreetmap.org/?mlat=" + p.lat + "&mlon=" + p.lng + "#map=17/" + p.lat + "/" + p.lng; }
+  // ເປີດແຜນທີ່ດ້ວຍ Google Maps (ຄືກັບໜ້າໄຣເດີ)
+  function osmLink(p) { return "https://maps.google.com/?q=" + p.lat + "," + p.lng; }
   function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
 
   function saveSession() { try { localStorage.setItem("llux_taxi", JSON.stringify(session)); } catch (e) {} }
