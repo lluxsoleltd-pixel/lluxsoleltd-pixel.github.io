@@ -121,7 +121,7 @@
       <div id="saveMsg" class="msg"></div>
 
       <!-- ຮູບລົດ (ຫຼັງບັນທຶກລົດແລ້ວ) -->
-      <div id="photoSection" class="hidden">
+      <div id="photoSection">
         <h2 style="margin-top:14px">ຮູບລົດ</h2>
         <div class="muted">ເພີ່ມໄດ້ຫຼາຍຮູບ ເພື່ອໃຫ້ລູກຄ້າເຫັນຕົວລົດຈິງ</div>
         <input type="file" id="carPhotoFile" accept="image/*" multiple hidden>
@@ -252,7 +252,7 @@
     serviceFill("d", car ? car.driverPrices : null);
     toggleSvc();
     $("saveMsg").textContent = "";
-    $("photoSection").classList.toggle("hidden", !car);
+    $("photoSection").classList.remove("hidden");
     renderPhotos(car ? car.photos : []);
     $("formCard").scrollIntoView({ behavior: "smooth" });
   }
@@ -267,14 +267,15 @@
     if (car) openForm(car);
   });
 
-  $("btnSaveCar").addEventListener("click", async () => {
+  // ບັນທຶກລົດ: ຄືນ carId ເມື່ອສຳເລັດ, ຄືນ null ເມື່ອບໍ່ສຳເລັດ
+  async function saveCar() {
     const carType = $("fType").value;
-    if (!carType) { $("saveMsg").textContent = "ເລືອກປະເພດລົດກ່ອນ"; return; }
-    if (!$("selfOn").checked && !$("drvOn").checked) { $("saveMsg").textContent = "ເລືອກຢ່າງໜ້ອຍ 1 ປະເພດການບໍລິການ"; return; }
+    if (!carType) { $("saveMsg").textContent = "ເລືອກປະເພດລົດກ່ອນ"; return null; }
+    if (!$("selfOn").checked && !$("drvOn").checked) { $("saveMsg").textContent = "ເລືອກຢ່າງໜ້ອຍ 1 ປະເພດການບໍລິການ"; return null; }
     const selfP = servicePayload("s", $("selfOn").checked);
     const drvP = servicePayload("d", $("drvOn").checked);
     if ((($("selfOn").checked) && !Object.keys(selfP).length) || (($("drvOn").checked) && !Object.keys(drvP).length)) {
-      $("saveMsg").textContent = "ໃສ່ລາຄາຢ່າງໜ້ອຍ 1 ໄລຍະ ໃນບໍລິການທີ່ເລືອກ"; return;
+      $("saveMsg").textContent = "ໃສ່ລາຄາຢ່າງໜ້ອຍ 1 ໄລຍະ ໃນບໍລິການທີ່ເລືອກ"; return null;
     }
     $("saveMsg").textContent = "ກຳລັງບັນທຶກ...";
     try {
@@ -285,15 +286,15 @@
         areas: $("fAreas").value.trim(), description: $("fDesc").value.trim(), status: $("fStatus").value,
         selfPrices: selfP, driverPrices: drvP
       });
-      if (!res || !res.ok) { $("saveMsg").textContent = "ບັນທຶກບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; return; }
+      if (!res || !res.ok) { $("saveMsg").textContent = "ບັນທຶກບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; return null; }
       $("saveMsg").textContent = "ບັນທຶກແລ້ວ";
-      // ເປີດສ່ວນຮູບ ແລະ ຈື່ລະຫັດລົດ ເພື່ອອັບໂຫລດຮູບຕໍ່
       editing = { carId: res.carId, photos: editing ? editing.photos : [] };
-      $("photoSection").classList.remove("hidden");
       renderPhotos(editing.photos);
-      await refreshCars();
-    } catch (e) { $("saveMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
-  });
+      refreshCars();
+      return res.carId;
+    } catch (e) { $("saveMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; return null; }
+  }
+  $("btnSaveCar").addEventListener("click", saveCar);
 
   // ===== ຮູບລົດ =====
   function renderPhotos(list) {
@@ -301,8 +302,12 @@
       '<div class="ph"><img src="' + esc(u) + '" alt=""><button class="x" data-url="' + esc(u) + '">×</button></div>'
     ).join("");
   }
-  $("btnAddPhoto").addEventListener("click", () => {
-    if (!editing || !editing.carId) { $("photoMsg").textContent = "ບັນທຶກລົດກ່ອນ ແລ້ວຈຶ່ງເພີ່ມຮູບ"; return; }
+  $("btnAddPhoto").addEventListener("click", async () => {
+    if (!editing || !editing.carId) {
+      // ຍັງບໍ່ໄດ້ບັນທຶກລົດ: ບັນທຶກໃຫ້ກ່ອນ ແລ້ວຈຶ່ງເລືອກຮູບ
+      const id = await saveCar();
+      if (!id) return;
+    }
     $("carPhotoFile").click();
   });
   $("carPhotoFile").addEventListener("change", async function () {
