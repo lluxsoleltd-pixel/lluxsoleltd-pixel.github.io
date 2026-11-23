@@ -38,6 +38,13 @@
   .bill h2 { color:#1d2330; }
   .msg { min-height:20px; font-size:14px; margin-top:8px; }
   .hidden { display:none !important; }
+  .gallery img { cursor:zoom-in; }
+  #lb { position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:50; display:flex; align-items:center; justify-content:center; touch-action:none; overflow:hidden; }
+  #lb img { max-width:100%; max-height:100%; object-fit:contain; transform-origin:center center; user-select:none; -webkit-user-drag:none; will-change:transform; }
+  #lb .lbtop { position:absolute; top:12px; left:12px; right:12px; display:flex; justify-content:space-between; align-items:center; color:#fff; font-size:15px; z-index:2; pointer-events:none; }
+  #lb .lbbtn { pointer-events:auto; width:auto; margin:0; padding:8px 14px; font-size:16px; background:#fff; color:#1d2330; border-radius:999px; }
+  #lb .lbnav { position:absolute; bottom:18px; left:0; right:0; display:flex; justify-content:center; gap:12px; z-index:2; }
+  #lb .lbnav button { width:auto; margin:0; padding:10px 18px; font-size:18px; background:#fff; color:#1d2330; border-radius:999px; }
   .svc { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
   .svc button { margin:0; background:#2f6446; color:#fff; }
   .svc button.on { background:#fff; color:#1d2330; }
@@ -114,6 +121,13 @@
     <!-- 4. ບິນການຈອງ -->
     <div id="billCard" class="bill hidden"></div>
   </div>
+</div>
+
+<!-- ກ່ອງເບິ່ງຮູບເຕັມຈໍ (ຊູມດ້ວຍນິ້ວ, ລາກເບິ່ງ, ປັດຊ້າຍ/ຂວາ) -->
+<div id="lb" class="hidden">
+  <div class="lbtop"><span id="lbCount"></span><button class="lbbtn" id="lbClose">ປິດ ✕</button></div>
+  <img id="lbImg" alt="">
+  <div class="lbnav"><button id="lbPrev">‹</button><button id="lbNext">›</button></div>
 </div>
 
 <script>
@@ -251,7 +265,8 @@
     show("detail");
     $("dTitle").textContent = c.model || c.carType;
     $("dMeta").textContent = c.carType + (c.plate ? " · " + c.plate : "");
-    $("dGallery").innerHTML = (c.photos || []).map((u) => '<img src="' + esc(u) + '" alt="">').join("") || '<div class="muted">ຍັງບໍ່ມີຮູບ</div>';
+    galleryPhotos = c.photos || [];
+    $("dGallery").innerHTML = galleryPhotos.map((u, i) => '<img src="' + esc(u) + '" alt="" data-i="' + i + '">').join("") || '<div class="muted">ຍັງບໍ່ມີຮູບ</div>';
     $("dDesc").textContent = c.description || "";
     $("dAreas").textContent = c.areas ? "ຂົງເຂດ: " + c.areas : "";
     const svcs = [];
@@ -278,6 +293,74 @@
     if (b) selectService(b.dataset.s);
   });
   $("btnBack").addEventListener("click", () => { show("list"); });
+
+  // ===== ເບິ່ງຮູບເຕັມຈໍ + ຊູມ =====
+  let galleryPhotos = [];
+  let lbIndex = 0;
+  let scale = 1, tx = 0, ty = 0;
+  let pinchStart = null, panStart = null;
+  const lb = $("lb"), lbImg = $("lbImg");
+  function applyT() { lbImg.style.transform = "translate(" + tx + "px," + ty + "px) scale(" + scale + ")"; }
+  function resetZoom() { scale = 1; tx = 0; ty = 0; applyT(); }
+  function showLb(i) {
+    lbIndex = (i + galleryPhotos.length) % galleryPhotos.length;
+    lbImg.src = galleryPhotos[lbIndex];
+    $("lbCount").textContent = (lbIndex + 1) + " / " + galleryPhotos.length;
+    resetZoom();
+  }
+  function openLb(i) { lb.classList.remove("hidden"); showLb(i); }
+  function closeLb() { lb.classList.add("hidden"); }
+  $("dGallery").addEventListener("click", (ev) => {
+    const img = ev.target.closest("img[data-i]");
+    if (img) openLb(Number(img.dataset.i));
+  });
+  $("lbClose").addEventListener("click", closeLb);
+  $("lbPrev").addEventListener("click", () => { if (galleryPhotos.length > 1) showLb(lbIndex - 1); });
+  $("lbNext").addEventListener("click", () => { if (galleryPhotos.length > 1) showLb(lbIndex + 1); });
+
+  function dist(a, b) { return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
+  lb.addEventListener("touchstart", (ev) => {
+    if (ev.touches.length === 2) {
+      pinchStart = { d: dist(ev.touches[0], ev.touches[1]), s: scale };
+      panStart = null;
+    } else if (ev.touches.length === 1) {
+      panStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY, tx: tx, ty: ty, t: Date.now(), sx: ev.touches[0].clientX };
+    }
+  }, { passive: true });
+  lb.addEventListener("touchmove", (ev) => {
+    ev.preventDefault();
+    if (ev.touches.length === 2 && pinchStart) {
+      const d = dist(ev.touches[0], ev.touches[1]);
+      scale = Math.max(1, Math.min(5, pinchStart.s * d / pinchStart.d));
+      if (scale === 1) { tx = 0; ty = 0; }
+      applyT();
+    } else if (ev.touches.length === 1 && panStart) {
+      const x = ev.touches[0].clientX, y = ev.touches[0].clientY;
+      if (scale > 1) {
+        tx = panStart.tx + (x - panStart.x);
+        ty = panStart.ty + (y - panStart.y);
+        applyT();
+      }
+    }
+  }, { passive: false });
+  lb.addEventListener("touchend", (ev) => {
+    if (ev.touches.length === 0 && panStart && scale === 1) {
+      // ປັດຊ້າຍ/ຂວາເພື່ອປ່ຽນຮູບ
+      const dx = (ev.changedTouches[0].clientX) - panStart.sx;
+      if (Math.abs(dx) > 60 && galleryPhotos.length > 1) showLb(lbIndex + (dx < 0 ? 1 : -1));
+    }
+    if (ev.touches.length === 0) pinchStart = null;
+    if (scale < 1.05) resetZoom();
+    panStart = null;
+  });
+  // ແຕະສອງຄັ້ງ = ຊູມເຂົ້າ/ອອກ
+  let lastTap = 0;
+  lb.addEventListener("click", (ev) => {
+    if (ev.target.closest(".lbbtn") || ev.target.closest(".lbnav")) return;
+    const now = Date.now();
+    if (now - lastTap < 300) { if (scale > 1) resetZoom(); else { scale = 2.5; applyT(); } }
+    lastTap = now;
+  });
 
   $("btnQuote").addEventListener("click", async () => {
     const s = $("startDate").value, e = $("endDate").value;
