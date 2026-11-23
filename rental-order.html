@@ -49,17 +49,18 @@
 <div class="wrap">
   <h1>LLUX ເຊົ່າລົດ</h1>
 
-  <!-- 1. ຂໍ້ມູນຜູ້ເຊົ່າ -->
-  <div id="stepContact" class="card">
-    <h2>ຂໍ້ມູນຂອງທ່ານ</h2>
-    <label>ຊື່ເຕັມ<input id="cName" autocomplete="name"></label>
-    <label>ເບີໂທ<input id="cPhone" type="tel" autocomplete="tel"></label>
-    <button id="btnContactOk" class="blue">ຕໍ່ໄປ</button>
-    <div id="contactMsg" class="msg"></div>
+  <!-- 1. ຕ້ອງເຂົ້າສູ່ລະບົບກ່ອນ (ໃຊ້ບັນຊີດຽວກັນທຸກບໍລິການ) -->
+  <div id="stepContact" class="card hidden">
+    <h2>ກະລຸນາສະໝັກ ຫຼື ເຂົ້າສູ່ລະບົບກ່ອນ</h2>
+    <a class="btnlink" href="services.html">ໄປໜ້າສະໝັກ / ເຂົ້າສູ່ລະບົບ</a>
   </div>
 
   <!-- 2. ລາຍການລົດ -->
   <div id="stepList" class="hidden">
+    <div class="card" id="myBookCard">
+      <h2>ການຈອງຂອງຂ້ອຍ</h2>
+      <div id="myBookList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
     <div class="card">
       <h2>ເລືອກປະເພດລົດ</h2>
       <div class="chips" id="typeChips"></div>
@@ -123,6 +124,7 @@
   const SVC_NAME = { self: "ເຊົ່າຂັບເອງ", driver: "ເຊົ່າພ້ອມຄົນຂັບ" };
   const PERIOD = { d1: "1 ວັນ", d2: "2 ວັນ", d3: "3 ວັນ", d5: "5 ວັນ", d7: "1 ອາທິດ", perDay: "ຕໍ່ວັນ" };
   let cust = null;
+  const ME_KEY = "llux_me";
   let cars = [];
   let filterType = "";
   let current = null;     // ລົດທີ່ເລືອກ
@@ -168,14 +170,27 @@
     $("stepDetail").classList.toggle("hidden", step !== "detail");
   }
 
-  // ===== 1. ຜູ້ເຊົ່າ =====
-  function contactOk() {
-    const name = $("cName").value.trim();
-    const phone = $("cPhone").value.replace(/\D/g, "");
-    if (!name || phone.length < 8) { $("contactMsg").textContent = "ກະລຸນາປ້ອນຊື່ ແລະ ເບີໂທ"; return; }
-    cust = { name: name, phone: phone };
-    save("llux_rent_cust", cust);
-    openList();
+  // ===== 1. ຜູ້ເຊົ່າ: ດຶງຈາກບັນຊີທີ່ເຂົ້າລະບົບແລ້ວ =====
+  function meAccount() {
+    const m = load(ME_KEY);
+    return m && m.name && m.phone ? { name: m.name, phone: String(m.phone).replace(/\D/g, "") } : null;
+  }
+  async function loadMyBookings() {
+    if (!cust) return;
+    try {
+      const res = await getJson(API + "?type=rentalmybookings&phone=" + encodeURIComponent(cust.phone));
+      const list = (res && res.bookings) || [];
+      $("myBookList").innerHTML = list.length ? list.map((b) =>
+        '<div class="carcard" style="cursor:default;display:block">' +
+          '<div class="row"><b>' + esc(b.carModel || "ລົດ") + '</b><span class="tag">' + esc(b.status) + '</span></div>' +
+          '<div class="muted">' + esc(b.bookingId) + ' · ' + esc(SVC_NAME[b.service] || b.service) + '</div>' +
+          '<div class="muted">' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.days + ' ວັນ)</div>' +
+          '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b> · ຈອງ ' + money(b.bookingFee) + '</div>' +
+          (b.ownerPhone ? '<div class="row"><a class="btnlink" style="flex:1;margin:0" href="' + telHref(b.ownerPhone) + '">ໂທຫາເຈົ້າຂອງ</a>' +
+            '<a class="btnlink wa" style="flex:1;margin:0" href="' + waHref(b.ownerPhone) + '" target="_blank">WhatsApp</a></div>' : '') +
+        '</div>'
+      ).join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
+    } catch (e) { $("myBookList").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
   }
 
   // ===== 2. ລາຍການລົດ =====
@@ -195,6 +210,7 @@
     show("list");
     renderChips();
     loadCars();
+    loadMyBookings();
   }
   async function loadCars() {
     $("carsList").textContent = "ກຳລັງໂຫລດ...";
@@ -343,11 +359,9 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  $("btnContactOk").addEventListener("click", contactOk);
-
   (function init() {
-    const c = load("llux_rent_cust");
-    if (c) { cust = c; $("cName").value = c.name; $("cPhone").value = c.phone; openList(); }
+    cust = meAccount();
+    if (cust) { openList(); } else { show("contact"); }
   })();
 })();
 </script>

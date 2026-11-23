@@ -600,7 +600,7 @@
   }
 
   (async function init() {
-    const c = load("llux_taxi_cust");
+    const c = load("llux_taxi_cust") || (function () { const m = load("llux_me"); return m && m.name && m.phone ? { name: m.name, phone: String(m.phone).replace(/\D/g, "") } : null; })();
     if (c) { contact = c; $("cName").value = c.name; $("cPhone").value = c.phone; }
     const ride = load("llux_taxi_ride");
     if (ride) {
