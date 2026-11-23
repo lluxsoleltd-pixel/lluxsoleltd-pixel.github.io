@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLUX-e ເຈົ້າຂອງລົດໃຫ້ເຊົ່າ</title>
+<style>
+  :root { --red:#d83d3d; --green:#3f7a55; --green2:#2f6446; --line:#c9e7d2; --muted:#d7ebdc; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--red); color:#fff; font-family: system-ui, -apple-system, "Noto Sans Lao", sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:22px; margin:6px 0 12px; }
+  .card { background:var(--green); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:17px; margin:0 0 10px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:6px 0; flex-wrap:wrap; }
+  .muted { color:var(--muted); font-size:14px; }
+  label { display:block; font-size:14px; margin-top:10px; }
+  input, select, textarea { display:block; width:100%; padding:11px; font-size:16px; margin-top:4px; border:1px solid #9bc7a9; border-radius:10px; background:#fff; color:#1d2330; }
+  textarea { min-height:70px; }
+  .chk { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:16px; }
+  .chk input { width:auto; margin:0; }
+  button { width:100%; padding:12px; border:0; border-radius:12px; background:#fff; color:#1d2330; font-size:16px; font-weight:700; cursor:pointer; margin-top:10px; }
+  button.blue { background:#2563eb; color:#fff; }
+  button.ghost { background:transparent; color:#fff; border:1px solid #fff; }
+  button.small { width:auto; padding:7px 12px; font-size:14px; margin:0; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .photos { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+  .photos .ph { position:relative; }
+  .photos img { width:100%; height:90px; object-fit:cover; border-radius:10px; display:block; background:#2f6446; }
+  .photos .x { position:absolute; top:4px; right:4px; width:auto; margin:0; padding:2px 8px; font-size:14px; background:#dc2626; color:#fff; border-radius:999px; }
+  .carcard { display:flex; gap:12px; align-items:center; background:var(--green2); border-radius:12px; padding:10px; margin-bottom:8px; cursor:pointer; }
+  .carcard img { width:76px; height:76px; border-radius:10px; object-fit:cover; background:#fff3; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#fff; color:#1d2330; font-size:12px; font-weight:700; }
+  .tag.off { background:#fbbf24; }
+  .msg { min-height:20px; font-size:14px; margin-top:8px; }
+  .hidden { display:none !important; }
+  .sub { background:#2f6446; border-radius:12px; padding:10px; margin-top:8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ເຈົ້າຂອງລົດໃຫ້ເຊົ່າ</h1>
+
+  <!-- ເຂົ້າສູ່ລະບົບ -->
+  <div id="loginBox" class="card">
+    <h2>ເຂົ້າສູ່ລະບົບ</h2>
+    <label>ຊື່ເຈົ້າຂອງ<input id="oName" autocomplete="username"></label>
+    <label>PIN<input id="oPin" type="password" inputmode="numeric"></label>
+    <button id="btnLogin" class="blue">ເຂົ້າສູ່ລະບົບ</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <!-- ໜ້າຫຼັກ: ລາຍການລົດ -->
+  <div id="mainBox" class="hidden">
+    <div class="card">
+      <div class="row"><b id="whoTxt"></b><button class="small ghost" id="btnLogout">ອອກ</button></div>
+      <div class="muted">ເບີຕິດຕໍ່ຂອງທ່ານ: <span id="ownPhone">-</span></div>
+    </div>
+
+    <div class="card" id="carsCard">
+      <div class="row"><h2 style="margin:0">ລົດຂອງຂ້ອຍ</h2><button class="small blue" id="btnNewCar">+ ເພີ່ມລົດ</button></div>
+      <div id="carsList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+
+    <!-- ຟອມລົດ -->
+    <div class="card hidden" id="formCard">
+      <div class="row"><h2 style="margin:0" id="formTitle">ເພີ່ມລົດ</h2><button class="small ghost" id="btnFormClose">ປິດ</button></div>
+
+      <label>ປະເພດລົດ
+        <select id="fType">
+          <option value="">-- ເລືອກປະເພດ --</option>
+          <option>ລົດເກງ</option>
+          <option>ລົດຈີບ</option>
+          <option>ລົດກະບະ</option>
+          <option>ລົດຫລູ</option>
+          <option>ລົດຕູ້ນຳທ່ຽວ 12 ທີ່ນັ່ງ</option>
+          <option>ລົດຕູ້ນຳທ່ຽວ 24 ທີ່ນັ່ງ</option>
+          <option>ລົດເມນຳທ່ຽວ 45 ທີ່ນັ່ງ</option>
+          <option>ລົດນຳທ່ຽວ VIP</option>
+        </select>
+      </label>
+      <label>ຍີ່ຫໍ້ / ລຸ້ນລົດ<input id="fModel" placeholder="ເຊັ່ນ Toyota Hilux 2020"></label>
+      <label>ທະບຽນລົດ<input id="fPlate"></label>
+      <label>ຂົງເຂດໃຫ້ບໍລິການ
+        <input id="fAreas" placeholder="ເຊັ່ນ ພາຍໃນນະຄອນຫຼວງ, ຕ່າງແຂວງ">
+      </label>
+      <label>ຄຳອະທິບາຍເພີ່ມເຕີມ<textarea id="fDesc"></textarea></label>
+
+      <div class="sub">
+        <label class="chk"><input type="checkbox" id="selfOn"> ເຊົ່າຂັບເອງ</label>
+        <div id="selfBox" class="hidden">
+          <div class="grid3">
+            <label>1 ວັນ<input type="number" id="s_d1" min="0"></label>
+            <label>2 ວັນ<input type="number" id="s_d2" min="0"></label>
+            <label>3 ວັນ<input type="number" id="s_d3" min="0"></label>
+            <label>5 ວັນ<input type="number" id="s_d5" min="0"></label>
+            <label>1 ອາທິດ<input type="number" id="s_d7" min="0"></label>
+            <label>ຕໍ່ວັນ (ເກີນ 1 ອາທິດ)<input type="number" id="s_perDay" min="0"></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub">
+        <label class="chk"><input type="checkbox" id="drvOn"> ເຊົ່າພ້ອມຄົນຂັບ</label>
+        <div id="drvBox" class="hidden">
+          <div class="grid3">
+            <label>1 ວັນ<input type="number" id="d_d1" min="0"></label>
+            <label>2 ວັນ<input type="number" id="d_d2" min="0"></label>
+            <label>3 ວັນ<input type="number" id="d_d3" min="0"></label>
+            <label>5 ວັນ<input type="number" id="d_d5" min="0"></label>
+            <label>1 ອາທິດ<input type="number" id="d_d7" min="0"></label>
+            <label>ຕໍ່ວັນ (ເກີນ 1 ອາທິດ)<input type="number" id="d_perDay" min="0"></label>
+          </div>
+        </div>
+      </div>
+
+      <label>ສະຖານະ
+        <select id="fStatus"><option value="active">ເປີດໃຫ້ເຊົ່າ</option><option value="off">ປິດຊົ່ວຄາວ</option></select>
+      </label>
+      <button id="btnSaveCar" class="blue">ບັນທຶກລົດ</button>
+      <div id="saveMsg" class="msg"></div>
+
+      <!-- ຮູບລົດ (ຫຼັງບັນທຶກລົດແລ້ວ) -->
+      <div id="photoSection" class="hidden">
+        <h2 style="margin-top:14px">ຮູບລົດ</h2>
+        <div class="muted">ເພີ່ມໄດ້ຫຼາຍຮູບ ເພື່ອໃຫ້ລູກຄ້າເຫັນຕົວລົດຈິງ</div>
+        <input type="file" id="carPhotoFile" accept="image/*" multiple hidden>
+        <button id="btnAddPhoto" class="blue">ເພີ່ມຮູບ</button>
+        <div id="photoMsg" class="msg"></div>
+        <div id="photos" class="photos"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const $ = function (id) { return document.getElementById(id); };
+  let owner = null;       // { name, pin }
+  let editing = null;     // car object being edited (null = new)
+  let myCars = [];
+  let ownerPhone = "";
+
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function forget(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+
+  async function getJson(url) { const r = await fetch(url, { cache: "no-store" }); return r.json(); }
+  async function post(body) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+    return r.json();
+  }
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  }
+
+  // ===== ເຂົ້າ/ອອກ =====
+  async function login() {
+    const name = $("oName").value.trim(), pin = $("oPin").value.trim();
+    if (!name || !pin) { $("loginMsg").textContent = "ກະລຸນາປ້ອນຊື່ ແລະ PIN"; return; }
+    $("loginMsg").textContent = "ກຳລັງກວດ...";
+    try {
+      const res = await getJson(API + "?type=rentalownercars&ownerName=" + encodeURIComponent(name) + "&pin=" + encodeURIComponent(pin));
+      if (!res || !res.ok) { $("loginMsg").textContent = "ຊື່ ຫຼື PIN ບໍ່ຖືກຕ້ອງ, ຫຼື ຍັງບໍ່ໄດ້ອະນຸມັດ"; return; }
+      owner = { name: name, pin: pin };
+      save("llux_rent_owner", owner);
+      enterApp(res);
+    } catch (e) { $("loginMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  }
+  function enterApp(res) {
+    $("loginBox").classList.add("hidden");
+    $("mainBox").classList.remove("hidden");
+    $("whoTxt").textContent = "ສະບາຍດີ " + owner.name;
+    myCars = res.cars || [];
+    ownerPhone = res.phone || "";
+    $("ownPhone").textContent = ownerPhone || "-";
+    renderCars();
+  }
+  function logout() { forget("llux_rent_owner"); owner = null; location.reload(); }
+
+  async function refreshCars() {
+    if (!owner) return;
+    try {
+      const res = await getJson(API + "?type=rentalownercars&ownerName=" + encodeURIComponent(owner.name) + "&pin=" + encodeURIComponent(owner.pin));
+      if (res && res.ok) { myCars = res.cars || []; renderCars(); }
+    } catch (e) {}
+  }
+
+  function renderCars() {
+    $("carsList").innerHTML = myCars.length ? myCars.map((c) =>
+      '<div class="carcard" data-id="' + esc(c.carId) + '">' +
+        (c.photos && c.photos[0] ? '<img src="' + esc(c.photos[0]) + '" alt="">' : '<img alt="" style="display:flex">') +
+        '<div style="flex:1"><b>' + esc(c.model || c.carType) + '</b><div class="muted">' + esc(c.carType) + ' · ' + esc(c.plate) + '</div>' +
+        '<span class="tag ' + (c.status === "active" ? "" : "off") + '">' + (c.status === "active" ? "ເປີດໃຫ້ເຊົ່າ" : "ປິດຊົ່ວຄາວ") + '</span></div>' +
+      '</div>'
+    ).join("") : '<div class="muted">ຍັງບໍ່ມີລົດ, ກົດ "ເພີ່ມລົດ"</div>';
+  }
+
+  // ===== ຟອມລົດ =====
+  function serviceFill(prefix, pr) {
+    const keys = ["d1", "d2", "d3", "d5", "d7", "perDay"];
+    keys.forEach((k) => { $(prefix + "_" + k).value = pr && pr[k] != null ? pr[k] : ""; });
+  }
+  function servicePayload(prefix, on) {
+    if (!on) return {};
+    const out = {};
+    ["d1", "d2", "d3", "d5", "d7", "perDay"].forEach((k) => {
+      const v = $(prefix + "_" + k).value;
+      if (v !== "" && Number(v) > 0) out[k] = Number(v);
+    });
+    return out;
+  }
+  function toggleSvc() {
+    $("selfBox").classList.toggle("hidden", !$("selfOn").checked);
+    $("drvBox").classList.toggle("hidden", !$("drvOn").checked);
+  }
+  $("selfOn").addEventListener("change", toggleSvc);
+  $("drvOn").addEventListener("change", toggleSvc);
+
+  function openForm(car) {
+    editing = car || null;
+    $("formCard").classList.remove("hidden");
+    $("formTitle").textContent = car ? "ແກ້ໄຂລົດ" : "ເພີ່ມລົດ";
+    $("fType").value = car ? car.carType : "";
+    $("fModel").value = car ? car.model : "";
+    $("fPlate").value = car ? car.plate : "";
+    $("fAreas").value = car ? car.areas : "";
+    $("fDesc").value = car ? car.description : "";
+    $("fStatus").value = car ? (car.status || "active") : "active";
+    const hasSelf = car && car.selfPrices && Object.keys(car.selfPrices).length > 0;
+    const hasDrv = car && car.driverPrices && Object.keys(car.driverPrices).length > 0;
+    $("selfOn").checked = !!hasSelf;
+    $("drvOn").checked = !!hasDrv;
+    serviceFill("s", car ? car.selfPrices : null);
+    serviceFill("d", car ? car.driverPrices : null);
+    toggleSvc();
+    $("saveMsg").textContent = "";
+    $("photoSection").classList.toggle("hidden", !car);
+    renderPhotos(car ? car.photos : []);
+    $("formCard").scrollIntoView({ behavior: "smooth" });
+  }
+  function closeForm() { $("formCard").classList.add("hidden"); editing = null; }
+
+  $("btnNewCar").addEventListener("click", () => openForm(null));
+  $("btnFormClose").addEventListener("click", closeForm);
+  $("carsList").addEventListener("click", (ev) => {
+    const card = ev.target.closest(".carcard");
+    if (!card) return;
+    const car = myCars.find((c) => c.carId === card.dataset.id);
+    if (car) openForm(car);
+  });
+
+  $("btnSaveCar").addEventListener("click", async () => {
+    const carType = $("fType").value;
+    if (!carType) { $("saveMsg").textContent = "ເລືອກປະເພດລົດກ່ອນ"; return; }
+    if (!$("selfOn").checked && !$("drvOn").checked) { $("saveMsg").textContent = "ເລືອກຢ່າງໜ້ອຍ 1 ປະເພດການບໍລິການ"; return; }
+    const selfP = servicePayload("s", $("selfOn").checked);
+    const drvP = servicePayload("d", $("drvOn").checked);
+    if ((($("selfOn").checked) && !Object.keys(selfP).length) || (($("drvOn").checked) && !Object.keys(drvP).length)) {
+      $("saveMsg").textContent = "ໃສ່ລາຄາຢ່າງໜ້ອຍ 1 ໄລຍະ ໃນບໍລິການທີ່ເລືອກ"; return;
+    }
+    $("saveMsg").textContent = "ກຳລັງບັນທຶກ...";
+    try {
+      const res = await post({
+        type: "rentalcarsave", ownerName: owner.name, pin: owner.pin,
+        carId: editing ? editing.carId : "",
+        carType: carType, model: $("fModel").value.trim(), plate: $("fPlate").value.trim(),
+        areas: $("fAreas").value.trim(), description: $("fDesc").value.trim(), status: $("fStatus").value,
+        selfPrices: selfP, driverPrices: drvP
+      });
+      if (!res || !res.ok) { $("saveMsg").textContent = "ບັນທຶກບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; return; }
+      $("saveMsg").textContent = "ບັນທຶກແລ້ວ";
+      // ເປີດສ່ວນຮູບ ແລະ ຈື່ລະຫັດລົດ ເພື່ອອັບໂຫລດຮູບຕໍ່
+      editing = { carId: res.carId, photos: editing ? editing.photos : [] };
+      $("photoSection").classList.remove("hidden");
+      renderPhotos(editing.photos);
+      await refreshCars();
+    } catch (e) { $("saveMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+  // ===== ຮູບລົດ =====
+  function renderPhotos(list) {
+    $("photos").innerHTML = (list || []).map((u) =>
+      '<div class="ph"><img src="' + esc(u) + '" alt=""><button class="x" data-url="' + esc(u) + '">×</button></div>'
+    ).join("");
+  }
+  $("btnAddPhoto").addEventListener("click", () => {
+    if (!editing || !editing.carId) { $("photoMsg").textContent = "ບັນທຶກລົດກ່ອນ ແລ້ວຈຶ່ງເພີ່ມຮູບ"; return; }
+    $("carPhotoFile").click();
+  });
+  $("carPhotoFile").addEventListener("change", async function () {
+    const files = Array.from(this.files || []);
+    let done = 0;
+    for (const f of files) {
+      $("photoMsg").textContent = "ກຳລັງອັບໂຫລດ " + (done + 1) + "/" + files.length + "...";
+      try {
+        const b64 = await compressImage(f);
+        const res = await post({ type: "rentalcarphoto", ownerName: owner.name, pin: owner.pin, carId: editing.carId, imageBase64: b64 });
+        if (res && res.ok) { editing.photos = res.photos; renderPhotos(res.photos); done++; }
+        else { $("photoMsg").textContent = "ບາງຮູບບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; break; }
+      } catch (e) { $("photoMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; break; }
+    }
+    if (done === files.length) $("photoMsg").textContent = "ອັບໂຫລດຮູບສຳເລັດ " + done + " ຮູບ";
+    this.value = "";
+    refreshCars();
+  });
+  $("photos").addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button.x");
+    if (!b || !editing) return;
+    if (!confirm("ລຶບຮູບນີ້?")) return;
+    try {
+      const res = await post({ type: "rentalcarphotodel", ownerName: owner.name, pin: owner.pin, carId: editing.carId, url: b.dataset.url });
+      if (res && res.ok) { editing.photos = res.photos; renderPhotos(res.photos); refreshCars(); }
+    } catch (e) {}
+  });
+
+  $("btnLogin").addEventListener("click", login);
+  $("btnLogout").addEventListener("click", logout);
+
+  (async function init() {
+    const saved = load("llux_rent_owner");
+    if (saved && saved.name && saved.pin) {
+      owner = saved;
+      try {
+        const res = await getJson(API + "?type=rentalownercars&ownerName=" + encodeURIComponent(saved.name) + "&pin=" + encodeURIComponent(saved.pin));
+        if (res && res.ok) enterApp(res); else logout();
+      } catch (e) {}
+    }
+  })();
+})();
+</script>
+</body>
+</html>

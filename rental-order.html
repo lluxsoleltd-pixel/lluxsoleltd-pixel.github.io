@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLUX-e ເຊົ່າລົດ</title>
+<style>
+  :root { --red:#d83d3d; --green:#3f7a55; --green2:#2f6446; --line:#c9e7d2; --muted:#d7ebdc; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--red); color:#fff; font-family: system-ui, -apple-system, "Noto Sans Lao", sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:22px; margin:6px 0 12px; }
+  .card { background:var(--green); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:17px; margin:0 0 10px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:6px 0; flex-wrap:wrap; }
+  .muted { color:var(--muted); font-size:14px; }
+  label { display:block; font-size:14px; margin-top:10px; }
+  input, select, textarea { display:block; width:100%; padding:11px; font-size:16px; margin-top:4px; border:1px solid #9bc7a9; border-radius:10px; background:#fff; color:#1d2330; }
+  .chk { display:flex; align-items:center; gap:8px; margin-top:10px; font-size:16px; }
+  .chk input { width:auto; margin:0; }
+  button { width:100%; padding:12px; border:0; border-radius:12px; background:#fff; color:#1d2330; font-size:16px; font-weight:700; cursor:pointer; margin-top:10px; }
+  button.blue { background:#2563eb; color:#fff; }
+  button.wa { background:#25d366; color:#fff; }
+  button.ghost { background:transparent; color:#fff; border:1px solid #fff; }
+  button.small { width:auto; padding:7px 12px; font-size:14px; margin:0; }
+  a.btnlink { display:block; text-align:center; padding:12px; border-radius:12px; text-decoration:none; font-weight:700; margin-top:10px; color:#fff; background:#2563eb; }
+  a.btnlink.wa { background:#25d366; }
+  .chips { display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; }
+  .chips button { width:auto; white-space:nowrap; margin:0; padding:8px 12px; font-size:14px; background:#2f6446; color:#fff; }
+  .chips button.on { background:#fff; color:#1d2330; }
+  .carcard { display:flex; gap:12px; align-items:center; background:var(--green2); border-radius:12px; padding:10px; margin-bottom:8px; cursor:pointer; }
+  .carcard img { width:84px; height:84px; border-radius:10px; object-fit:cover; background:#fff3; flex:none; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#fff; color:#1d2330; font-size:12px; font-weight:700; }
+  .gallery { display:flex; gap:8px; overflow-x:auto; margin:8px 0; }
+  .gallery img { height:170px; width:auto; border-radius:12px; flex:none; background:#fff3; }
+  .bill { background:#fff; color:#1d2330; border-radius:14px; padding:14px; }
+  .bill .row b { color:#1d2330; }
+  .bill h2 { color:#1d2330; }
+  .msg { min-height:20px; font-size:14px; margin-top:8px; }
+  .hidden { display:none !important; }
+  .svc { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+  .svc button { margin:0; background:#2f6446; color:#fff; }
+  .svc button.on { background:#fff; color:#1d2330; }
+  .qbox { background:var(--green2); border-radius:12px; padding:10px; margin-top:10px; }
+  .qbox .big { font-size:24px; font-weight:800; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>LLUX ເຊົ່າລົດ</h1>
+
+  <!-- 1. ຂໍ້ມູນຜູ້ເຊົ່າ -->
+  <div id="stepContact" class="card">
+    <h2>ຂໍ້ມູນຂອງທ່ານ</h2>
+    <label>ຊື່ເຕັມ<input id="cName" autocomplete="name"></label>
+    <label>ເບີໂທ<input id="cPhone" type="tel" autocomplete="tel"></label>
+    <button id="btnContactOk" class="blue">ຕໍ່ໄປ</button>
+    <div id="contactMsg" class="msg"></div>
+  </div>
+
+  <!-- 2. ລາຍການລົດ -->
+  <div id="stepList" class="hidden">
+    <div class="card">
+      <h2>ເລືອກປະເພດລົດ</h2>
+      <div class="chips" id="typeChips"></div>
+      <div id="carsList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+  </div>
+
+  <!-- 3. ລາຍລະອຽດ + ຈອງ -->
+  <div id="stepDetail" class="hidden">
+    <button id="btnBack" class="ghost small" style="margin-bottom:10px">← ກັບໄປລາຍການ</button>
+    <div class="card">
+      <h2 id="dTitle">-</h2>
+      <div class="muted" id="dMeta">-</div>
+      <div class="gallery" id="dGallery"></div>
+      <div class="muted" id="dDesc"></div>
+      <div class="muted" id="dAreas"></div>
+    </div>
+
+    <div class="card">
+      <h2>ເລືອກປະເພດການເຊົ່າ</h2>
+      <div class="svc" id="svcBox"></div>
+
+      <div class="grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <label>ວັນທີ່ຮັບລົດ<input type="date" id="startDate"></label>
+        <label>ວັນທີ່ຄືນລົດ<input type="date" id="endDate"></label>
+      </div>
+      <button id="btnQuote" class="blue">ຄິດລາຄາ</button>
+      <div id="quoteMsg" class="msg"></div>
+      <div id="quoteBox" class="qbox hidden">
+        <div class="row"><span>ຈຳນວນວັນ</span><b id="qDays">-</b></div>
+        <div class="row"><span>ຄ່າເຊົ່າ</span><b id="qAmount">-</b></div>
+        <div class="row"><span>ຄ່າຈອງ (ຈ່າຍໃຫ້ຮ້ານ)</span><b id="qBook">-</b></div>
+        <div class="row"><span>ລວມທີ່ຕ້ອງຈ່າຍ</span><span class="big" id="qTotal">-</span></div>
+      </div>
+    </div>
+
+    <div class="card hidden" id="docCard">
+      <h2>ເອກະສານຄ້ຳປະກັນ</h2>
+      <label>ປະເພດເອກະສານຕົວຕົນ
+        <select id="idKind">
+          <option value="id">ບັດປະຈຳຕົວ (ຄົນລາວ)</option>
+          <option value="passport">ພາສປໍ (ຄົນຕ່າງຊາດ)</option>
+        </select>
+      </label>
+      <label>ຮູບເອກະສານຕົວຕົນ (ຈຳເປັນ)<input type="file" id="idFile" accept="image/*"></label>
+      <label>ຮູບໃບຂັບຂີ່ (ຖ້າມີ)<input type="file" id="licFile" accept="image/*"></label>
+      <button id="btnBook" class="blue">ຢືນຢັນການຈອງ</button>
+      <div id="bookMsg" class="msg"></div>
+    </div>
+
+    <!-- 4. ບິນການຈອງ -->
+    <div id="billCard" class="bill hidden"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const $ = function (id) { return document.getElementById(id); };
+  const TYPES = ["ລົດເກງ", "ລົດຈີບ", "ລົດກະບະ", "ລົດຫລູ", "ລົດຕູ້ນຳທ່ຽວ 12 ທີ່ນັ່ງ", "ລົດຕູ້ນຳທ່ຽວ 24 ທີ່ນັ່ງ", "ລົດເມນຳທ່ຽວ 45 ທີ່ນັ່ງ", "ລົດນຳທ່ຽວ VIP"];
+  const SVC_NAME = { self: "ເຊົ່າຂັບເອງ", driver: "ເຊົ່າພ້ອມຄົນຂັບ" };
+  const PERIOD = { d1: "1 ວັນ", d2: "2 ວັນ", d3: "3 ວັນ", d5: "5 ວັນ", d7: "1 ອາທິດ", perDay: "ຕໍ່ວັນ" };
+  let cust = null;
+  let cars = [];
+  let filterType = "";
+  let current = null;     // ລົດທີ່ເລືອກ
+  let service = null;
+  let quote = null;
+
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
+  function waHref(p) {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.charAt(0) === "0") d = d.slice(1);
+    if (d.indexOf("856") !== 0) d = "856" + d;
+    return "https://wa.me/" + d;
+  }
+  async function getJson(url) { const r = await fetch(url, { cache: "no-store" }); return r.json(); }
+  async function post(body) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+    return r.json();
+  }
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  }
+  function show(step) {
+    $("stepContact").classList.toggle("hidden", step !== "contact");
+    $("stepList").classList.toggle("hidden", step !== "list");
+    $("stepDetail").classList.toggle("hidden", step !== "detail");
+  }
+
+  // ===== 1. ຜູ້ເຊົ່າ =====
+  function contactOk() {
+    const name = $("cName").value.trim();
+    const phone = $("cPhone").value.replace(/\D/g, "");
+    if (!name || phone.length < 8) { $("contactMsg").textContent = "ກະລຸນາປ້ອນຊື່ ແລະ ເບີໂທ"; return; }
+    cust = { name: name, phone: phone };
+    save("llux_rent_cust", cust);
+    openList();
+  }
+
+  // ===== 2. ລາຍການລົດ =====
+  function renderChips() {
+    $("typeChips").innerHTML = ['<button data-t="" class="' + (filterType === "" ? "on" : "") + '">ທັງໝົດ</button>']
+      .concat(TYPES.map((t) => '<button data-t="' + esc(t) + '" class="' + (filterType === t ? "on" : "") + '">' + esc(t) + '</button>'))
+      .join("");
+  }
+  $("typeChips").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button");
+    if (!b) return;
+    filterType = b.dataset.t || "";
+    renderChips();
+    loadCars();
+  });
+  async function openList() {
+    show("list");
+    renderChips();
+    loadCars();
+  }
+  async function loadCars() {
+    $("carsList").textContent = "ກຳລັງໂຫລດ...";
+    try {
+      const res = await getJson(API + "?type=rentalcars" + (filterType ? "&carType=" + encodeURIComponent(filterType) : ""));
+      cars = (res && res.cars) || [];
+      renderCars();
+    } catch (e) { $("carsList").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  }
+  function minPrice(c) {
+    const vals = [];
+    [c.selfPrices, c.driverPrices].forEach((pr) => {
+      if (!pr) return;
+      Object.keys(pr).forEach((k) => { if (pr[k]) vals.push(Number(pr[k])); });
+    });
+    return vals.length ? Math.min.apply(null, vals) : null;
+  }
+  function renderCars() {
+    $("carsList").innerHTML = cars.length ? cars.map((c, i) =>
+      '<div class="carcard" data-i="' + i + '">' +
+        (c.photos && c.photos[0] ? '<img src="' + esc(c.photos[0]) + '" alt="">' : '<img alt="">') +
+        '<div style="flex:1"><b>' + esc(c.model || c.carType) + '</b>' +
+        '<div class="muted">' + esc(c.carType) + '</div>' +
+        '<div class="muted">' + esc(c.areas) + '</div>' +
+        (minPrice(c) ? '<div>ເລີ່ມຕົ້ນ <b>' + money(minPrice(c)) + '</b></div>' : '') +
+        '</div></div>'
+    ).join("") : '<div class="muted">ຍັງບໍ່ມີລົດໃນປະເພດນີ້</div>';
+  }
+  $("carsList").addEventListener("click", (ev) => {
+    const card = ev.target.closest(".carcard");
+    if (!card) return;
+    openDetail(cars[Number(card.dataset.i)]);
+  });
+
+  // ===== 3. ລາຍລະອຽດ ແລະ ຈອງ =====
+  function openDetail(c) {
+    current = c; service = null; quote = null;
+    show("detail");
+    $("dTitle").textContent = c.model || c.carType;
+    $("dMeta").textContent = c.carType + (c.plate ? " · " + c.plate : "");
+    $("dGallery").innerHTML = (c.photos || []).map((u) => '<img src="' + esc(u) + '" alt="">').join("") || '<div class="muted">ຍັງບໍ່ມີຮູບ</div>';
+    $("dDesc").textContent = c.description || "";
+    $("dAreas").textContent = c.areas ? "ຂົງເຂດ: " + c.areas : "";
+    const svcs = [];
+    if (c.selfPrices && Object.keys(c.selfPrices).length) svcs.push("self");
+    if (c.driverPrices && Object.keys(c.driverPrices).length) svcs.push("driver");
+    $("svcBox").innerHTML = svcs.map((s) => '<button data-s="' + s + '">' + SVC_NAME[s] + '</button>').join("");
+    $("quoteBox").classList.add("hidden");
+    $("docCard").classList.add("hidden");
+    $("billCard").classList.add("hidden");
+    $("quoteMsg").textContent = "";
+    $("bookMsg").textContent = "";
+    const today = new Date().toISOString().slice(0, 10);
+    $("startDate").min = today; $("endDate").min = today;
+    if (svcs.length === 1) selectService(svcs[0]);
+  }
+  function selectService(s) {
+    service = s;
+    $("svcBox").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.s === s));
+    $("quoteBox").classList.add("hidden");
+    $("docCard").classList.add("hidden");
+  }
+  $("svcBox").addEventListener("click", (ev) => {
+    const b = ev.target.closest("button");
+    if (b) selectService(b.dataset.s);
+  });
+  $("btnBack").addEventListener("click", () => { show("list"); });
+
+  $("btnQuote").addEventListener("click", async () => {
+    const s = $("startDate").value, e = $("endDate").value;
+    if (!service) { $("quoteMsg").textContent = "ເລືອກປະເພດການເຊົ່າກ່ອນ"; return; }
+    if (!s || !e) { $("quoteMsg").textContent = "ເລືອກວັນທີ່ຮັບ ແລະ ຄືນລົດ"; return; }
+    if (e < s) { $("quoteMsg").textContent = "ວັນຄືນລົດຕ້ອງບໍ່ກ່ອນວັນຮັບລົດ"; return; }
+    $("quoteMsg").textContent = "ກຳລັງຄິດລາຄາ...";
+    try {
+      const res = await getJson(API + "?type=rentalquote&carId=" + encodeURIComponent(current.carId) +
+        "&service=" + encodeURIComponent(service) + "&startDate=" + s + "&endDate=" + e);
+      if (!res || !res.ok) {
+        const msgs = { busy: "ລົດຄັນນີ້ມີຄົນຈອງໃນວັນທີ່ນີ້ແລ້ວ", dates: "ວັນທີ່ບໍ່ຖືກຕ້ອງ", noprice: "ຍັງບໍ່ມີລາຄາ", notfound: "ລົດນີ້ບໍ່ພ້ອມໃຫ້ເຊົ່າ" };
+        $("quoteMsg").textContent = msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+        $("quoteBox").classList.add("hidden");
+        return;
+      }
+      quote = { startDate: s, endDate: e };
+      $("qDays").textContent = res.days + " ວັນ";
+      $("qAmount").textContent = money(res.amount);
+      $("qBook").textContent = money(res.bookingFee);
+      $("qTotal").textContent = money(res.total);
+      $("quoteBox").classList.remove("hidden");
+      $("quoteMsg").textContent = "";
+      $("docCard").classList.remove("hidden");
+      $("docCard").scrollIntoView({ behavior: "smooth" });
+    } catch (err) { $("quoteMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+  // ===== ຢືນຢັນການຈອງ =====
+  $("btnBook").addEventListener("click", async () => {
+    if (!quote) return;
+    const idFile = $("idFile").files[0];
+    if (!idFile) { $("bookMsg").textContent = "ກະລຸນາອັບໂຫລດເອກະສານຕົວຕົນ"; return; }
+    $("bookMsg").textContent = "ກຳລັງບັນທຶກການຈອງ...";
+    $("btnBook").disabled = true;
+    try {
+      const docs = [{ kind: $("idKind").value, imageBase64: await compressImage(idFile) }];
+      const licFile = $("licFile").files[0];
+      if (licFile) docs.push({ kind: "license", imageBase64: await compressImage(licFile) });
+      const res = await post({
+        type: "rentalbook", carId: current.carId, service: service,
+        startDate: quote.startDate, endDate: quote.endDate,
+        customerName: cust.name, customerPhone: cust.phone, docs: docs
+      });
+      if (!res || !res.ok) {
+        const msgs = { busy: "ລົດຄັນນີ້ຖືກຈອງໄປແລ້ວ", docs: "ຕ້ອງມີເອກະສານຕົວຕົນ", notfound: "ລົດນີ້ບໍ່ພ້ອມໃຫ້ເຊົ່າ" };
+        $("bookMsg").textContent = msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+        return;
+      }
+      showBill(res);
+    } catch (err) { $("bookMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້, ລອງໃໝ່"; }
+    finally { $("btnBook").disabled = false; }
+  });
+
+  function showBill(r) {
+    $("docCard").classList.add("hidden");
+    $("quoteBox").classList.add("hidden");
+    $("svcBox").classList.add("hidden");
+    const b = $("billCard");
+    b.classList.remove("hidden");
+    const hasOwnerPhone = !!r.ownerPhone;
+    b.innerHTML =
+      '<h2>ບິນການຈອງ</h2>' +
+      '<div class="row"><span>ລະຫັດອໍເດີ</span><b>' + esc(r.bookingId) + '</b></div>' +
+      '<div class="row"><span>ລົດ</span><b>' + esc(current.model || current.carType) + '</b></div>' +
+      '<div class="row"><span>ປະເພດ</span><b>' + esc(SVC_NAME[service]) + '</b></div>' +
+      '<div class="row"><span>ວັນທີ່</span><b>' + esc(quote.startDate) + ' ຫາ ' + esc(quote.endDate) + ' (' + r.days + ' ວັນ)</b></div>' +
+      '<div class="row"><span>ຄ່າເຊົ່າ</span><b>' + money(r.amount) + '</b></div>' +
+      '<div class="row"><span>ຄ່າຈອງ (ຈ່າຍໃຫ້ຮ້ານ)</span><b>' + money(r.bookingFee) + '</b></div>' +
+      '<div class="row"><span>ລວມທີ່ຕ້ອງຈ່າຍ</span><b>' + money(r.total) + '</b></div>' +
+      '<div class="row"><span>ເຈົ້າຂອງລົດ</span><b>' + esc(r.ownerName) + '</b></div>' +
+      '<p class="muted" style="color:#1d2330">ນຳບິນນີ້ໄປຫາເຈົ້າຂອງລົດ ເພື່ອຊຳລະ ແລະ ຮັບລົດຕາມວັນທີ່ໄດ້ຈອງ</p>' +
+      (hasOwnerPhone
+        ? '<a class="btnlink" href="' + telHref(r.ownerPhone) + '">ໂທສາຍກົງຫາເຈົ້າຂອງ</a>' +
+          '<a class="btnlink wa" href="' + waHref(r.ownerPhone) + '" target="_blank">WhatsApp ເຈົ້າຂອງ</a>'
+        : '') +
+      '<button class="ghost" style="color:#1d2330;border-color:#1d2330" id="btnNewBook">ຈອງລົດອື່ນ</button>';
+    $("btnNewBook").addEventListener("click", () => { location.reload(); });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  $("btnContactOk").addEventListener("click", contactOk);
+
+  (function init() {
+    const c = load("llux_rent_cust");
+    if (c) { cust = c; $("cName").value = c.name; $("cPhone").value = c.phone; openList(); }
+  })();
+})();
+</script>
+</body>
+</html>
