@@ -35,6 +35,14 @@
   .msg { min-height:20px; font-size:14px; margin-top:8px; }
   .hidden { display:none !important; }
   .sub { background:#2f6446; border-radius:12px; padding:10px; margin-top:8px; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; }
+  .tabs button { width:auto; flex:1; margin:0; padding:10px 6px; font-size:14px; white-space:nowrap; background:#2f6446; color:#fff; border:1px solid #9bc7a9; }
+  .tabs button.on { background:#fff; color:#1d2330; }
+  .badge { display:inline-block; min-width:20px; padding:0 6px; border-radius:999px; background:#dc2626; color:#fff; font-size:12px; margin-left:4px; }
+  .bk { background:var(--green2); border-radius:12px; padding:10px; margin-bottom:8px; }
+  .big { font-size:24px; font-weight:800; }
+  .qr { width:180px; max-width:60%; border-radius:10px; background:#fff; display:block; margin:8px 0; }
+  a.btnlink { display:block; text-align:center; padding:10px; border-radius:12px; background:#fff; color:#1d2330; text-decoration:none; font-weight:700; margin-top:8px; }
 </style>
 </head>
 <body>
@@ -55,6 +63,58 @@
     <div class="card">
       <div class="row"><b id="whoTxt"></b><button class="small ghost" id="btnLogout">ອອກ</button></div>
       <div class="muted">ເບີຕິດຕໍ່ຂອງທ່ານ: <span id="ownPhone">-</span></div>
+    </div>
+
+    <div class="tabs">
+      <button data-tab="cars" class="on">ລົດຂອງຂ້ອຍ</button>
+      <button data-tab="book">ການຈອງ<span id="bkBadge"></span></button>
+      <button data-tab="debt">ໜີ້ LLUX</button>
+      <button data-tab="profile">ໂປຣໄຟລ໌</button>
+    </div>
+
+    <!-- ການຈອງ -->
+    <div class="card hidden" id="bookCard">
+      <h2>ການຈອງຂອງຂ້ອຍ</h2>
+      <div id="bookList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+
+    <!-- ໜີ້ LLUX -->
+    <div class="card hidden" id="debtCard">
+      <h2>ໜີ້ທີ່ຕ້ອງຊຳລະໃຫ້ LLUX</h2>
+      <div class="muted">ຄ້າງຊຳລະ</div>
+      <div class="big" id="debtDue">0 ກີບ</div>
+      <div class="muted" id="debtPending"></div>
+      <div id="qrBox"></div>
+      <div class="sub">
+        <label>ແນບສລິບການໂອນ (ຮູບ)<input type="file" id="slipFile" accept="image/*"></label>
+        <button id="btnPaySlip" class="blue">ສົ່ງສລິບຊຳລະ</button>
+        <div id="paySlipMsg" class="msg"></div>
+      </div>
+      <h2 style="margin-top:14px">ລາຍການ</h2>
+      <div id="debtList" class="muted"></div>
+    </div>
+
+    <!-- ໂປຣໄຟລ໌ -->
+    <div class="card hidden" id="profileCard">
+      <h2>ຂໍ້ມູນສ່ວນຕົວ ແລະ ຮ້ານ</h2>
+      <label>ຊື່ເຈົ້າຂອງ (ປ່ຽນບໍ່ໄດ້)<input id="pName" disabled></label>
+      <label>ເບີໂທ<input id="pPhone" inputmode="tel"></label>
+      <label>ອີເມວ (ຮັບແຈ້ງເຕືອນການຈອງ)<input id="pEmail" type="email"></label>
+      <label>ຊື່ຮ້ານ / ບໍລິສັດ<input id="pShop"></label>
+      <label>ທີ່ຕັ້ງ (ຂໍ້ຄວາມ)<input id="pLocation"></label>
+      <label>ພິກັດ (lat, lng)
+        <div class="row"><input id="pLat" placeholder="lat" style="width:48%"><input id="pLng" placeholder="lng" style="width:48%"></div>
+      </label>
+      <button id="btnGeo" class="ghost">ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ</button>
+      <a id="mapLink" class="btnlink hidden" target="_blank" rel="noopener">ເປີດໃນ Google Maps</a>
+      <label>ໝາຍເຫດ<textarea id="pNote"></textarea></label>
+      <div class="sub">
+        <div class="muted">ປ່ຽນ PIN (ຖ້າບໍ່ຕ້ອງການປ່ຽນ ໃຫ້ເວັ້ນໄວ້)</div>
+        <label>PIN ໃໝ່ (4-6 ຕົວເລກ)<input id="pNewPin" type="password" inputmode="numeric"></label>
+        <label>ຢືນຢັນ PIN ໃໝ່<input id="pNewPin2" type="password" inputmode="numeric"></label>
+      </div>
+      <button id="btnSaveProfile" class="blue">ບັນທຶກຂໍ້ມູນ</button>
+      <div id="profileMsg" class="msg"></div>
     </div>
 
     <div class="card" id="carsCard">
@@ -142,6 +202,15 @@
   let editing = null;     // car object being edited (null = new)
   let myCars = [];
   let ownerPhone = "";
+  function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
+  function waHref(p) {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.charAt(0) === "0") d = d.slice(1);
+    if (d.indexOf("856") !== 0) d = "856" + d;
+    return "https://wa.me/" + d;
+  }
+  const STATUS_TXT = { confirmed: "ຢືນຢັນແລ້ວ", cancelled: "ຍົກເລີກ" };
+  let info = null;   // ຂໍ້ມູນເຈົ້າຂອງຈາກ rentalownerinfo
 
   function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
@@ -193,6 +262,8 @@
     ownerPhone = res.phone || "";
     $("ownPhone").textContent = ownerPhone || "-";
     renderCars();
+    showTab("cars");
+    loadInfo();
   }
   function logout() { forget("llux_rent_owner"); owner = null; location.reload(); }
 
@@ -335,6 +406,131 @@
       const res = await post({ type: "rentalcarphotodel", ownerName: owner.name, pin: owner.pin, carId: editing.carId, url: b.dataset.url });
       if (res && res.ok) { editing.photos = res.photos; renderPhotos(res.photos); refreshCars(); }
     } catch (e) {}
+  });
+
+
+  // ===== ແຖບ =====
+  function showTab(t) {
+    document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+    $("carsCard").classList.toggle("hidden", t !== "cars");
+    $("formCard").classList.add("hidden");
+    $("bookCard").classList.toggle("hidden", t !== "book");
+    $("debtCard").classList.toggle("hidden", t !== "debt");
+    $("profileCard").classList.toggle("hidden", t !== "profile");
+    if (t === "book" && info) { localStorage.setItem("llux_rent_seen_" + owner.name, String((info.bookings || []).length)); updateBadge(); }
+    if (t === "profile") fillProfile();
+  }
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+
+  function updateBadge() {
+    if (!info || !owner) return;
+    const seen = Number(localStorage.getItem("llux_rent_seen_" + owner.name) || 0);
+    const n = Math.max(0, (info.bookings || []).length - seen);
+    $("bkBadge").innerHTML = n ? '<span class="badge">' + n + '</span>' : "";
+  }
+
+  async function loadInfo() {
+    if (!owner) return;
+    try {
+      const res = await getJson(API + "?type=rentalownerinfo&ownerName=" + encodeURIComponent(owner.name) + "&pin=" + encodeURIComponent(owner.pin));
+      if (res && res.ok) { info = res; updateBadge(); renderBookings(); renderDebt(); }
+    } catch (e) {}
+  }
+
+  function renderBookings() {
+    const list = (info && info.bookings) || [];
+    $("bookList").innerHTML = list.length ? list.map((b) =>
+      '<div class="bk">' +
+        '<div class="row"><b>' + esc(b.carModel) + '</b><span class="tag">' + esc(STATUS_TXT[b.status] || b.status) + '</span></div>' +
+        '<div class="muted">' + esc(b.bookingId) + ' · ' + (b.service === "driver" ? "ພ້ອມຄົນຂັບ" : "ຂັບເອງ") + '</div>' +
+        '<div>' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.days + ' ວັນ)</div>' +
+        '<div>ລູກຄ້າ: <b>' + esc(b.customerName) + '</b> · ' + esc(b.customerPhone) + '</div>' +
+        '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b> · ຄ່າຈອງ ' + money(b.bookingFee) + '</div>' +
+        '<div class="row"><a class="btnlink" style="flex:1" href="' + telHref(b.customerPhone) + '">ໂທຫາລູກຄ້າ</a>' +
+        '<a class="btnlink" style="flex:1;background:#65d07a;color:#fff" target="_blank" rel="noopener" href="' + waHref(b.customerPhone) + '">WhatsApp</a></div>' +
+      '</div>'
+    ).join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
+  }
+
+  function renderDebt() {
+    if (!info) return;
+    $("debtDue").textContent = money(info.totalDue);
+    $("debtPending").textContent = info.totalPending ? ("ລໍຖ້າ LLUX ຢືນຢັນ: " + money(info.totalPending)) : "";
+    $("qrBox").innerHTML = info.qrUrl ? '<div class="muted">ໂອນເງິນໄປບັນຊີ LLUX ແລ້ວແນບສລິບ</div><img class="qr" src="' + esc(info.qrUrl) + '" alt="QR LLUX">' : "";
+    const list = info.debts || [];
+    $("debtList").innerHTML = list.length ? list.map((d) => {
+      const st = d.status === "due" ? "ຄ້າງ" : (d.verify === "pending" ? "ລໍຖ້າຢືນຢັນ" : "ຊຳລະແລ້ວ");
+      return '<div class="row"><span>' + esc(d.rate) + ' · ' + esc(d.orderId) + '</span><span><b>' + money(d.amountDue) + '</b> <span class="tag ' + (d.status === "due" ? "off" : "") + '">' + st + '</span></span></div>';
+    }).join("") : "ບໍ່ມີລາຍການ";
+  }
+
+  $("btnPaySlip").addEventListener("click", async () => {
+    const f = $("slipFile").files[0];
+    if (!f) { $("paySlipMsg").textContent = "ກະລຸນາເລືອກຮູບສລິບ"; return; }
+    $("paySlipMsg").textContent = "ກຳລັງສົ່ງ...";
+    try {
+      const b64 = await compressImage(f);
+      const res = await post({ type: "rentalownerpay", ownerName: owner.name, pin: owner.pin, imageBase64: b64, mime: "image/jpeg" });
+      if (res && res.ok) { $("paySlipMsg").textContent = "ສົ່ງສລິບແລ້ວ " + money(res.total) + " (ລໍຖ້າ LLUX ຢືນຢັນ)"; $("slipFile").value = ""; loadInfo(); }
+      else { $("paySlipMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; }
+    } catch (e) { $("paySlipMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+  // ===== ໂປຣໄຟລ໌ =====
+  function fillProfile() {
+    const p = (info && info.profile) || {};
+    $("pName").value = owner ? owner.name : "";
+    $("pPhone").value = p.phone || ownerPhone || "";
+    $("pEmail").value = p.email || "";
+    $("pShop").value = p.shopName || "";
+    $("pLocation").value = p.location || "";
+    $("pLat").value = p.lat || "";
+    $("pLng").value = p.lng || "";
+    $("pNote").value = p.note || "";
+    updateMapLink();
+  }
+  function updateMapLink() {
+    const lat = $("pLat").value.trim(), lng = $("pLng").value.trim();
+    const a = $("mapLink");
+    if (lat && lng) { a.href = "https://maps.google.com/?q=" + encodeURIComponent(lat + "," + lng); a.classList.remove("hidden"); }
+    else a.classList.add("hidden");
+  }
+  $("pLat").addEventListener("input", updateMapLink);
+  $("pLng").addEventListener("input", updateMapLink);
+  $("btnGeo").addEventListener("click", () => {
+    if (!navigator.geolocation) { $("profileMsg").textContent = "ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"; return; }
+    $("profileMsg").textContent = "ກຳລັງຫາຕຳແໜ່ງ...";
+    navigator.geolocation.getCurrentPosition((pos) => {
+      $("pLat").value = pos.coords.latitude.toFixed(6);
+      $("pLng").value = pos.coords.longitude.toFixed(6);
+      updateMapLink();
+      $("profileMsg").textContent = "ໄດ້ຕຳແໜ່ງແລ້ວ, ກົດບັນທຶກເພື່ອບັນທຶກ";
+    }, () => { $("profileMsg").textContent = "ຫາຕຳແໜ່ງບໍ່ໄດ້"; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+
+  $("btnSaveProfile").addEventListener("click", async () => {
+    const newPin = $("pNewPin").value.trim(), newPin2 = $("pNewPin2").value.trim();
+    if (newPin && newPin !== newPin2) { $("profileMsg").textContent = "PIN ໃໝ່ບໍ່ກົງກັນ"; return; }
+    $("profileMsg").textContent = "ກຳລັງບັນທຶກ...";
+    try {
+      const res = await post({
+        type: "rentalownerupdate", ownerName: owner.name, pin: owner.pin,
+        phone: $("pPhone").value.trim(), email: $("pEmail").value.trim(), shopName: $("pShop").value.trim(),
+        location: $("pLocation").value.trim(), lat: $("pLat").value.trim(), lng: $("pLng").value.trim(),
+        note: $("pNote").value.trim(), newPin: newPin
+      });
+      if (!res || !res.ok) {
+        const m = { phone: "ເບີໂທບໍ່ຖືກຕ້ອງ", email: "ອີເມວບໍ່ຖືກຕ້ອງ", pin: "PIN ຕ້ອງເປັນ 4-6 ຕົວເລກ" };
+        $("profileMsg").textContent = m[res && res.reason] || "ບັນທຶກບໍ່ສຳເລັດ";
+        return;
+      }
+      if (res.pin && res.pin !== owner.pin) { owner.pin = res.pin; save("llux_rent_owner", owner); }
+      $("pNewPin").value = ""; $("pNewPin2").value = "";
+      ownerPhone = $("pPhone").value.trim();
+      $("ownPhone").textContent = ownerPhone || "-";
+      $("profileMsg").textContent = "ບັນທຶກແລ້ວ";
+      loadInfo();
+    } catch (e) { $("profileMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
   });
 
   $("btnLogin").addEventListener("click", login);
