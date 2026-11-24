@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="lo">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LLUX-e ເຈົ້າຂອງຫ້ອງເຊົ່າ</title>
+<style>
+  :root { --red:#d83d3d; --green:#3f7a55; --green2:#2f6446; --muted:#d7ebdc; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--red); color:#fff; font-family: system-ui, -apple-system, "Noto Sans Lao", sans-serif; }
+  .wrap { max-width:560px; margin:0 auto; padding:16px; }
+  h1 { font-size:22px; margin:6px 0 12px; }
+  .card { background:var(--green); border-radius:14px; padding:14px; margin-bottom:12px; }
+  .card h2 { font-size:17px; margin:0 0 10px; }
+  .row { display:flex; justify-content:space-between; align-items:center; gap:10px; margin:6px 0; flex-wrap:wrap; }
+  .muted { color:var(--muted); font-size:14px; }
+  label { display:block; font-size:14px; margin-top:10px; }
+  input, select, textarea { display:block; width:100%; padding:11px; font-size:16px; margin-top:4px; border:1px solid #9bc7a9; border-radius:10px; background:#fff; color:#1d2330; }
+  textarea { min-height:70px; }
+  button { width:100%; padding:12px; border:0; border-radius:12px; background:#fff; color:#1d2330; font-size:16px; font-weight:700; cursor:pointer; margin-top:10px; }
+  button.blue { background:#2563eb; color:#fff; }
+  button.ghost { background:transparent; color:#fff; border:1px solid #fff; }
+  button.small { width:auto; padding:7px 12px; font-size:14px; margin:0; }
+  a.btnlink { display:block; text-align:center; padding:10px; border-radius:12px; background:#fff; color:#1d2330; text-decoration:none; font-weight:700; margin-top:8px; }
+  .grid3 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .photos { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+  .photos .ph { position:relative; }
+  .photos img { width:100%; height:90px; object-fit:cover; border-radius:10px; display:block; background:#2f6446; }
+  .photos .x { position:absolute; top:4px; right:4px; width:auto; margin:0; padding:2px 8px; font-size:14px; background:#dc2626; color:#fff; border-radius:999px; }
+  .item { display:flex; gap:12px; align-items:center; background:var(--green2); border-radius:12px; padding:10px; margin-bottom:8px; cursor:pointer; }
+  .item img { width:76px; height:76px; border-radius:10px; object-fit:cover; background:#fff3; flex:none; }
+  .bk { background:var(--green2); border-radius:12px; padding:10px; margin-bottom:8px; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:999px; background:#fff; color:#1d2330; font-size:12px; font-weight:700; }
+  .tag.off { background:#fbbf24; }
+  .msg { min-height:20px; font-size:14px; margin-top:8px; }
+  .hidden { display:none !important; }
+  .tabs { display:flex; gap:6px; margin-bottom:12px; overflow-x:auto; }
+  .tabs button { width:auto; flex:1; margin:0; padding:10px 6px; font-size:14px; white-space:nowrap; background:#2f6446; color:#fff; border:1px solid #9bc7a9; }
+  .tabs button.on { background:#fff; color:#1d2330; }
+  .badge { display:inline-block; min-width:20px; padding:0 6px; border-radius:999px; background:#dc2626; color:#fff; font-size:12px; margin-left:4px; }
+  .sub { background:#2f6446; border-radius:12px; padding:10px; margin-top:8px; }
+  .big { font-size:24px; font-weight:800; }
+  .qr { width:180px; max-width:60%; border-radius:10px; background:#fff; display:block; margin:8px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ເຈົ້າຂອງຫ້ອງເຊົ່າ ແລະ ອາພັດເມັ້ນ</h1>
+
+  <!-- ເຂົ້າສູ່ລະບົບ -->
+  <div id="loginBox" class="card">
+    <h2>ເຂົ້າສູ່ລະບົບ</h2>
+    <label>ຊື່ເຈົ້າຂອງ<input id="oName" autocomplete="username"></label>
+    <label>PIN<input id="oPin" type="password" inputmode="numeric"></label>
+    <button id="btnLogin" class="blue">ເຂົ້າສູ່ລະບົບ</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="mainBox" class="hidden">
+    <div class="card">
+      <div class="row"><b id="whoTxt"></b><button class="small ghost" id="btnLogout">ອອກ</button></div>
+      <div class="muted">ເບີຕິດຕໍ່: <span id="ownPhone">-</span></div>
+    </div>
+
+    <div class="tabs">
+      <button data-tab="list" class="on">ປ່ອງບໍລິການ</button>
+      <button data-tab="book">ການຈອງ<span id="bkBadge"></span></button>
+      <button data-tab="debt">ໜີ້ LLUX</button>
+      <button data-tab="profile">ໂປຣໄຟລ໌</button>
+    </div>
+
+    <!-- ປ່ອງບໍລິການ -->
+    <div class="card" id="listCard">
+      <div class="row"><h2 style="margin:0">ປ່ອງບໍລິການຂອງຂ້ອຍ</h2><button class="small blue" id="btnNew">+ ເພີ່ມປ່ອງ</button></div>
+      <div id="listBox" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+
+    <div class="card hidden" id="formCard">
+      <div class="row"><h2 style="margin:0" id="formTitle">ເພີ່ມປ່ອງບໍລິການ</h2><button class="small ghost" id="btnFormClose">ປິດ</button></div>
+
+      <label>ປະເພດບໍລິການ
+        <select id="fService"></select>
+      </label>
+      <label>ລາຍລະອຽດປະເພດ
+        <select id="fSub"></select>
+      </label>
+      <label>ຊື່ປ່ອງ / ຊື່ບໍລິການ<input id="fTitle" placeholder="ເຊັ່ນ ຫ້ອງແຖວໜ້າຕະຫຼາດ"></label>
+      <label>ທີ່ຕັ້ງ (ຂໍ້ຄວາມ)<input id="fLocation"></label>
+      <label>ພິກັດ (lat, lng)
+        <div class="row"><input id="fLat" placeholder="lat" style="width:48%"><input id="fLng" placeholder="lng" style="width:48%"></div>
+      </label>
+      <button id="btnGeo" class="ghost">ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ</button>
+      <a id="fMap" class="btnlink hidden" target="_blank" rel="noopener">ເປີດໃນ Google Maps</a>
+      <label>ລາຄາ <span id="priceUnit" class="muted"></span><input id="fPrice" type="number" min="0"></label>
+      <label>ລາຍລະອຽດ<textarea id="fDesc"></textarea></label>
+      <label>ສະຖານະ
+        <select id="fStatus"><option value="active">ເປີດໃຫ້ບໍລິການ</option><option value="off">ປິດຊົ່ວຄາວ</option></select>
+      </label>
+      <button id="btnSave" class="blue">ບັນທຶກປ່ອງ</button>
+      <div id="saveMsg" class="msg"></div>
+
+      <div id="extraSection" class="hidden">
+        <h2 style="margin-top:14px">ຮູບປ່ອງ</h2>
+        <div class="muted">ແນະນຳຢ່າງໜ້ອຍ 5 ຮູບ (ສູງສຸດ 30). ລູກຄ້າກົດເພື່ອເບິ່ງ ແລະ ຊູມໄດ້.</div>
+        <input type="file" id="photoFile" accept="image/*" multiple hidden>
+        <button id="btnPhoto" class="blue">ເພີ່ມຮູບ</button>
+        <div id="photoMsg" class="msg"></div>
+        <div id="photos" class="photos"></div>
+
+        <h2 style="margin-top:14px">ວັນທີບໍ່ວ່າງ</h2>
+        <div class="grid3">
+          <label>ຈາກວັນທີ<input type="date" id="bStart"></label>
+          <label>ຫາວັນທີ<input type="date" id="bEnd"></label>
+        </div>
+        <label>ໝາຍເຫດ<input id="bNote"></label>
+        <button id="btnBlock" class="blue">ເພີ່ມວັນບໍ່ວ່າງ</button>
+        <div id="blockMsg" class="msg"></div>
+        <div id="blockList"></div>
+      </div>
+    </div>
+
+    <!-- ການຈອງ -->
+    <div class="card hidden" id="bookCard">
+      <h2>ການຈອງ</h2>
+      <div id="bookList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+
+    <!-- ໜີ້ LLUX -->
+    <div class="card hidden" id="debtCard">
+      <h2>ໜີ້ທີ່ຕ້ອງຊຳລະໃຫ້ LLUX</h2>
+      <div class="muted">ຄ້າງຊຳລະ</div>
+      <div class="big" id="debtDue">0 ກີບ</div>
+      <div class="muted" id="debtPending"></div>
+      <div id="qrBox"></div>
+      <div class="sub">
+        <label>ແນບສລິບການໂອນ (ຮູບ)<input type="file" id="slipFile" accept="image/*"></label>
+        <button id="btnPaySlip" class="blue">ສົ່ງສລິບຊຳລະ</button>
+        <div id="paySlipMsg" class="msg"></div>
+      </div>
+      <h2 style="margin-top:14px">ລາຍການ</h2>
+      <div id="debtList" class="muted"></div>
+    </div>
+
+    <!-- ໂປຣໄຟລ໌ -->
+    <div class="card hidden" id="profileCard">
+      <h2>ຂໍ້ມູນເຈົ້າຂອງ</h2>
+      <label>ຊື່ເຈົ້າຂອງ (ປ່ຽນບໍ່ໄດ້)<input id="pName" disabled></label>
+      <label>ເບີໂທ<input id="pPhone" inputmode="tel"></label>
+      <label>ອີເມວ (ຮັບແຈ້ງເຕືອນການຈອງ)<input id="pEmail" type="email"></label>
+      <label>ຊື່ຮ້ານ / ບໍລິສັດ<input id="pShop"></label>
+      <label>ທີ່ຢູ່ / ຂໍ້ຄວາມ<input id="pLocation"></label>
+      <label>ໝາຍເຫດ<textarea id="pNote"></textarea></label>
+      <div class="sub">
+        <div class="muted">ປ່ຽນ PIN (ຖ້າບໍ່ຕ້ອງການປ່ຽນ ໃຫ້ເວັ້ນໄວ້)</div>
+        <label>PIN ໃໝ່ (4-6 ຕົວເລກ)<input id="pNewPin" type="password" inputmode="numeric"></label>
+        <label>ຢືນຢັນ PIN ໃໝ່<input id="pNewPin2" type="password" inputmode="numeric"></label>
+      </div>
+      <button id="btnSaveProfile" class="blue">ບັນທຶກຂໍ້ມູນ</button>
+      <div id="profileMsg" class="msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
+  const $ = function (id) { return document.getElementById(id); };
+  const KEY = "llux_prop_owner";
+  let owner = null, info = null, services = {}, editing = null;
+  let ownerPhone = "";
+
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function load(k) { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
+  function telHref(p) { return "tel:" + String(p || "").replace(/[^\d+]/g, ""); }
+  function waHref(p) {
+    let d = String(p || "").replace(/\D/g, "");
+    if (d.charAt(0) === "0") d = d.slice(1);
+    if (d.indexOf("856") !== 0) d = "856" + d;
+    return "https://wa.me/" + d;
+  }
+  async function getJson(url) { const r = await fetch(url, { cache: "no-store" }); return r.json(); }
+  async function post(body) {
+    const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
+    return r.json();
+  }
+  function qs(type, extra) {
+    return API + "?type=" + type + "&ownerName=" + encodeURIComponent(owner.name) + "&pin=" + encodeURIComponent(owner.pin) + (extra || "");
+  }
+  function compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL("image/jpeg", 0.82).split(",")[1]);
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("img")); };
+      img.src = url;
+    });
+  }
+
+  // ===== ເຂົ້າ/ອອກ =====
+  async function login() {
+    const name = $("oName").value.trim(), pin = $("oPin").value.trim();
+    if (!name || !pin) { $("loginMsg").textContent = "ກະລຸນາປ້ອນຊື່ ແລະ PIN"; return; }
+    $("loginMsg").textContent = "ກຳລັງກວດ...";
+    owner = { name: name, pin: pin };
+    try {
+      const res = await getJson(qs("propownerinfo"));
+      if (!res || !res.ok) { owner = null; $("loginMsg").textContent = "ຊື່ ຫຼື PIN ບໍ່ຖືກຕ້ອງ, ຫຼື ຍັງບໍ່ໄດ້ອະນຸມັດ"; return; }
+      save(KEY, owner);
+      enterApp(res);
+    } catch (e) { owner = null; $("loginMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  }
+  function enterApp(res) {
+    info = res;
+    services = res.services || {};
+    $("loginBox").classList.add("hidden");
+    $("mainBox").classList.remove("hidden");
+    $("whoTxt").textContent = "ສະບາຍດີ " + owner.name;
+    ownerPhone = (res.profile && res.profile.phone) || "";
+    $("ownPhone").textContent = ownerPhone || "-";
+    fillServiceSelect();
+    renderList();
+    showTab("list");
+    updateBadge();
+    renderBookings();
+    renderDebt();
+  }
+  function logout() { try { localStorage.removeItem(KEY); } catch (e) {} location.reload(); }
+
+  async function refresh() {
+    if (!owner) return;
+    try {
+      const res = await getJson(qs("propownerinfo"));
+      if (res && res.ok) { info = res; renderList(); updateBadge(); renderBookings(); renderDebt(); }
+    } catch (e) {}
+  }
+
+  // ===== ແຖບ =====
+  function showTab(t) {
+    document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("on", b.dataset.tab === t));
+    $("listCard").classList.toggle("hidden", t !== "list");
+    $("formCard").classList.add("hidden");
+    $("bookCard").classList.toggle("hidden", t !== "book");
+    $("debtCard").classList.toggle("hidden", t !== "debt");
+    $("profileCard").classList.toggle("hidden", t !== "profile");
+    if (t === "book" && info) { localStorage.setItem("llux_prop_seen_" + owner.name, String((info.bookings || []).length)); updateBadge(); }
+    if (t === "profile") fillProfile();
+  }
+  document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => showTab(b.dataset.tab)));
+  function updateBadge() {
+    if (!info || !owner) return;
+    const seen = Number(localStorage.getItem("llux_prop_seen_" + owner.name) || 0);
+    const n = Math.max(0, (info.bookings || []).length - seen);
+    $("bkBadge").innerHTML = n ? '<span class="badge">' + n + '</span>' : "";
+  }
+
+  // ===== ປ່ອງບໍລິການ =====
+  function renderList() {
+    const list = (info && info.listings) || [];
+    $("listBox").innerHTML = list.length ? list.map((l) =>
+      '<div class="item" data-id="' + esc(l.propId) + '">' +
+        (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
+        '<div style="flex:1"><b>' + esc(l.title) + '</b><div class="muted">' + esc(l.serviceName) + ' · ' + esc(l.subtype) + '</div>' +
+        '<div class="muted">' + money(l.price) + ' ' + esc(l.unitLabel) + '</div>' +
+        '<span class="tag ' + (l.status === "active" ? "" : "off") + '">' + (l.status === "active" ? "ເປີດບໍລິການ" : "ປິດຊົ່ວຄາວ") + '</span></div></div>'
+    ).join("") : '<div class="muted">ຍັງບໍ່ມີປ່ອງບໍລິການ, ກົດ "ເພີ່ມປ່ອງ"</div>';
+  }
+  function fillServiceSelect() {
+    $("fService").innerHTML = Object.keys(services).map((k) => '<option value="' + k + '">' + esc(services[k].name) + '</option>').join("");
+    fillSubSelect();
+  }
+  function fillSubSelect() {
+    const svc = services[$("fService").value];
+    $("fSub").innerHTML = svc ? svc.subtypes.map((s) => '<option>' + esc(s) + '</option>').join("") : "";
+    $("priceUnit").textContent = svc ? "(" + svc.unitLabel + ")" : "";
+  }
+  $("fService").addEventListener("change", fillSubSelect);
+
+  function openForm(l) {
+    editing = l || null;
+    $("formCard").classList.remove("hidden");
+    $("formTitle").textContent = l ? "ແກ້ໄຂປ່ອງບໍລິການ" : "ເພີ່ມປ່ອງບໍລິການ";
+    $("fService").value = l ? l.service : Object.keys(services)[0];
+    fillSubSelect();
+    if (l) $("fSub").value = l.subtype;
+    $("fTitle").value = l ? l.title : "";
+    $("fLocation").value = l ? l.location : "";
+    $("fLat").value = l ? l.lat : "";
+    $("fLng").value = l ? l.lng : "";
+    $("fPrice").value = l ? l.price : "";
+    $("fDesc").value = l ? l.description : "";
+    $("fStatus").value = l ? l.status : "active";
+    $("saveMsg").textContent = "";
+    updateMapLink();
+    if (l) { renderPhotos(l.photos || []); loadBlocks(); $("extraSection").classList.remove("hidden"); }
+    else { renderPhotos([]); $("blockList").innerHTML = ""; $("extraSection").classList.add("hidden"); }
+    $("formCard").scrollIntoView({ behavior: "smooth" });
+  }
+  $("btnNew").addEventListener("click", () => openForm(null));
+  $("btnFormClose").addEventListener("click", () => { $("formCard").classList.add("hidden"); editing = null; });
+  $("listBox").addEventListener("click", (ev) => {
+    const card = ev.target.closest(".item");
+    if (!card) return;
+    const l = (info.listings || []).find((x) => x.propId === card.dataset.id);
+    if (l) openForm(l);
+  });
+
+  function updateMapLink() {
+    const lat = $("fLat").value.trim(), lng = $("fLng").value.trim();
+    if (lat && lng) { $("fMap").href = "https://maps.google.com/?q=" + encodeURIComponent(lat + "," + lng); $("fMap").classList.remove("hidden"); }
+    else $("fMap").classList.add("hidden");
+  }
+  $("fLat").addEventListener("input", updateMapLink);
+  $("fLng").addEventListener("input", updateMapLink);
+  $("btnGeo").addEventListener("click", () => {
+    if (!navigator.geolocation) { $("saveMsg").textContent = "ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"; return; }
+    navigator.geolocation.getCurrentPosition((pos) => {
+      $("fLat").value = pos.coords.latitude.toFixed(6);
+      $("fLng").value = pos.coords.longitude.toFixed(6);
+      updateMapLink();
+      $("saveMsg").textContent = "ໄດ້ຕຳແໜ່ງແລ້ວ, ກົດບັນທຶກ";
+    }, () => { $("saveMsg").textContent = "ຫາຕຳແໜ່ງບໍ່ໄດ້"; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+
+  $("btnSave").addEventListener("click", async () => {
+    const title = $("fTitle").value.trim();
+    if (!title) { $("saveMsg").textContent = "ໃສ່ຊື່ປ່ອງກ່ອນ"; return; }
+    if (!(Number($("fPrice").value) > 0)) { $("saveMsg").textContent = "ໃສ່ລາຄາ"; return; }
+    $("saveMsg").textContent = "ກຳລັງບັນທຶກ...";
+    try {
+      const res = await post({
+        type: "propsave", ownerName: owner.name, pin: owner.pin, propId: editing ? editing.propId : "",
+        service: $("fService").value, subtype: $("fSub").value, title: title,
+        location: $("fLocation").value.trim(), lat: $("fLat").value.trim(), lng: $("fLng").value.trim(),
+        price: Number($("fPrice").value), description: $("fDesc").value.trim(), status: $("fStatus").value
+      });
+      if (!res || !res.ok) { $("saveMsg").textContent = "ບັນທຶກບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; return; }
+      $("saveMsg").textContent = "ບັນທຶກແລ້ວ";
+      editing = { propId: res.propId, photos: editing ? editing.photos : [] };
+      $("extraSection").classList.remove("hidden");
+      renderPhotos(editing.photos);
+      loadBlocks();
+      refresh();
+    } catch (e) { $("saveMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+  // ===== ຮູບປ່ອງ =====
+  function renderPhotos(list) {
+    $("photos").innerHTML = (list || []).map((u) =>
+      '<div class="ph"><img src="' + esc(u) + '" alt=""><button class="x" data-url="' + esc(u) + '">×</button></div>').join("");
+  }
+  $("btnPhoto").addEventListener("click", () => {
+    if (!editing || !editing.propId) { $("photoMsg").textContent = "ບັນທຶກປ່ອງກ່ອນ"; return; }
+    $("photoFile").click();
+  });
+  $("photoFile").addEventListener("change", async function () {
+    const files = Array.from(this.files || []);
+    let done = 0;
+    for (const f of files) {
+      $("photoMsg").textContent = "ກຳລັງອັບໂຫລດ " + (done + 1) + "/" + files.length + "...";
+      try {
+        const b64 = await compressImage(f);
+        const res = await post({ type: "propphoto", ownerName: owner.name, pin: owner.pin, propId: editing.propId, imageBase64: b64 });
+        if (res && res.ok) { editing.photos = res.photos; renderPhotos(res.photos); done++; }
+        else { $("photoMsg").textContent = "ບາງຮູບບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; break; }
+      } catch (e) { $("photoMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; break; }
+    }
+    if (done === files.length) $("photoMsg").textContent = "ອັບໂຫລດສຳເລັດ " + done + " ຮູບ";
+    this.value = "";
+    refresh();
+  });
+  $("photos").addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button.x");
+    if (!b || !editing) return;
+    if (!confirm("ລຶບຮູບນີ້?")) return;
+    try {
+      const res = await post({ type: "propphotodel", ownerName: owner.name, pin: owner.pin, propId: editing.propId, url: b.dataset.url });
+      if (res && res.ok) { editing.photos = res.photos; renderPhotos(res.photos); refresh(); }
+    } catch (e) {}
+  });
+
+  // ===== ວັນບໍ່ວ່າງ =====
+  async function loadBlocks() {
+    if (!editing || !editing.propId) return;
+    try {
+      const res = await getJson(qs("propblocks", "&propId=" + encodeURIComponent(editing.propId)));
+      const list = (res && res.blocks) || [];
+      $("blockList").innerHTML = list.length ? list.map((b) =>
+        '<div class="row" style="background:var(--green2);border-radius:10px;padding:8px"><span>' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + (b.note ? ' · ' + esc(b.note) : '') + '</span>' +
+        '<button class="small ghost" data-id="' + esc(b.blockId) + '">ລຶບ</button></div>').join("") : '<div class="muted">ຍັງບໍ່ມີວັນບໍ່ວ່າງ</div>';
+    } catch (e) {}
+  }
+  $("btnBlock").addEventListener("click", async () => {
+    if (!editing || !editing.propId) { $("blockMsg").textContent = "ບັນທຶກປ່ອງກ່ອນ"; return; }
+    const s = $("bStart").value, e = $("bEnd").value;
+    if (!s || !e) { $("blockMsg").textContent = "ເລືອກວັນທີໃຫ້ຄົບ"; return; }
+    try {
+      const res = await post({ type: "propblockadd", ownerName: owner.name, pin: owner.pin, propId: editing.propId, startDate: s, endDate: e, note: $("bNote").value.trim() });
+      if (res && res.ok) { $("blockMsg").textContent = "ບັນທຶກແລ້ວ"; $("bNote").value = ""; loadBlocks(); }
+      else $("blockMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")";
+    } catch (err) { $("blockMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+  $("blockList").addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button[data-id]");
+    if (!b || !confirm("ລຶບວັນບໍ່ວ່າງນີ້?")) return;
+    try {
+      const res = await post({ type: "propblockdel", ownerName: owner.name, pin: owner.pin, blockId: b.dataset.id });
+      if (res && res.ok) loadBlocks();
+    } catch (err) {}
+  });
+
+  // ===== ການຈອງ =====
+  function renderBookings() {
+    const list = (info && info.bookings) || [];
+    $("bookList").innerHTML = list.length ? list.map((b) =>
+      '<div class="bk">' +
+        '<div class="row"><b>' + esc(b.title) + '</b><span class="tag">' + (b.status === "cancelled" ? "ຍົກເລີກ" : "ຢືນຢັນແລ້ວ") + '</span></div>' +
+        '<div class="muted">' + esc(b.bookingId) + ' · ' + esc(b.subtype) + '</div>' +
+        '<div>' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.units + ' ' + esc(b.unitLabel) + ')</div>' +
+        '<div>ລູກຄ້າ: <b>' + esc(b.customerName) + '</b> · ' + esc(b.customerPhone) + '</div>' +
+        '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b>' + (b.ownerFee ? ' · ໜີ້ LLUX ' + money(b.ownerFee) : '') + '</div>' +
+        '<div class="row"><a class="btnlink" style="flex:1" href="' + telHref(b.customerPhone) + '">ໂທຫາລູກຄ້າ</a>' +
+        '<a class="btnlink" style="flex:1;background:#65d07a;color:#fff" target="_blank" rel="noopener" href="' + waHref(b.customerPhone) + '">WhatsApp</a></div>' +
+      '</div>').join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
+  }
+
+  // ===== ໜີ້ LLUX =====
+  function renderDebt() {
+    if (!info) return;
+    $("debtDue").textContent = money(info.totalDue);
+    $("debtPending").textContent = info.totalPending ? ("ລໍຖ້າ LLUX ຢືນຢັນ: " + money(info.totalPending)) : "";
+    $("qrBox").innerHTML = info.qrUrl ? '<div class="muted">ໂອນເງິນໄປບັນຊີ LLUX ແລ້ວແນບສລິບ</div><img class="qr" src="' + esc(info.qrUrl) + '" alt="QR LLUX">' : "";
+    const list = info.debts || [];
+    $("debtList").innerHTML = list.length ? list.map((d) => {
+      const st = d.status === "due" ? "ຄ້າງ" : (d.verify === "pending" ? "ລໍຖ້າຢືນຢັນ" : "ຊຳລະແລ້ວ");
+      return '<div class="row"><span>' + esc(d.rate) + ' · ' + esc(d.orderId) + '</span><span><b>' + money(d.amountDue) + '</b> <span class="tag ' + (d.status === "due" ? "off" : "") + '">' + st + '</span></span></div>';
+    }).join("") : "ບໍ່ມີລາຍການ";
+  }
+  $("btnPaySlip").addEventListener("click", async () => {
+    const f = $("slipFile").files[0];
+    if (!f) { $("paySlipMsg").textContent = "ກະລຸນາເລືອກຮູບສລິບ"; return; }
+    $("paySlipMsg").textContent = "ກຳລັງສົ່ງ...";
+    try {
+      const b64 = await compressImage(f);
+      const res = await post({ type: "propownerpay", ownerName: owner.name, pin: owner.pin, imageBase64: b64, mime: "image/jpeg" });
+      if (res && res.ok) { $("paySlipMsg").textContent = "ສົ່ງສລິບແລ້ວ " + money(res.total) + " (ລໍຖ້າ LLUX ຢືນຢັນ)"; $("slipFile").value = ""; refresh(); }
+      else $("paySlipMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")";
+    } catch (e) { $("paySlipMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+  // ===== ໂປຣໄຟລ໌ =====
+  function fillProfile() {
+    const p = (info && info.profile) || {};
+    $("pName").value = owner ? owner.name : "";
+    $("pPhone").value = p.phone || "";
+    $("pEmail").value = p.email || "";
+    $("pShop").value = p.shopName || "";
+    $("pLocation").value = p.location || "";
+    $("pNote").value = p.note || "";
+  }
+  $("btnSaveProfile").addEventListener("click", async () => {
+    const np = $("pNewPin").value.trim(), np2 = $("pNewPin2").value.trim();
+    if (np && np !== np2) { $("profileMsg").textContent = "PIN ໃໝ່ບໍ່ກົງກັນ"; return; }
+    try {
+      const p = (info && info.profile) || {};
+      const res = await post({ type: "propownerupdate", ownerName: owner.name, pin: owner.pin,
+        phone: $("pPhone").value.trim(), email: $("pEmail").value.trim(), shopName: $("pShop").value.trim(),
+        location: $("pLocation").value.trim(), lat: p.lat || "", lng: p.lng || "", note: $("pNote").value.trim(), newPin: np });
+      if (!res || !res.ok) {
+        const m = { phone: "ເບີໂທບໍ່ຖືກຕ້ອງ", email: "ອີເມວບໍ່ຖືກຕ້ອງ", pin: "PIN ຕ້ອງເປັນ 4-6 ຕົວເລກ" };
+        $("profileMsg").textContent = m[res && res.reason] || "ບັນທຶກບໍ່ສຳເລັດ";
+        return;
+      }
+      if (res.pin && res.pin !== owner.pin) { owner.pin = res.pin; save(KEY, owner); }
+      $("pNewPin").value = ""; $("pNewPin2").value = "";
+      $("profileMsg").textContent = "ບັນທຶກແລ້ວ";
+      refresh();
+    } catch (e) { $("profileMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+  $("btnLogin").addEventListener("click", login);
+  $("btnLogout").addEventListener("click", logout);
+
+  (async function init() {
+    const saved = load(KEY);
+    if (saved && saved.name && saved.pin) {
+      owner = saved;
+      try {
+        const res = await getJson(qs("propownerinfo"));
+        if (res && res.ok) enterApp(res); else logout();
+      } catch (e) {}
+    }
+  })();
+})();
+</script>
+</body>
+</html>
