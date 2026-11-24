@@ -202,10 +202,22 @@
           '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b> · ຈອງ ' + money(b.bookingFee) + '</div>' +
           (b.ownerPhone ? '<div class="row"><a class="btnlink" style="flex:1;margin:0" href="' + telHref(b.ownerPhone) + '">ໂທຫາເຈົ້າຂອງ</a>' +
             '<a class="btnlink wa" style="flex:1;margin:0" href="' + waHref(b.ownerPhone) + '" target="_blank">WhatsApp</a></div>' : '') +
+          (b.canCancel ? '<button class="small" style="margin-top:8px;background:#dc2626;color:#fff" data-cancel="' + esc(b.bookingId) + '">ຍົກເລີກການຈອງ</button>' : '') +
         '</div>'
       ).join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
     } catch (e) { $("myBookList").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
   }
+  $("myBookList").addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button[data-cancel]");
+    if (!btn || !cust) return;
+    if (!confirm("ຢືນຢັນການຍົກເລີກການຈອງນີ້?")) return;
+    btn.disabled = true;
+    try {
+      const res = await post({ type: "rentalcancel", bookingId: btn.dataset.cancel, phone: cust.phone });
+      if (res && res.ok) { loadMyBookings(); }
+      else { alert(res && res.reason === "late" ? "ບໍ່ສາມາດຍົກເລີກໄດ້ແລ້ວ (ເຖິງວັນເລີ່ມເຊົ່າ ຫຼື ຖືກຍົກເລີກແລ້ວ)" : "ຍົກເລີກບໍ່ສຳເລັດ"); btn.disabled = false; }
+    } catch (e) { alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້"); btn.disabled = false; }
+  });
 
   // ===== 2. ລາຍການລົດ =====
   function renderChips() {

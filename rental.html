@@ -190,6 +190,18 @@
         <div id="photoMsg" class="msg"></div>
         <div id="photos" class="photos"></div>
       </div>
+
+      <!-- ວັນທີບໍ່ວ່າງ (ຫຼັງບັນທຶກລົດແລ້ວ) -->
+      <div id="blockSection" class="hidden">
+        <h2 style="margin-top:14px">ວັນທີບໍ່ວ່າງ</h2>
+        <div class="muted">ລົດຄັນນີ້ຈະບໍ່ໃຫ້ລູກຄ້າຈອງໃນວັນທີເຫຼົ່ານີ້</div>
+        <label>ຈາກວັນທີ<input type="date" id="bStart"></label>
+        <label>ຫາວັນທີ<input type="date" id="bEnd"></label>
+        <label>ໝາຍເຫດ<input id="bNote" placeholder="ເຊັ່ນ ລົດເຂົ້າສ້ອມ"></label>
+        <button id="btnAddBlock" class="blue">ເພີ່ມວັນບໍ່ວ່າງ</button>
+        <div id="blockMsg" class="msg"></div>
+        <div id="blockList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -326,6 +338,7 @@
     $("saveMsg").textContent = "";
     $("photoSection").classList.remove("hidden");
     renderPhotos(car ? car.photos : []);
+    if (car && car.carId) loadBlocks(); else $("blockSection").classList.add("hidden");
     $("formCard").scrollIntoView({ behavior: "smooth" });
   }
   function closeForm() { $("formCard").classList.add("hidden"); editing = null; }
@@ -362,6 +375,7 @@
       $("saveMsg").textContent = "ບັນທຶກແລ້ວ";
       editing = { carId: res.carId, photos: editing ? editing.photos : [] };
       renderPhotos(editing.photos);
+      loadBlocks();
       refreshCars();
       return res.carId;
     } catch (e) { $("saveMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; return null; }
@@ -531,6 +545,41 @@
       $("profileMsg").textContent = "ບັນທຶກແລ້ວ";
       loadInfo();
     } catch (e) { $("profileMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+
+
+  // ===== ວັນທີບໍ່ວ່າງ =====
+  async function loadBlocks() {
+    if (!editing || !editing.carId) return;
+    $("blockSection").classList.remove("hidden");
+    try {
+      const res = await getJson(API + "?type=rentalblocks&ownerName=" + encodeURIComponent(owner.name) + "&pin=" + encodeURIComponent(owner.pin) + "&carId=" + encodeURIComponent(editing.carId));
+      const list = (res && res.blocks) || [];
+      $("blockList").innerHTML = list.length ? list.map((b) =>
+        '<div class="row" style="background:var(--green2);border-radius:10px;padding:8px"><span>' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + (b.note ? ' · ' + esc(b.note) : '') + '</span>' +
+        '<button class="small ghost" data-id="' + esc(b.blockId) + '">ລຶບ</button></div>'
+      ).join("") : '<div class="muted">ຍັງບໍ່ມີວັນບໍ່ວ່າງ</div>';
+    } catch (e) {}
+  }
+  $("btnAddBlock").addEventListener("click", async () => {
+    if (!editing || !editing.carId) { $("blockMsg").textContent = "ບັນທຶກລົດກ່ອນ"; return; }
+    const s = $("bStart").value, e = $("bEnd").value;
+    if (!s || !e) { $("blockMsg").textContent = "ເລືອກວັນທີໃຫ້ຄົບ"; return; }
+    $("blockMsg").textContent = "ກຳລັງບັນທຶກ...";
+    try {
+      const res = await post({ type: "rentalblockadd", ownerName: owner.name, pin: owner.pin, carId: editing.carId, startDate: s, endDate: e, note: $("bNote").value.trim() });
+      if (res && res.ok) { $("blockMsg").textContent = "ບັນທຶກແລ້ວ"; $("bNote").value = ""; loadBlocks(); }
+      else $("blockMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")";
+    } catch (err) { $("blockMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  });
+  $("blockList").addEventListener("click", async (ev) => {
+    const b = ev.target.closest("button[data-id]");
+    if (!b) return;
+    if (!confirm("ລຶບວັນບໍ່ວ່າງນີ້?")) return;
+    try {
+      const res = await post({ type: "rentalblockdel", ownerName: owner.name, pin: owner.pin, blockId: b.dataset.id });
+      if (res && res.ok) loadBlocks();
+    } catch (err) {}
   });
 
   $("btnLogin").addEventListener("click", login);
