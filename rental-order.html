@@ -408,11 +408,11 @@
       });
       if (!res || !res.ok) {
         const msgs = { busy: "ລົດຄັນນີ້ຖືກຈອງໄປແລ້ວ", docs: "ຕ້ອງມີເອກະສານຕົວຕົນ", notfound: "ລົດນີ້ບໍ່ພ້ອມໃຫ້ເຊົ່າ" };
-        $("bookMsg").textContent = msgs[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+        $("bookMsg").textContent = msgs[res && res.reason] || ("ບໍ່ສຳເລັດ, ລອງໃໝ່" + (res && res.msg ? " (" + res.msg + ")" : ""));
         return;
       }
       showBill(res);
-    } catch (err) { $("bookMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້, ລອງໃໝ່"; }
+    } catch (err) { $("bookMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້, ລອງໃໝ່ (" + (err && err.message || err) + ")"; }
     finally { $("btnBook").disabled = false; }
   });
 
