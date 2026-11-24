@@ -98,7 +98,7 @@
       <div id="quoteMsg" class="msg"></div>
       <div id="quoteBox" class="qbox hidden">
         <div class="row"><span>ຈຳນວນວັນ</span><b id="qDays">-</b></div>
-        <div class="row"><span>ຄ່າເຊົ່າ</span><b id="qAmount">-</b></div>
+        <div class="row"><span>ຄ່າເຊົ່າ <span class="muted" id="qRate"></span></span><b id="qAmount">-</b></div>
         <div class="row"><span>ຄ່າຈອງ (ຈ່າຍໃຫ້ຮ້ານ)</span><b id="qBook">-</b></div>
         <div class="row"><span>ລວມທີ່ຕ້ອງຈ່າຍ</span><span class="big" id="qTotal">-</span></div>
       </div>
@@ -380,6 +380,7 @@
       quote = { startDate: s, endDate: e };
       $("qDays").textContent = res.days + " ວັນ";
       $("qAmount").textContent = money(res.amount);
+      $("qRate").textContent = res.dayRate ? "(" + Number(res.dayRate).toLocaleString("en-US") + " ກີບ/ວັນ × " + res.days + " ວັນ)" : "";
       $("qBook").textContent = money(res.bookingFee);
       $("qTotal").textContent = money(res.total);
       $("quoteBox").classList.remove("hidden");
