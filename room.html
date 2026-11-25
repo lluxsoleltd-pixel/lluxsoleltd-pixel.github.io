@@ -103,8 +103,10 @@
         <select id="fStatus"><option value="active">ເປີດໃຫ້ບໍລິການ</option><option value="off">ປິດຊົ່ວຄາວ</option></select>
       </label>
       <div class="sub">
-        <label class="chk"><input type="checkbox" id="fFull"> ✅ ຫ້ອງເຕັມ (ລູກຄ້າຈະເຫັນວ່າ "ຫ້ອງເຕັມ" ແລະ ຈອງບໍ່ໄດ້)</label>
-        <div class="muted" id="fFullMsg">ບໍ່ໄດ້ຕິ໊ກ = ຫ້ອງວ່າງ</div>
+        <label>ສະຖານະຫ້ອງ (ລູກຄ້າຈະເຫັນສະຖານະນີ້ ແລະ ຈອງບໍ່ໄດ້ຖ້າເຕັມ)
+          <select id="fOcc" disabled><option value="vacant">ຫ້ອງວ່າງ</option><option value="full">ຫ້ອງເຕັມແລ້ວ</option></select>
+        </label>
+        <div class="muted" id="fFullMsg"></div>
       </div>
       <button id="btnSave" class="blue">ບັນທຶກປ່ອງ</button>
       <div id="saveMsg" class="msg"></div>
@@ -311,8 +313,8 @@
     $("fPrice").value = l ? l.price : "";
     $("fDesc").value = l ? l.description : "";
     $("fStatus").value = l ? l.status : "active";
-    $("fFull").checked = !!(l && l.occupancy === "full");
-    $("fFull").disabled = !l;
+    $("fOcc").value = l && l.occupancy === "full" ? "full" : "vacant";
+    $("fOcc").disabled = !l;
     $("fFullMsg").textContent = l ? "" : "ບັນທຶກປ່ອງກ່ອນ ຈຶ່ງຈະຕັ້ງສະຖານະໄດ້";
     $("saveMsg").textContent = "";
     updateMapLink();
@@ -378,17 +380,17 @@
     if ($("pinBox").classList.contains("hidden")) openPinMap(); else $("pinBox").classList.add("hidden");
   });
 
-  $("fFull").addEventListener("change", async () => {
+  $("fOcc").addEventListener("change", async () => {
     if (!editing || !editing.propId) return;
-    const full = $("fFull").checked;
+    const full = $("fOcc").value === "full";
     $("fFullMsg").textContent = "ກຳລັງອັບເດດ...";
     try {
       const res = await post({ type: "propoccupancy", ownerName: owner.name, pin: owner.pin, propId: editing.propId, full: full });
       if (res && res.ok) {
-        $("fFullMsg").textContent = full ? "ຕັ້ງເປັນ ຫ້ອງເຕັມ ແລ້ວ" : "ຕັ້ງເປັນ ຫ້ອງວ່າງ ແລ້ວ";
+        $("fFullMsg").textContent = full ? "ຕັ້ງເປັນ ຫ້ອງເຕັມແລ້ວ" : "ຕັ້ງເປັນ ຫ້ອງວ່າງ";
         refresh();
-      } else { $("fFullMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; $("fFull").checked = !full; }
-    } catch (e) { $("fFullMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; $("fFull").checked = !full; }
+      } else { $("fFullMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; $("fOcc").value = full ? "vacant" : "full"; }
+    } catch (e) { $("fFullMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; $("fOcc").value = full ? "vacant" : "full"; }
   });
 
   $("btnSave").addEventListener("click", async () => {
