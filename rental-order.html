@@ -71,6 +71,7 @@
     <div class="card">
       <h2>ເລືອກປະເພດລົດ</h2>
       <div class="chips" id="typeChips"></div>
+      <div class="row" style="gap:8px;margin-top:8px"><select id="carProvSel" style="flex:1"></select><select id="carDistSel" style="flex:1"></select></div>
       <input id="carSearch" type="search" placeholder="ຄົ້ນຫາ: ຍີ່ຫໍ້/ລຸ້ນ, ຂົງເຂດ, ຊື່ເຈົ້າຂອງ/ຮ້ານ ຫຼື ເບີໂທ" style="width:100%;margin:8px 0;box-sizing:border-box">
       <style>
         .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -256,7 +257,8 @@
     $("carsMsg").textContent = "ກຳລັງໂຫລດ...";
     try {
       const res = await getJson(API + "?type=rentalcars&page=" + carPage + "&q=" + encodeURIComponent(carQ) +
-        (filterType ? "&carType=" + encodeURIComponent(filterType) : ""));
+        (filterType ? "&carType=" + encodeURIComponent(filterType) : "") +
+        (carProv ? "&province=" + encodeURIComponent(carProv) : "") + (carDist ? "&district=" + encodeURIComponent(carDist) : ""));
       const items = (res && res.cars) || [];
       const start = cars.length;
       cars = cars.concat(items);
@@ -268,6 +270,17 @@
     } catch (e) { $("carsMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
     finally { carLoading = false; }
   }
+  let carProv = "", carDist = "", geoCars = [];
+  function fillCarProvFilter() {
+    $("carProvSel").innerHTML = '<option value="">ທຸກແຂວງ</option>' + geoCars.map((g) => '<option>' + esc(g.p) + '</option>').join("");
+  }
+  function fillCarDistFilter() {
+    const g = geoCars.find((x) => x.p === carProv);
+    $("carDistSel").innerHTML = '<option value="">ທຸກເມືອງ</option>' + (g ? g.d.map((x) => '<option>' + esc(x) + '</option>').join("") : "");
+  }
+  $("carProvSel").addEventListener("change", () => { carProv = $("carProvSel").value; carDist = ""; fillCarDistFilter(); loadCars(true); });
+  $("carDistSel").addEventListener("change", () => { carDist = $("carDistSel").value; loadCars(true); });
+  getJson(API + "?type=geo").then((r) => { geoCars = (r && r.geo) || []; fillCarProvFilter(); fillCarDistFilter(); }).catch(() => {});
   let carSearchT = null;
   $("carSearch").addEventListener("input", () => {
     clearTimeout(carSearchT);

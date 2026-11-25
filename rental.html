@@ -147,6 +147,12 @@
       </label>
       <label>ຍີ່ຫໍ້ / ລຸ້ນລົດ<input id="fModel" placeholder="ເຊັ່ນ Toyota Hilux 2020"></label>
       <label>ທະບຽນລົດ<input id="fPlate"></label>
+      <label>ແຂວງທີ່ລົດຢູ່
+        <select id="fProv"></select>
+      </label>
+      <label>ເມືອງທີ່ລົດຢູ່
+        <select id="fDist"></select>
+      </label>
       <label>ຂົງເຂດໃຫ້ບໍລິການ
         <input id="fAreas" placeholder="ເຊັ່ນ ພາຍໃນນະຄອນຫຼວງ, ຕ່າງແຂວງ">
       </label>
@@ -238,6 +244,17 @@
   function money(n) { return Number(n || 0).toLocaleString("en-US") + " ກີບ"; }
 
   async function getJson(url) { const r = await fetch(url, { cache: "no-store" }); return r.json(); }
+
+  let geoList = [];
+  function fillProvSelect() {
+    $("fProv").innerHTML = '<option value="">— ເລືອກແຂວງ —</option>' + geoList.map((g) => '<option>' + esc(g.p) + '</option>').join("");
+  }
+  function fillDistSelect() {
+    const g = geoList.find((x) => x.p === $("fProv").value);
+    $("fDist").innerHTML = '<option value="">— ເລືອກເມືອງ —</option>' + (g ? g.d.map((x) => '<option>' + esc(x) + '</option>').join("") : "");
+  }
+  $("fProv").addEventListener("change", fillDistSelect);
+  getJson(API + "?type=geo").then((r) => { geoList = (r && r.geo) || []; fillProvSelect(); }).catch(() => {});
   async function post(body) {
     const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(body) });
     return r.json();
@@ -333,6 +350,9 @@
     $("fModel").value = car ? car.model : "";
     $("fPlate").value = car ? car.plate : "";
     $("fAreas").value = car ? car.areas : "";
+    $("fProv").value = car && car.province ? car.province : "";
+    fillDistSelect();
+    if (car && car.district) $("fDist").value = car.district;
     $("fDesc").value = car ? car.description : "";
     $("fStatus").value = car ? (car.status || "active") : "active";
     const hasSelf = car && car.selfPrices && Object.keys(car.selfPrices).length > 0;
@@ -375,6 +395,7 @@
         type: "rentalcarsave", ownerName: owner.name, pin: owner.pin,
         carId: editing ? editing.carId : "",
         carType: carType, model: $("fModel").value.trim(), plate: $("fPlate").value.trim(),
+        province: $("fProv").value, district: $("fDist").value,
         areas: $("fAreas").value.trim(), description: $("fDesc").value.trim(), status: $("fStatus").value,
         selfPrices: selfP, driverPrices: drvP
       });
