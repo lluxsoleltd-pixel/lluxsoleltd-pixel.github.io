@@ -102,6 +102,10 @@
       <label>ສະຖານະ
         <select id="fStatus"><option value="active">ເປີດໃຫ້ບໍລິການ</option><option value="off">ປິດຊົ່ວຄາວ</option></select>
       </label>
+      <div class="sub">
+        <label class="chk"><input type="checkbox" id="fFull"> ✅ ຫ້ອງເຕັມ (ລູກຄ້າຈະເຫັນວ່າ "ຫ້ອງເຕັມ" ແລະ ຈອງບໍ່ໄດ້)</label>
+        <div class="muted" id="fFullMsg">ບໍ່ໄດ້ຕິ໊ກ = ຫ້ອງວ່າງ</div>
+      </div>
       <button id="btnSave" class="blue">ບັນທຶກປ່ອງ</button>
       <div id="saveMsg" class="msg"></div>
 
@@ -278,7 +282,8 @@
         (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
         '<div style="flex:1"><b>' + esc(l.title) + '</b><div class="muted">' + esc(l.serviceName) + ' · ' + esc(l.subtype) + '</div>' +
         '<div class="muted">' + money(l.price) + ' ' + esc(l.unitLabel) + '</div>' +
-        '<span class="tag ' + (l.status === "active" ? "" : "off") + '">' + (l.status === "active" ? "ເປີດບໍລິການ" : "ປິດຊົ່ວຄາວ") + '</span></div></div>'
+        '<span class="tag ' + (l.status === "active" ? "" : "off") + '">' + (l.status === "active" ? "ເປີດບໍລິການ" : "ປິດຊົ່ວຄາວ") + '</span> ' +
+        (l.occupancy === "full" ? '<span class="tag" style="background:#dc2626;color:#fff">✅ ຫ້ອງເຕັມ</span>' : '<span class="tag" style="background:#65d07a">ຫ້ອງວ່າງ</span>') + '</div></div>'
     ).join("") : '<div class="muted">ຍັງບໍ່ມີປ່ອງບໍລິການ, ກົດ "ເພີ່ມປ່ອງ"</div>';
   }
   function fillServiceSelect() {
@@ -306,6 +311,9 @@
     $("fPrice").value = l ? l.price : "";
     $("fDesc").value = l ? l.description : "";
     $("fStatus").value = l ? l.status : "active";
+    $("fFull").checked = !!(l && l.occupancy === "full");
+    $("fFull").disabled = !l;
+    $("fFullMsg").textContent = l ? "" : "ບັນທຶກປ່ອງກ່ອນ ຈຶ່ງຈະຕັ້ງສະຖານະໄດ້";
     $("saveMsg").textContent = "";
     updateMapLink();
     if (l) { renderPhotos(l.photos || []); loadBlocks(); $("extraSection").classList.remove("hidden"); }
@@ -368,6 +376,19 @@
   });
   $("btnPin").addEventListener("click", () => {
     if ($("pinBox").classList.contains("hidden")) openPinMap(); else $("pinBox").classList.add("hidden");
+  });
+
+  $("fFull").addEventListener("change", async () => {
+    if (!editing || !editing.propId) return;
+    const full = $("fFull").checked;
+    $("fFullMsg").textContent = "ກຳລັງອັບເດດ...";
+    try {
+      const res = await post({ type: "propoccupancy", ownerName: owner.name, pin: owner.pin, propId: editing.propId, full: full });
+      if (res && res.ok) {
+        $("fFullMsg").textContent = full ? "ຕັ້ງເປັນ ຫ້ອງເຕັມ ແລ້ວ" : "ຕັ້ງເປັນ ຫ້ອງວ່າງ ແລ້ວ";
+        refresh();
+      } else { $("fFullMsg").textContent = "ບໍ່ສຳເລັດ (" + ((res && res.reason) || "error") + ")"; $("fFull").checked = !full; }
+    } catch (e) { $("fFullMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; $("fFull").checked = !full; }
   });
 
   $("btnSave").addEventListener("click", async () => {

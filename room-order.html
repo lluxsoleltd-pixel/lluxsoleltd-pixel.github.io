@@ -70,12 +70,29 @@
     </div>
   </div>
 
+  <!-- 3. ໜ້າຮ້ານເຈົ້າຂອງ -->
+  <div id="stepOwner" class="hidden">
+    <button id="btnOwnerBack" class="ghost small" style="margin-bottom:10px">← ກັບ</button>
+    <div class="card">
+      <h2 id="oShop">-</h2>
+      <div class="muted" id="oLoc"></div>
+      <a id="oMap" class="btnlink hidden" target="_blank" rel="noopener">ເປີດແຜນທີ່</a>
+      <div class="row"><a class="btnlink" id="oCall" style="flex:1;margin-top:0">ໂທຫາເຈົ້າຂອງ</a><a class="btnlink wa" id="oWa" target="_blank" rel="noopener" style="flex:1;margin-top:0">WhatsApp</a></div>
+    </div>
+    <div class="card">
+      <h2>ປ່ອງບໍລິການທັງໝົດ</h2>
+      <div id="oList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+  </div>
+
   <!-- 2. ລາຍລະອຽດ + ຈອງ -->
   <div id="stepDetail" class="hidden">
     <button id="btnBack" class="ghost small" style="margin-bottom:10px">← ກັບໄປລາຍການ</button>
     <div class="card">
       <h2 id="dTitle">-</h2>
       <div class="muted" id="dMeta">-</div>
+      <div class="row"><span id="dStatus" class="tag">-</span><span class="muted">ເຈົ້າຂອງ: <b id="dOwner">-</b></span></div>
+      <button id="btnStore" class="small blue" style="width:100%">ເບິ່ງໜ້າຮ້ານ / ປ່ອງທັງໝົດຂອງເຈົ້າຂອງ</button>
       <div class="gallery" id="dGallery"></div>
       <div id="dDesc" style="white-space:pre-line"></div>
       <div class="muted" id="dLoc" style="margin-top:8px"></div>
@@ -146,7 +163,14 @@
     $("stepContact").classList.toggle("hidden", step !== "contact");
     $("stepList").classList.toggle("hidden", step !== "list");
     $("stepDetail").classList.toggle("hidden", step !== "detail");
+    $("stepOwner").classList.toggle("hidden", step !== "owner");
   }
+  function statusTag(l) {
+    return l.occupancy === "full"
+      ? '<span class="tag" style="background:#dc2626;color:#fff">✅ ຫ້ອງເຕັມ</span>'
+      : '<span class="tag" style="background:#65d07a;color:#fff">ຫ້ອງວ່າງ</span>';
+  }
+  let ownerListings = [], ownerReturn = "list";
 
   // ===== ລາຍການ =====
   function renderServiceChips() {
@@ -171,7 +195,8 @@
           (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
           '<div style="flex:1"><b>' + esc(l.title) + '</b><div class="muted">' + esc(l.serviceName) + ' · ' + esc(l.subtype) + '</div>' +
           '<div class="muted">' + esc(l.location) + '</div>' +
-          '<div>ເລີ່ມຕົ້ນ <b>' + money(l.price) + '</b> <span class="muted">' + esc(l.unitLabel) + '</span></div></div></div>'
+          '<div>ເລີ່ມຕົ້ນ <b>' + money(l.price) + '</b> <span class="muted">' + esc(l.unitLabel) + '</span></div>' +
+          '<div style="margin-top:4px">' + statusTag(l) + '</div></div></div>'
       ).join("") : '<div class="muted">ຍັງບໍ່ມີລາຍການໃນປະເພດນີ້</div>';
     } catch (e) { $("listBox").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
   }
@@ -229,6 +254,10 @@
     $("dDesc").textContent = l.description || "";
     $("dLoc").textContent = l.location ? "ທີ່ຕັ້ງ: " + l.location : "";
     $("dPrice").innerHTML = "ລາຄາ <b>" + money(l.price) + "</b> " + esc(l.unitLabel);
+    $("dStatus").outerHTML = statusTag(l).replace('<span class="tag"', '<span id="dStatus" class="tag"');
+    $("dOwner").textContent = l.shopName || l.ownerName || "-";
+    $("btnQuote").disabled = l.occupancy === "full";
+    $("quoteMsg").textContent = l.occupancy === "full" ? "ຫ້ອງເຕັມ ຕອນນີ້ບໍ່ສາມາດຈອງໄດ້" : "";
     if (l.lat && l.lng) { $("dMap").href = "https://maps.google.com/?q=" + encodeURIComponent(l.lat + "," + l.lng); $("dMap").classList.remove("hidden"); }
     else $("dMap").classList.add("hidden");
     galleryPhotos = l.photos || [];
@@ -237,7 +266,6 @@
     $("quoteBox").classList.add("hidden");
     $("billCard").classList.add("hidden");
     $("bookMsg").textContent = "";
-    $("quoteMsg").textContent = "";
     window.scrollTo({ top: 0 });
     try {
       const res = await getJson(API + "?type=propdetail&propId=" + encodeURIComponent(l.propId));
@@ -260,7 +288,7 @@
     try {
       const res = await getJson(API + "?type=propquote&propId=" + encodeURIComponent(current.propId) + "&startDate=" + s + "&endDate=" + e);
       if (!res || !res.ok) {
-        const m = { busy: "ປ່ອງນີ້ຖືກຈອງ ຫຼື ບໍ່ວ່າງໃນວັນທີ່ນີ້", dates: "ວັນທີບໍ່ຖືກຕ້ອງ", notfound: "ປ່ອງນີ້ບໍ່ພ້ອມໃຫ້ບໍລິການ" };
+        const m = { busy: "ປ່ອງນີ້ຖືກຈອງ ຫຼື ບໍ່ວ່າງໃນວັນທີ່ນີ້", dates: "ວັນທີບໍ່ຖືກຕ້ອງ", notfound: "ປ່ອງນີ້ບໍ່ພ້ອມໃຫ້ບໍລິການ", full: "ຫ້ອງເຕັມ ຕອນນີ້ບໍ່ສາມາດຈອງໄດ້" };
         $("quoteMsg").textContent = m[res && res.reason] || "ບໍ່ສຳເລັດ";
         $("quoteBox").classList.add("hidden");
         return;
@@ -314,6 +342,38 @@
     b.scrollIntoView({ behavior: "smooth" });
     loadMyBookings();
   }
+
+  // ===== ໜ້າຮ້ານເຈົ້າຂອງ =====
+  async function openOwner(name, from) {
+    ownerReturn = from || "list";
+    show("owner");
+    $("oShop").textContent = name;
+    $("oList").textContent = "ກຳລັງໂຫລດ...";
+    try {
+      const res = await getJson(API + "?type=propownerpublic&ownerName=" + encodeURIComponent(name));
+      if (!res || !res.ok) { $("oList").textContent = "ບໍ່ພົບຂໍ້ມູນເຈົ້າຂອງ"; return; }
+      const p = res.profile;
+      $("oShop").textContent = p.shopName || p.name;
+      $("oLoc").textContent = p.location ? "ທີ່ຕັ້ງ: " + p.location : "";
+      if (p.lat && p.lng) { $("oMap").href = "https://maps.google.com/?q=" + encodeURIComponent(p.lat + "," + p.lng); $("oMap").classList.remove("hidden"); }
+      else $("oMap").classList.add("hidden");
+      if (p.phone) { $("oCall").href = telHref(p.phone); $("oWa").href = waHref(p.phone); }
+      ownerListings = res.listings || [];
+      $("oList").innerHTML = ownerListings.length ? ownerListings.map((l, i) =>
+        '<div class="item" data-o="' + i + '">' +
+          (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
+          '<div style="flex:1"><b>' + esc(l.title) + '</b><div class="muted">' + esc(l.subtype) + '</div>' +
+          '<div>ເລີ່ມຕົ້ນ <b>' + money(l.price) + '</b> <span class="muted">' + esc(l.unitLabel) + '</span></div>' +
+          '<div style="margin-top:4px">' + statusTag(l) + '</div></div></div>'
+      ).join("") : '<div class="muted">ຍັງບໍ່ມີປ່ອງບໍລິການ</div>';
+    } catch (e) { $("oList").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+  }
+  $("btnStore").addEventListener("click", () => { if (current) openOwner(current.ownerName, "detail"); });
+  $("btnOwnerBack").addEventListener("click", () => { if (ownerReturn === "detail" && current) show("detail"); else { show("list"); loadList(); } });
+  $("oList").addEventListener("click", (ev) => {
+    const card = ev.target.closest(".item[data-o]");
+    if (card) openDetail(ownerListings[Number(card.dataset.o)]);
+  });
 
   // ===== ເບິ່ງຮູບເຕັມຈໍ + ຊູມ =====
   let lbIndex = 0, scale = 1, tx = 0, ty = 0, pinchStart = null, panStart = null;
