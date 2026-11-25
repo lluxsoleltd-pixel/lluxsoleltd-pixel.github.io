@@ -86,7 +86,9 @@
         <select id="fSub"></select>
       </label>
       <label>ຊື່ປ່ອງ / ຊື່ບໍລິການ<input id="fTitle" placeholder="ເຊັ່ນ ຫ້ອງແຖວໜ້າຕະຫຼາດ"></label>
-      <label>ທີ່ຕັ້ງ (ຂໍ້ຄວາມ)<input id="fLocation"></label>
+      <label>ແຂວງ<select id="fProv"></select></label>
+      <label>ເມືອງ<select id="fDist"></select></label>
+      <label>ທີ່ຕັ້ງ (ບ້ານ ແລະ ລາຍລະອຽດ)<input id="fLocation"></label>
       <div class="muted">ພິກັດທີ່ຕັ້ງ</div>
       <div class="muted" id="locStatus">ຍັງບໍ່ໄດ້ປັກພິກັດ</div>
       <input type="hidden" id="fLat"><input type="hidden" id="fLng">
@@ -299,6 +301,17 @@
   }
   $("fService").addEventListener("change", fillSubSelect);
 
+  let geoList = [];
+  function fillProvSelect() {
+    $("fProv").innerHTML = '<option value="">— ເລືອກແຂວງ —</option>' + geoList.map((g) => '<option>' + esc(g.p) + '</option>').join("");
+  }
+  function fillDistSelect() {
+    const g = geoList.find((x) => x.p === $("fProv").value);
+    $("fDist").innerHTML = '<option value="">— ເລືອກເມືອງ —</option>' + (g ? g.d.map((x) => '<option>' + esc(x) + '</option>').join("") : "");
+  }
+  $("fProv").addEventListener("change", fillDistSelect);
+  getJson(API + "?type=geo").then((r) => { geoList = (r && r.geo) || []; fillProvSelect(); }).catch(() => {});
+
   function openForm(l) {
     editing = l || null;
     $("formCard").classList.remove("hidden");
@@ -308,6 +321,9 @@
     if (l) $("fSub").value = l.subtype;
     $("fTitle").value = l ? l.title : "";
     $("fLocation").value = l ? l.location : "";
+    $("fProv").value = l && l.province ? l.province : "";
+    fillDistSelect();
+    if (l && l.district) $("fDist").value = l.district;
     $("fLat").value = l ? l.lat : "";
     $("fLng").value = l ? l.lng : "";
     $("fPrice").value = l ? l.price : "";
@@ -397,11 +413,13 @@
     const title = $("fTitle").value.trim();
     if (!title) { $("saveMsg").textContent = "ໃສ່ຊື່ປ່ອງກ່ອນ"; return; }
     if (!(Number($("fPrice").value) > 0)) { $("saveMsg").textContent = "ໃສ່ລາຄາ"; return; }
+    if (!$("fProv").value || !$("fDist").value) { $("saveMsg").textContent = "ເລືອກແຂວງ ແລະ ເມືອງກ່ອນ"; return; }
     $("saveMsg").textContent = "ກຳລັງບັນທຶກ...";
     try {
       const res = await post({
         type: "propsave", ownerName: owner.name, pin: owner.pin, propId: editing ? editing.propId : "",
         service: $("fService").value, subtype: $("fSub").value, title: title,
+        province: $("fProv").value, district: $("fDist").value,
         location: $("fLocation").value.trim(), lat: $("fLat").value.trim(), lng: $("fLng").value.trim(),
         price: Number($("fPrice").value), description: $("fDesc").value.trim(), status: $("fStatus").value
       });
