@@ -71,7 +71,17 @@
     <div class="card">
       <h2>ເລືອກປະເພດລົດ</h2>
       <div class="chips" id="typeChips"></div>
-      <div id="carsList" class="muted">ກຳລັງໂຫລດ...</div>
+      <input id="carSearch" type="search" placeholder="ຄົ້ນຫາ: ຍີ່ຫໍ້/ລຸ້ນ, ຂົງເຂດ, ຊື່ເຈົ້າຂອງ/ຮ້ານ ຫຼື ເບີໂທ" style="width:100%;margin:8px 0;box-sizing:border-box">
+      <style>
+        .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .gcard { background:rgba(0,0,0,.22); border-radius:12px; overflow:hidden; cursor:pointer; color:#fff; }
+        .gcard img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#2f4d3a; }
+        .gbody { padding:8px; font-size:14px; line-height:1.45; }
+        .gbody .muted { color:#cfe3d4; }
+      </style>
+      <div id="carsList" class="grid2"></div>
+      <div id="carsMsg" class="muted" style="text-align:center;margin-top:8px"></div>
+      <div id="carsSentinel" style="height:1px"></div>
     </div>
   </div>
 
@@ -238,13 +248,35 @@
     loadCars();
     loadMyBookings();
   }
-  async function loadCars() {
-    $("carsList").textContent = "ກຳລັງໂຫລດ...";
+  let carPage = 1, carHasMore = false, carLoading = false, carQ = "";
+  async function loadCars(reset = true) {
+    if (reset) { carPage = 1; cars = []; $("carsList").innerHTML = ""; }
+    if (carLoading) return;
+    carLoading = true;
+    $("carsMsg").textContent = "ກຳລັງໂຫລດ...";
     try {
-      const res = await getJson(API + "?type=rentalcars" + (filterType ? "&carType=" + encodeURIComponent(filterType) : ""));
-      cars = (res && res.cars) || [];
-      renderCars();
-    } catch (e) { $("carsList").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+      const res = await getJson(API + "?type=rentalcars&page=" + carPage + "&q=" + encodeURIComponent(carQ) +
+        (filterType ? "&carType=" + encodeURIComponent(filterType) : ""));
+      const items = (res && res.cars) || [];
+      const start = cars.length;
+      cars = cars.concat(items);
+      $("carsList").insertAdjacentHTML("beforeend", items.map((c, i) => carCardHtml(c, start + i)).join(""));
+      if (!cars.length) $("carsList").innerHTML = '<div class="muted">ບໍ່ພົບລົດ</div>';
+      carHasMore = !!(res && res.hasMore);
+      carPage++;
+      $("carsMsg").textContent = "";
+    } catch (e) { $("carsMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    finally { carLoading = false; }
+  }
+  let carSearchT = null;
+  $("carSearch").addEventListener("input", () => {
+    clearTimeout(carSearchT);
+    carSearchT = setTimeout(() => { carQ = $("carSearch").value.trim(); loadCars(true); }, 400);
+  });
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((es) => {
+      if (es.some((e) => e.isIntersecting) && carHasMore && !carLoading && $("carsSentinel").offsetParent !== null) loadCars(false);
+    }, { rootMargin: "300px" }).observe($("carsSentinel"));
   }
   function minPrice(c) {
     const vals = [];
@@ -254,19 +286,17 @@
     });
     return vals.length ? Math.min.apply(null, vals) : null;
   }
-  function renderCars() {
-    $("carsList").innerHTML = cars.length ? cars.map((c, i) =>
-      '<div class="carcard" data-i="' + i + '">' +
-        (c.photos && c.photos[0] ? '<img src="' + esc(c.photos[0]) + '" alt="">' : '<img alt="">') +
-        '<div style="flex:1"><b>' + esc(c.model || c.carType) + '</b>' +
-        '<div class="muted">' + esc(c.carType) + '</div>' +
-        '<div class="muted">' + esc(c.areas) + '</div>' +
-        (minPrice(c) ? '<div>ເລີ່ມຕົ້ນ <b>' + money(minPrice(c)) + '/ມື້</b></div>' : '') +
-        '</div></div>'
-    ).join("") : '<div class="muted">ຍັງບໍ່ມີລົດໃນປະເພດນີ້</div>';
+  function carCardHtml(c, i) {
+    return '<div class="gcard" data-i="' + i + '">' +
+      (c.photos && c.photos[0] ? '<img src="' + esc(c.photos[0]) + '" alt="">' : '<img alt="">') +
+      '<div class="gbody"><b>' + esc(c.model || c.carType) + '</b>' +
+      '<div class="muted">' + esc(c.carType) + '</div>' +
+      '<div class="muted">' + esc(c.areas) + '</div>' +
+      (minPrice(c) ? '<div>ເລີ່ມຕົ້ນ <b>' + money(minPrice(c)) + '/ມື້</b></div>' : '') +
+      '</div></div>';
   }
   $("carsList").addEventListener("click", (ev) => {
-    const card = ev.target.closest(".carcard");
+    const card = ev.target.closest(".gcard");
     if (!card) return;
     openDetail(cars[Number(card.dataset.i)]);
   });

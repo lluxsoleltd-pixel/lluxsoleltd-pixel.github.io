@@ -66,7 +66,17 @@
       <h2>ເລືອກປະເພດບໍລິການ</h2>
       <div class="chips" id="svcChips"></div>
       <div class="chips" id="subChips"></div>
-      <div id="listBox" class="muted">ກຳລັງໂຫລດ...</div>
+      <input id="listSearch" type="search" placeholder="ຄົ້ນຫາ: ຊື່ປ່ອງ, ທີ່ຕັ້ງ, ຊື່ຮ້ານ ຫຼື ເບີໂທ" style="width:100%;margin:8px 0;box-sizing:border-box">
+      <style>
+        .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+        .gcard { background:rgba(0,0,0,.22); border-radius:12px; overflow:hidden; cursor:pointer; color:#fff; }
+        .gcard img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#2f4d3a; }
+        .gbody { padding:8px; font-size:14px; line-height:1.45; }
+        .gbody .muted { color:#cfe3d4; }
+      </style>
+      <div id="listBox" class="grid2"></div>
+      <div id="listMsg" class="muted" style="text-align:center;margin-top:8px"></div>
+      <div id="listSentinel" style="height:1px"></div>
     </div>
   </div>
 
@@ -195,24 +205,49 @@
     $("subChips").innerHTML = sub.length ? '<button data-s="" class="' + (subKey === "" ? "on" : "") + '">ທຸກຂະໜາດ</button>' +
       sub.map((s) => '<button data-s="' + esc(s) + '" class="' + (subKey === s ? "on" : "") + '">' + esc(s) + '</button>').join("") : "";
   }
-  async function loadList() {
+  let listPage = 1, listHasMore = false, listLoading = false, listQ = "";
+  function listCardHtml(l, i) {
+    return '<div class="gcard" data-i="' + i + '">' +
+      (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
+      '<div class="gbody"><b>' + esc(l.title) + '</b>' +
+      '<div class="muted">' + esc(l.subtype) + '</div>' +
+      '<div class="muted">' + esc(l.location) + '</div>' +
+      '<div>' + money(l.price) + ' <span class="muted">' + esc(l.unitLabel) + '</span></div>' +
+      '<div style="margin-top:4px">' + statusTag(l) + '</div></div></div>';
+  }
+  async function loadList(reset = true) {
     renderServiceChips();
-    $("listBox").textContent = "ກຳລັງໂຫລດ...";
+    if (reset) { listPage = 1; listings = []; $("listBox").innerHTML = ""; }
+    if (listLoading) return;
+    listLoading = true;
+    $("listMsg").textContent = "ກຳລັງໂຫລດ...";
     try {
-      const q = "?type=proplist" + (svcKey ? "&service=" + encodeURIComponent(svcKey) : "") + (subKey ? "&subtype=" + encodeURIComponent(subKey) : "");
+      const q = "?type=proplist&page=" + listPage + "&q=" + encodeURIComponent(listQ) +
+        (svcKey ? "&service=" + encodeURIComponent(svcKey) : "") + (subKey ? "&subtype=" + encodeURIComponent(subKey) : "");
       const res = await getJson(API + q);
-      listings = (res && res.listings) || [];
       if (res && res.services) services = res.services;
       renderServiceChips();
-      $("listBox").innerHTML = listings.length ? listings.map((l, i) =>
-        '<div class="item" data-i="' + i + '">' +
-          (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
-          '<div style="flex:1"><b>' + esc(l.title) + '</b><div class="muted">' + esc(l.serviceName) + ' · ' + esc(l.subtype) + '</div>' +
-          '<div class="muted">' + esc(l.location) + '</div>' +
-          '<div>ເລີ່ມຕົ້ນ <b>' + money(l.price) + '</b> <span class="muted">' + esc(l.unitLabel) + '</span></div>' +
-          '<div style="margin-top:4px">' + statusTag(l) + '</div></div></div>'
-      ).join("") : '<div class="muted">ຍັງບໍ່ມີລາຍການໃນປະເພດນີ້</div>';
-    } catch (e) { $("listBox").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+      const items = (res && res.listings) || [];
+      const start = listings.length;
+      listings = listings.concat(items);
+      $("listBox").insertAdjacentHTML("beforeend", items.map((l, i) => listCardHtml(l, start + i)).join(""));
+      if (!listings.length) $("listBox").innerHTML = '<div class="muted">ບໍ່ພົບລາຍການ</div>';
+      listHasMore = !!(res && res.hasMore);
+      listPage++;
+      $("listMsg").textContent = "";
+    } catch (e) { $("listMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    finally { listLoading = false; }
+  }
+  let listSearchT = null;
+  $("listSearch").addEventListener("input", () => {
+    clearTimeout(listSearchT);
+    listSearchT = setTimeout(() => { listQ = $("listSearch").value.trim(); loadList(true); }, 400);
+  });
+  if ("IntersectionObserver" in window) {
+    new IntersectionObserver((es) => {
+      if (es.some((e) => e.isIntersecting) && listHasMore && !listLoading && $("listSentinel").offsetParent !== null) loadList(false);
+    }, { rootMargin: "300px" }).observe($("listSentinel"));
+  }
   }
   $("svcChips").addEventListener("click", (ev) => {
     const b = ev.target.closest("button"); if (!b) return;
@@ -223,7 +258,7 @@
     subKey = b.dataset.s; loadList();
   });
   $("listBox").addEventListener("click", (ev) => {
-    const card = ev.target.closest(".item"); if (!card) return;
+    const card = ev.target.closest(".gcard"); if (!card) return;
     openDetail(listings[Number(card.dataset.i)]);
   });
 
