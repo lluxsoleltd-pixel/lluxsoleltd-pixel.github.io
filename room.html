@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LLUX-e ເຈົ້າຂອງຫ້ອງເຊົ່າ</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   :root { --red:#d83d3d; --green:#3f7a55; --green2:#2f6446; --muted:#d7ebdc; }
   * { box-sizing: border-box; }
@@ -92,11 +93,8 @@
       <button id="btnGeo" class="ghost">ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ</button>
       <button id="btnPin" class="ghost">ເລືອກປັກມຸກຕຳແໜ່ງ</button>
       <div id="pinBox" class="sub hidden">
-        <div class="muted">1) ກົດປຸ່ມຂ້າງລຸ່ມເພື່ອເປີດ Google Maps<br>2) ແຕະຄ້າງໃສ່ຈຸດທີ່ຢູ່ຂອງຫ້ອງ, ແລ້ວແຕະທີ່ພິກັດດ້ານລຸ່ມເພື່ອຄັດລອກ<br>3) ກັບມາວາງໃສ່ຊ່ອງນີ້</div>
-        <a class="btnlink" target="_blank" rel="noopener" href="https://www.google.com/maps">ເປີດ Google Maps</a>
-        <input id="pinPaste" placeholder="ວາງພິກັດ ຫຼື ລິ້ງ Google Maps">
-        <button id="btnApplyPin" class="blue">ຢືນຢັນພິກັດ</button>
-        <div id="pinMsg" class="msg"></div>
+        <div class="muted">ແຕະໃນແຜນທີ່ເພື່ອປັກມຸກ, ຫຼື ລາກໝຸດສີແດງເພື່ອປັບຈຸດ. ພິກັດຈະຖືກບັນທຶກອັດຕະໂນມັດ ແລະ ກົດບັນທຶກປ່ອງ/ໂປຣໄຟລ໌ເພື່ອຢືນຢັນ.</div>
+        <div id="pinMap" style="height:280px;border-radius:10px;margin-top:8px"></div>
       </div>
       <a id="fMap" class="btnlink hidden" target="_blank" rel="noopener">ເປີດໃນ Google Maps</a>
       <label>ລາຄາ <span id="priceUnit" class="muted"></span><input id="fPrice" type="number" min="0"></label>
@@ -169,6 +167,7 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
   const API = "https://script.google.com/macros/s/AKfycbySjDcvpFS8AD4NkOGlv06LQfTWQ9WBCxh72XM8d-TNI4yRsyaIkMz_lg78DN0ccqSaBQ/exec";
@@ -322,14 +321,8 @@
     if (l) openForm(l);
   });
 
-  function parseCoords(text) {
-    const t = String(text || "");
-    const m = t.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/) || t.match(/[?&]q=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/) || t.match(/(-?\d{1,3}\.\d+)\s*[,\s]\s*(-?\d{1,3}\.\d+)/);
-    if (!m) return null;
-    const lat = Number(m[1]), lng = Number(m[2]);
-    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-    return { lat: lat.toFixed(6), lng: lng.toFixed(6) };
-  }
+  // ===== ປັກມຸກໃນແອັບ (OpenStreetMap) =====
+  let pinMap = null, pinMarker = null;
   function updateMapLink() {
     const lat = $("fLat").value.trim(), lng = $("fLng").value.trim();
     const a = $("fMap");
@@ -342,25 +335,39 @@
       a.classList.add("hidden");
     }
   }
+  function placePin(lat, lng) {
+    if (!pinMap) return;
+    if (!pinMarker) {
+      pinMarker = L.marker([lat, lng], { draggable: true }).addTo(pinMap);
+      pinMarker.on("dragend", () => { const p = pinMarker.getLatLng(); setLoc(p.lat.toFixed(6), p.lng.toFixed(6)); });
+    } else pinMarker.setLatLng([lat, lng]);
+  }
   function setLoc(lat, lng) {
     $("fLat").value = lat; $("fLng").value = lng; updateMapLink();
+    placePin(parseFloat(lat), parseFloat(lng));
+  }
+  function openPinMap() {
+    $("pinBox").classList.remove("hidden");
+    if (!pinMap) {
+      pinMap = L.map("pinMap").setView([17.9757, 102.6331], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(pinMap);
+      pinMap.on("click", (e) => setLoc(e.latlng.lat.toFixed(6), e.latlng.lng.toFixed(6)));
+    }
+    setTimeout(() => pinMap.invalidateSize(), 150);
+    const lat = parseFloat($("fLat").value), lng = parseFloat($("fLng").value);
+    if (!isNaN(lat) && !isNaN(lng)) { placePin(lat, lng); pinMap.setView([lat, lng], 17); }
   }
   $("btnGeo").addEventListener("click", () => {
     if (!navigator.geolocation) { $("saveMsg").textContent = "ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"; return; }
     $("saveMsg").textContent = "ກຳລັງຫາຕຳແໜ່ງ...";
     navigator.geolocation.getCurrentPosition((pos) => {
       setLoc(pos.coords.latitude.toFixed(6), pos.coords.longitude.toFixed(6));
+      if (pinMap) pinMap.setView([pos.coords.latitude, pos.coords.longitude], 17);
       $("saveMsg").textContent = "ໄດ້ຕຳແໜ່ງປັດຈຸບັນແລ້ວ, ກົດບັນທຶກ";
     }, () => { $("saveMsg").textContent = "ຫາຕຳແໜ່ງບໍ່ໄດ້"; }, { enableHighAccuracy: true, timeout: 15000 });
   });
-  $("btnPin").addEventListener("click", () => { $("pinBox").classList.toggle("hidden"); });
-  $("btnApplyPin").addEventListener("click", () => {
-    const c = parseCoords($("pinPaste").value);
-    if (!c) { $("pinMsg").textContent = "ບໍ່ພົບພິກັດ, ວາງພິກັດ ເຊັ່ນ 18.075050, 102.699291"; return; }
-    setLoc(c.lat, c.lng);
-    $("pinPaste").value = "";
-    $("pinMsg").textContent = "ບັນທຶກພິກັດແລ້ວ, ກົດບັນທຶກ";
-    $("pinBox").classList.add("hidden");
+  $("btnPin").addEventListener("click", () => {
+    if ($("pinBox").classList.contains("hidden")) openPinMap(); else $("pinBox").classList.add("hidden");
   });
 
   $("btnSave").addEventListener("click", async () => {
