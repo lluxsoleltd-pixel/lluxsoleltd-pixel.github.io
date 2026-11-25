@@ -490,7 +490,9 @@
         '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b>' + (b.ownerFee ? ' · ໜີ້ LLUX ' + money(b.ownerFee) : '') + '</div>' +
         '<div class="row"><a class="btnlink" style="flex:1" href="' + telHref(b.customerPhone) + '">ໂທຫາລູກຄ້າ</a>' +
         '<a class="btnlink" style="flex:1;background:#65d07a;color:#fff" target="_blank" rel="noopener" href="' + waHref(b.customerPhone) + '">WhatsApp</a></div>' +
-        (b.status === "pending" ? '<button class="blue" style="margin-top:8px" data-confirm="' + esc(b.bookingId) + '">✅ ຢືນຢັນການຈອງນີ້</button>' : '') +
+        (b.status === "pending" ? '<div class="row" style="margin-top:8px"><button class="blue" style="flex:1" data-confirm="' + esc(b.bookingId) + '">✅ ຢືນຢັນ</button>' +
+          '<button class="small" style="flex:1;background:#dc2626;color:#fff" data-reject="' + esc(b.bookingId) + '">❌ ປະຕິເສດ</button></div>' : '') +
+        (b.status === "confirmed" ? '<button class="small" style="margin-top:8px;background:#dc2626;color:#fff" data-reject="' + esc(b.bookingId) + '">ຍົກເລີກການຈອງ</button>' : '') +
       '</div>').join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
   }
   function bookStatusLabel(s) {
@@ -500,6 +502,17 @@
   }
   function unitWord(u) { return String(u || "").replace("ກີບ/", ""); }
   $("bookList").addEventListener("click", async (ev) => {
+    const rj = ev.target.closest("button[data-reject]");
+    if (rj && owner) {
+      if (!confirm("ຢືນຢັນການປະຕິເສດ/ຍົກເລີກການຈອງນີ້? ປ່ອງຈະວ່າງໃຫ້ຈອງໄດ້ອີກ")) return;
+      rj.disabled = true;
+      try {
+        const res = await post({ type: "propbookreject", ownerName: owner.name, pin: owner.pin, bookingId: rj.dataset.reject });
+        if (res && res.ok) await refresh();
+        else { alert("ບໍ່ສຳເລັດ, ລອງໃໝ່"); rj.disabled = false; }
+      } catch (e) { alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້"); rj.disabled = false; }
+      return;
+    }
     const btn = ev.target.closest("button[data-confirm]");
     if (!btn || !owner) return;
     if (!confirm("ຢືນຢັນການຈອງນີ້? ລູກຄ້າຈະເຫັນສະຖານະຢືນຢັນແລ້ວ")) return;
