@@ -165,6 +165,9 @@
     $("stepDetail").classList.toggle("hidden", step !== "detail");
     $("stepOwner").classList.toggle("hidden", step !== "owner");
   }
+  function unitWord(u) {
+    return String(u || "").replace("ກີບ/", "");
+  }
   function statusTag(l) {
     return l.occupancy === "full"
       ? '<span class="tag" style="background:#dc2626;color:#fff">✅ ຫ້ອງເຕັມ</span>'
@@ -223,7 +226,7 @@
         '<div class="bk">' +
           '<div class="row"><b>' + esc(b.title) + '</b><span class="tag">' + (b.status === "cancelled" ? "ຍົກເລີກແລ້ວ" : "ຢືນຢັນແລ້ວ") + '</span></div>' +
           '<div class="muted">' + esc(b.bookingId) + ' · ' + esc(b.serviceName) + ' · ' + esc(b.subtype) + '</div>' +
-          '<div class="muted">' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.units + ' ' + esc(b.unitLabel) + ')</div>' +
+          '<div class="muted">' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.units + ' ' + esc(unitWord(b.unitLabel)) + ')</div>' +
           '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b> · ບໍລິການ ' + money(b.customerFee) + '</div>' +
           (b.ownerPhone ? '<div class="row"><a class="btnlink" style="flex:1;margin:0" href="' + telHref(b.ownerPhone) + '">ໂທຫາເຈົ້າຂອງ</a>' +
             '<a class="btnlink wa" style="flex:1;margin:0" href="' + waHref(b.ownerPhone) + '" target="_blank">WhatsApp</a></div>' : '') +
@@ -295,7 +298,7 @@
       }
       quote = { startDate: s, endDate: e };
       $("quoteMsg").textContent = "";
-      $("qUnits").textContent = res.units + " " + res.unitLabel;
+      $("qUnits").textContent = res.units + " " + unitWord(res.unitLabel);
       $("qRate").textContent = "(" + Number(res.price).toLocaleString("en-US") + " × " + res.units + ")";
       $("qAmount").textContent = money(res.amount);
       $("qFee").textContent = money(res.customerFee);
@@ -333,7 +336,7 @@
       '<div class="row"><span>ປ່ອງ</span><b>' + esc(r.title) + '</b></div>' +
       '<div class="row"><span>ປະເພດ</span><b>' + esc(r.serviceName) + ' · ' + esc(r.subtype) + '</b></div>' +
       '<div class="row"><span>ວັນທີ່</span><b>' + esc(r.startDate) + ' ຫາ ' + esc(r.endDate) + '</b></div>' +
-      '<div class="row"><span>ໄລຍະ</span><b>' + r.units + ' ' + esc(r.unitLabel) + '</b></div>' +
+      '<div class="row"><span>ໄລຍະ</span><b>' + r.units + ' ' + esc(unitWord(r.unitLabel)) + '</b></div>' +
       '<div class="row"><span>ຄ່າເຊົ່າ (ຈ່າຍໃຫ້ເຈົ້າຂອງ)</span><b>' + money(r.amount) + '</b></div>' +
       '<div class="row"><span>ຄ່າບໍລິການແອັບ</span><b>' + money(r.customerFee) + '</b></div>' +
       '<div class="row"><span>ລວມ</span><span class="big" style="font-size:20px;font-weight:800">' + money(r.total) + '</span></div>' +
