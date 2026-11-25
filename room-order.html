@@ -106,9 +106,20 @@
 
     <div class="card">
       <h2>ເລືອກວັນທີ່</h2>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div id="dateBox" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <label>ວັນທີ່ເຂົ້າ<input type="date" id="startDate"></label>
         <label>ວັນທີ່ອອກ / ສິ້ນສຸດ<input type="date" id="endDate"></label>
+      </div>
+      <div id="termBox" class="hidden">
+        <label>ວິທີການເຊົ່າ
+          <select id="termSel">
+            <option value="1">1 ເດືອນ</option>
+            <option value="3">3 ເດືອນ</option>
+            <option value="6">6 ເດືອນ</option>
+            <option value="12">1 ປີ</option>
+          </select>
+        </label>
+        <div class="muted" style="margin-top:6px">ເລີ່ມນັບຕັ້ງແຕ່ມື້ນີ້</div>
       </div>
       <button id="btnQuote" class="blue">ຄິດລາຄາ</button>
       <div id="quoteMsg" class="msg"></div>
@@ -259,6 +270,10 @@
     $("dPrice").innerHTML = "ລາຄາ <b>" + money(l.price) + "</b> " + esc(l.unitLabel);
     $("dStatus").outerHTML = statusTag(l).replace('<span class="tag"', '<span id="dStatus" class="tag"');
     $("dOwner").textContent = l.shopName || l.ownerName || "-";
+    const monthly = (l.unitLabel || "").indexOf("ເດືອນ") >= 0;
+    $("dateBox").classList.toggle("hidden", monthly);
+    $("termBox").classList.toggle("hidden", !monthly);
+    $("quoteBox").classList.add("hidden");
     $("btnQuote").disabled = l.occupancy === "full";
     $("quoteMsg").textContent = l.occupancy === "full" ? "ຫ້ອງເຕັມ ຕອນນີ້ບໍ່ສາມາດຈອງໄດ້" : "";
     if (l.lat && l.lng) { $("dMap").href = "https://maps.google.com/?q=" + encodeURIComponent(l.lat + "," + l.lng); $("dMap").classList.remove("hidden"); }
@@ -284,19 +299,23 @@
 
   // ===== ຄິດລາຄາ + ຈອງ =====
   $("btnQuote").addEventListener("click", async () => {
-    const s = $("startDate").value, e = $("endDate").value;
-    if (!s || !e) { $("quoteMsg").textContent = "ເລືອກວັນທີ່ເຂົ້າ ແລະ ອອກ"; return; }
-    if (e < s) { $("quoteMsg").textContent = "ວັນທີ່ອອກຕ້ອງຫຼັງວັນທີ່ເຂົ້າ"; return; }
+    const monthly = (current.unitLabel || "").indexOf("ເດືອນ") >= 0;
+    const s = $("startDate").value, e = $("endDate").value, months = $("termSel").value;
+    if (!monthly) {
+      if (!s || !e) { $("quoteMsg").textContent = "ເລືອກວັນທີ່ເຂົ້າ ແລະ ອອກ"; return; }
+      if (e < s) { $("quoteMsg").textContent = "ວັນທີ່ອອກຕ້ອງຫຼັງວັນທີ່ເຂົ້າ"; return; }
+    }
     $("quoteMsg").textContent = "ກຳລັງຄິດລາຄາ...";
     try {
-      const res = await getJson(API + "?type=propquote&propId=" + encodeURIComponent(current.propId) + "&startDate=" + s + "&endDate=" + e);
+      const qs = monthly ? "&months=" + months : "&startDate=" + s + "&endDate=" + e;
+      const res = await getJson(API + "?type=propquote&propId=" + encodeURIComponent(current.propId) + qs);
       if (!res || !res.ok) {
-        const m = { busy: "ປ່ອງນີ້ຖືກຈອງ ຫຼື ບໍ່ວ່າງໃນວັນທີ່ນີ້", dates: "ວັນທີບໍ່ຖືກຕ້ອງ", notfound: "ປ່ອງນີ້ບໍ່ພ້ອມໃຫ້ບໍລິການ", full: "ຫ້ອງເຕັມ ຕອນນີ້ບໍ່ສາມາດຈອງໄດ້" };
+        const m = { busy: "ປ່ອງນີ້ຖືກຈອງ ຫຼື ບໍ່ວ່າງໃນວັນທີ່ນີ້", dates: "ວັນທີບໍ່ຖືກຕ້ອງ", notfound: "ປ່ອງນີ້ບໍ່ພ້ອມໃຫ້ບໍລິການ", full: "ຫ້ອງເຕັມ ຕອນນີ້ບໍ່ສາມາດຈອງໄດ້", term: "ກະລຸນາເລືອກວິທີການເຊົ່າ" };
         $("quoteMsg").textContent = m[res && res.reason] || "ບໍ່ສຳເລັດ";
         $("quoteBox").classList.add("hidden");
         return;
       }
-      quote = { startDate: s, endDate: e };
+      quote = { startDate: res.startDate, endDate: res.endDate, months: months };
       $("quoteMsg").textContent = "";
       $("qUnits").textContent = res.units + " " + unitWord(res.unitLabel);
       $("qRate").textContent = "(" + Number(res.price).toLocaleString("en-US") + " × " + res.units + ")";
@@ -313,7 +332,7 @@
     $("bookMsg").textContent = "ກຳລັງບັນທຶກການຈອງ...";
     $("btnBook").disabled = true;
     try {
-      const res = await post({ type: "propbook", propId: current.propId, startDate: quote.startDate, endDate: quote.endDate,
+      const res = await post({ type: "propbook", propId: current.propId, startDate: quote.startDate, endDate: quote.endDate, months: quote.months,
         customerName: cust.name, customerPhone: cust.phone });
       if (!res || !res.ok) {
         const m = { busy: "ປ່ອງນີ້ຖືກຈອງໄປແລ້ວ", contact: "ຂໍ້ມູນຜູ້ຈອງບໍ່ຄົບ", notfound: "ປ່ອງນີ້ບໍ່ພ້ອມ" };
