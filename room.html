@@ -86,10 +86,18 @@
       </label>
       <label>ຊື່ປ່ອງ / ຊື່ບໍລິການ<input id="fTitle" placeholder="ເຊັ່ນ ຫ້ອງແຖວໜ້າຕະຫຼາດ"></label>
       <label>ທີ່ຕັ້ງ (ຂໍ້ຄວາມ)<input id="fLocation"></label>
-      <label>ພິກັດ (lat, lng)
-        <div class="row"><input id="fLat" placeholder="lat" style="width:48%"><input id="fLng" placeholder="lng" style="width:48%"></div>
-      </label>
+      <div class="muted">ພິກັດທີ່ຕັ້ງ</div>
+      <div class="muted" id="locStatus">ຍັງບໍ່ໄດ້ປັກພິກັດ</div>
+      <input type="hidden" id="fLat"><input type="hidden" id="fLng">
       <button id="btnGeo" class="ghost">ໃຊ້ຕຳແໜ່ງປັດຈຸບັນ</button>
+      <button id="btnPin" class="ghost">ເລືອກປັກມຸກຕຳແໜ່ງ</button>
+      <div id="pinBox" class="sub hidden">
+        <div class="muted">1) ກົດປຸ່ມຂ້າງລຸ່ມເພື່ອເປີດ Google Maps<br>2) ແຕະຄ້າງໃສ່ຈຸດທີ່ຢູ່ຂອງຫ້ອງ, ແລ້ວແຕະທີ່ພິກັດດ້ານລຸ່ມເພື່ອຄັດລອກ<br>3) ກັບມາວາງໃສ່ຊ່ອງນີ້</div>
+        <a class="btnlink" target="_blank" rel="noopener" href="https://www.google.com/maps">ເປີດ Google Maps</a>
+        <input id="pinPaste" placeholder="ວາງພິກັດ ຫຼື ລິ້ງ Google Maps">
+        <button id="btnApplyPin" class="blue">ຢືນຢັນພິກັດ</button>
+        <div id="pinMsg" class="msg"></div>
+      </div>
       <a id="fMap" class="btnlink hidden" target="_blank" rel="noopener">ເປີດໃນ Google Maps</a>
       <label>ລາຄາ <span id="priceUnit" class="muted"></span><input id="fPrice" type="number" min="0"></label>
       <label>ລາຍລະອຽດ<textarea id="fDesc"></textarea></label>
@@ -314,21 +322,45 @@
     if (l) openForm(l);
   });
 
+  function parseCoords(text) {
+    const t = String(text || "");
+    const m = t.match(/@(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/) || t.match(/[?&]q=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/) || t.match(/(-?\d{1,3}\.\d+)\s*[,\s]\s*(-?\d{1,3}\.\d+)/);
+    if (!m) return null;
+    const lat = Number(m[1]), lng = Number(m[2]);
+    if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+    return { lat: lat.toFixed(6), lng: lng.toFixed(6) };
+  }
   function updateMapLink() {
     const lat = $("fLat").value.trim(), lng = $("fLng").value.trim();
-    if (lat && lng) { $("fMap").href = "https://maps.google.com/?q=" + encodeURIComponent(lat + "," + lng); $("fMap").classList.remove("hidden"); }
-    else $("fMap").classList.add("hidden");
+    const a = $("fMap");
+    if (lat && lng) {
+      $("locStatus").textContent = "ພິກັດ: " + lat + ", " + lng;
+      a.href = "https://maps.google.com/?q=" + encodeURIComponent(lat + "," + lng);
+      a.classList.remove("hidden");
+    } else {
+      $("locStatus").textContent = "ຍັງບໍ່ໄດ້ປັກພິກັດ";
+      a.classList.add("hidden");
+    }
   }
-  $("fLat").addEventListener("input", updateMapLink);
-  $("fLng").addEventListener("input", updateMapLink);
+  function setLoc(lat, lng) {
+    $("fLat").value = lat; $("fLng").value = lng; updateMapLink();
+  }
   $("btnGeo").addEventListener("click", () => {
     if (!navigator.geolocation) { $("saveMsg").textContent = "ເບຣາວເຊີນີ້ບໍ່ຮອງຮັບຕຳແໜ່ງ"; return; }
+    $("saveMsg").textContent = "ກຳລັງຫາຕຳແໜ່ງ...";
     navigator.geolocation.getCurrentPosition((pos) => {
-      $("fLat").value = pos.coords.latitude.toFixed(6);
-      $("fLng").value = pos.coords.longitude.toFixed(6);
-      updateMapLink();
-      $("saveMsg").textContent = "ໄດ້ຕຳແໜ່ງແລ້ວ, ກົດບັນທຶກ";
+      setLoc(pos.coords.latitude.toFixed(6), pos.coords.longitude.toFixed(6));
+      $("saveMsg").textContent = "ໄດ້ຕຳແໜ່ງປັດຈຸບັນແລ້ວ, ກົດບັນທຶກ";
     }, () => { $("saveMsg").textContent = "ຫາຕຳແໜ່ງບໍ່ໄດ້"; }, { enableHighAccuracy: true, timeout: 15000 });
+  });
+  $("btnPin").addEventListener("click", () => { $("pinBox").classList.toggle("hidden"); });
+  $("btnApplyPin").addEventListener("click", () => {
+    const c = parseCoords($("pinPaste").value);
+    if (!c) { $("pinMsg").textContent = "ບໍ່ພົບພິກັດ, ວາງພິກັດ ເຊັ່ນ 18.075050, 102.699291"; return; }
+    setLoc(c.lat, c.lng);
+    $("pinPaste").value = "";
+    $("pinMsg").textContent = "ບັນທຶກພິກັດແລ້ວ, ກົດບັນທຶກ";
+    $("pinBox").classList.add("hidden");
   });
 
   $("btnSave").addEventListener("click", async () => {
