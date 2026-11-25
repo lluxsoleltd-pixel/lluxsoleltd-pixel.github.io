@@ -66,6 +66,7 @@
       <h2>ເລືອກປະເພດບໍລິການ</h2>
       <div class="chips" id="svcChips"></div>
       <div class="chips" id="subChips"></div>
+      <div class="row" style="gap:8px;margin-top:8px"><select id="provSel" style="flex:1"></select><select id="distSel" style="flex:1"></select></div>
       <input id="listSearch" type="search" placeholder="ຄົ້ນຫາ: ຊື່ປ່ອງ, ທີ່ຕັ້ງ, ຊື່ຮ້ານ ຫຼື ເບີໂທ" style="width:100%;margin:8px 0;box-sizing:border-box">
       <style>
         .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -223,7 +224,8 @@
     $("listMsg").textContent = "ກຳລັງໂຫລດ...";
     try {
       const q = "?type=proplist&page=" + listPage + "&q=" + encodeURIComponent(listQ) +
-        (svcKey ? "&service=" + encodeURIComponent(svcKey) : "") + (subKey ? "&subtype=" + encodeURIComponent(subKey) : "");
+        (svcKey ? "&service=" + encodeURIComponent(svcKey) : "") + (subKey ? "&subtype=" + encodeURIComponent(subKey) : "") +
+        (provKey ? "&province=" + encodeURIComponent(provKey) : "") + (distKey ? "&district=" + encodeURIComponent(distKey) : "");
       const res = await getJson(API + q);
       if (res && res.services) services = res.services;
       renderServiceChips();
@@ -238,6 +240,17 @@
     } catch (e) { $("listMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
     finally { listLoading = false; }
   }
+  let provKey = "", distKey = "", geoRooms = [];
+  function fillProvFilter() {
+    $("provSel").innerHTML = '<option value="">ທຸກແຂວງ</option>' + geoRooms.map((g) => '<option>' + esc(g.p) + '</option>').join("");
+  }
+  function fillDistFilter() {
+    const g = geoRooms.find((x) => x.p === provKey);
+    $("distSel").innerHTML = '<option value="">ທຸກເມືອງ</option>' + (g ? g.d.map((x) => '<option>' + esc(x) + '</option>').join("") : "");
+  }
+  $("provSel").addEventListener("change", () => { provKey = $("provSel").value; distKey = ""; fillDistFilter(); loadList(true); });
+  $("distSel").addEventListener("change", () => { distKey = $("distSel").value; loadList(true); });
+  getJson(API + "?type=geo").then((r) => { geoRooms = (r && r.geo) || []; fillProvFilter(); fillDistFilter(); }).catch(() => {});
   let listSearchT = null;
   $("listSearch").addEventListener("input", () => {
     clearTimeout(listSearchT);
