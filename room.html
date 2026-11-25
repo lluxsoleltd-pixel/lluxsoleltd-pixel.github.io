@@ -483,15 +483,33 @@
     const list = (info && info.bookings) || [];
     $("bookList").innerHTML = list.length ? list.map((b) =>
       '<div class="bk">' +
-        '<div class="row"><b>' + esc(b.title) + '</b><span class="tag">' + (b.status === "cancelled" ? "ຍົກເລີກ" : "ຢືນຢັນແລ້ວ") + '</span></div>' +
+        '<div class="row"><b>' + esc(b.title) + '</b><span class="tag">' + bookStatusLabel(b.status) + '</span></div>' +
         '<div class="muted">' + esc(b.bookingId) + ' · ' + esc(b.subtype) + '</div>' +
-        '<div>' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.units + ' ' + esc(b.unitLabel) + ')</div>' +
+        '<div>' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.units + ' ' + esc(unitWord(b.unitLabel)) + ')</div>' +
         '<div>ລູກຄ້າ: <b>' + esc(b.customerName) + '</b> · ' + esc(b.customerPhone) + '</div>' +
         '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b>' + (b.ownerFee ? ' · ໜີ້ LLUX ' + money(b.ownerFee) : '') + '</div>' +
         '<div class="row"><a class="btnlink" style="flex:1" href="' + telHref(b.customerPhone) + '">ໂທຫາລູກຄ້າ</a>' +
         '<a class="btnlink" style="flex:1;background:#65d07a;color:#fff" target="_blank" rel="noopener" href="' + waHref(b.customerPhone) + '">WhatsApp</a></div>' +
+        (b.status === "pending" ? '<button class="blue" style="margin-top:8px" data-confirm="' + esc(b.bookingId) + '">✅ ຢືນຢັນການຈອງນີ້</button>' : '') +
       '</div>').join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
   }
+  function bookStatusLabel(s) {
+    if (s === "cancelled") return "ຍົກເລີກ";
+    if (s === "pending") return "ລໍຖ້າຢືນຢັນ";
+    return "ຢືນຢັນແລ້ວ";
+  }
+  function unitWord(u) { return String(u || "").replace("ກີບ/", ""); }
+  $("bookList").addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button[data-confirm]");
+    if (!btn || !owner) return;
+    if (!confirm("ຢືນຢັນການຈອງນີ້? ລູກຄ້າຈະເຫັນສະຖານະຢືນຢັນແລ້ວ")) return;
+    btn.disabled = true;
+    try {
+      const res = await post({ type: "propbookconfirm", ownerName: owner.name, pin: owner.pin, bookingId: btn.dataset.confirm });
+      if (res && res.ok) { await refresh(); }
+      else { alert(res && res.reason === "notpending" ? "ການຈອງນີ້ຢືນຢັນແລ້ວ ຫຼື ຖືກຍົກເລີກ" : "ບໍ່ສຳເລັດ, ລອງໃໝ່"); btn.disabled = false; }
+    } catch (e) { alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້"); btn.disabled = false; }
+  });
 
   // ===== ໜີ້ LLUX =====
   function renderDebt() {

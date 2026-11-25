@@ -235,7 +235,7 @@
       const list = (res && res.bookings) || [];
       $("myBookList").innerHTML = list.length ? list.map((b) =>
         '<div class="bk">' +
-          '<div class="row"><b>' + esc(b.title) + '</b><span class="tag">' + (b.status === "cancelled" ? "ຍົກເລີກແລ້ວ" : "ຢືນຢັນແລ້ວ") + '</span></div>' +
+          '<div class="row"><b>' + esc(b.title) + '</b><span class="tag">' + (b.status === "cancelled" ? "ຍົກເລີກແລ້ວ" : b.status === "pending" ? "ລໍຖ້າເຈົ້າຂອງຢືນຢັນ" : "ຢືນຢັນແລ້ວ") + '</span></div>' +
           '<div class="muted">' + esc(b.bookingId) + ' · ' + esc(b.serviceName) + ' · ' + esc(b.subtype) + '</div>' +
           '<div class="muted">' + esc(b.startDate) + ' ຫາ ' + esc(b.endDate) + ' (' + b.units + ' ' + esc(unitWord(b.unitLabel)) + ')</div>' +
           '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b> · ບໍລິການ ' + money(b.customerFee) + '</div>' +
@@ -360,10 +360,20 @@
       '<div class="row"><span>ຄ່າບໍລິການແອັບ</span><b>' + money(r.customerFee) + '</b></div>' +
       '<div class="row"><span>ລວມ</span><span class="big" style="font-size:20px;font-weight:800">' + money(r.total) + '</span></div>' +
       '<div class="muted" style="color:#555">ເຈົ້າຂອງ: ' + esc(r.ownerName) + '</div>' +
-      (ownerPhone ? '<a class="btnlink" href="' + telHref(ownerPhone) + '">ໂທຫາເຈົ້າຂອງ</a><a class="btnlink wa" target="_blank" href="' + waHref(ownerPhone) + '">WhatsApp ເຈົ້າຂອງ</a>' : '');
+      (ownerPhone ? '<a class="btnlink" href="' + telHref(ownerPhone) + '">ໂທຫາເຈົ້າຂອງ</a><a class="btnlink wa" target="_blank" href="' + waHref(ownerPhone) + '">WhatsApp ເຈົ້າຂອງ</a>' : '') +
+      '<div class="muted" style="margin-top:10px">ສະຖານະ: ລໍຖ້າເຈົ້າຂອງຢືນຢັນ. ຖ້າຢາກໃຫ້ເຈົ້າຂອງຢືນຢັນໄວ, ກະລຸນາໂທ ຫຼື WhatsApp ເຈົ້າຂອງ.</div>' +
+      '<button id="btnBillBack" class="blue" style="margin-top:10px">ກັບໄປການຈອງຂອງຂ້ອຍ</button>';
     b.scrollIntoView({ behavior: "smooth" });
     loadMyBookings();
   }
+  $("billCard").addEventListener("click", (ev) => {
+    if (!ev.target.closest("#btnBillBack")) return;
+    $("billCard").classList.add("hidden");
+    show("list");
+    loadList();
+    loadMyBookings();
+    $("myBookCard").scrollIntoView({ behavior: "smooth" });
+  });
 
   // ===== ໜ້າຮ້ານເຈົ້າຂອງ =====
   async function openOwner(name, from) {
