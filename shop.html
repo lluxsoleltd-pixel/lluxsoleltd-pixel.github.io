@@ -135,6 +135,11 @@
       <h2>ຕິດຕໍ່ຜູ້ຂາຍໂດຍກົງ</h2>
       <div class="cCard" id="contactBox"></div>
     </div>
+    <div class="sec">
+      <h2>⭐ ຄະແນນ ແລະ ຄວາມຄິດເຫັນ</h2>
+      <div id="revSum" class="muted"></div>
+      <div id="revList" style="margin-top:8px"></div>
+    </div>
   </section>
 
   <!-- ແທັບ 2: ສິນຄ້າ -->
@@ -387,13 +392,44 @@
     if (profile) $("biz").innerHTML = bizRows(profile);
   }
 
+  // ===== ຄະແນນ ແລະ ຄວາມຄິດເຫັນ (ສາທາລະນະ) =====
+  function myPhone() { try { return JSON.parse(localStorage.getItem("llux_me") || "{}").phone || ""; } catch (e) { return ""; } }
+  function starsTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
+  async function loadReviews() {
+    try {
+      const ph = myPhone();
+      const r = await fetch(API + "?type=reviews&serviceType=buy&ownerName=" + encodeURIComponent(shopName) + (ph ? "&phone=" + encodeURIComponent(ph) : ""), { cache: "no-store" });
+      const res = await r.json();
+      if (!res || !res.ok) return;
+      $("revSum").textContent = res.count
+        ? "⭐ " + res.avg + " / 5 · " + res.count + " ຄວາມຄິດເຫັນ · ອໍເດີສຳເລັດ " + res.sales + " ຄັ້ງ"
+        : "ຍັງບໍ່ມີຄວາມຄິດເຫັນ · ອໍເດີສຳເລັດ " + res.sales + " ຄັ້ງ";
+      $("revList").innerHTML = res.reviews.map(function (x) {
+        return '<div class="cCard" style="margin-bottom:8px"><div><b>' + starsTxt(x.stars) + '</b> <span class="muted">' + esc(x.customerDisplay) + ' · ' + esc(x.createdAt) + '</span></div>' +
+          (x.comment ? '<div style="margin-top:4px">' + esc(x.comment) + '</div>' : '') +
+          (x.canDelete ? '<button data-rdel="' + esc(x.reviewId) + '" style="margin-top:6px;background:#dc2626;color:#fff;border:0;border-radius:8px;padding:6px 10px">ລຶບຄວາມຄິດເຫັນຂອງຂ້ອຍ</button>' : '') + '</div>';
+      }).join("");
+    } catch (e) {}
+  }
+  $("revList").addEventListener("click", async function (ev) {
+    const b = ev.target.closest("button[data-rdel]");
+    if (!b) return;
+    if (!confirm("ລຶບຄວາມຄິດເຫັນນີ້?")) return;
+    try {
+      const r = await fetch(API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ type: "reviewdelete", reviewId: b.dataset.rdel, phone: myPhone() }) });
+      const res = await r.json();
+      if (res && res.ok) loadReviews(); else alert(res && res.reason === "late" ? "ເກີນ 24 ຊົ່ວໂມງແລ້ວ ລຶບບໍ່ໄດ້" : "ລຶບບໍ່ສຳເລັດ");
+    } catch (e) { alert("ເຊື່ອມຕໍ່ບໍ່ໄດ້"); }
+  });
+
   if (!shopName) {
     $("name").textContent = "ບໍ່ພົບຮ້ານນີ້";
   } else {
     loadProfile()
       .catch(function () { $("name").textContent = "ໂຫຼດຂໍ້ມູນຮ້ານບໍ່ໄດ້"; })
       .then(loadProducts)
-      .then(function () { if (profile) $("biz").innerHTML = bizRows(profile); });
+      .then(function () { if (profile) $("biz").innerHTML = bizRows(profile); })
+      .then(loadReviews);
   }
 </script>
 </body>

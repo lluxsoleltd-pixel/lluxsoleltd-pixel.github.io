@@ -137,6 +137,7 @@
       <h2>ຄົນຂັບຂອງທ່ານ</h2>
       <div class="drvhead"><div id="drvAvatar"></div><div style="flex:1"><div class="row"><b id="drvName"></b><span class="tag" id="drvPlate"></span></div><div class="muted" id="drvGender"></div></div></div>
       <div class="row"><a class="link" id="drvTel" href="#">ໂທຫາຄົນຂັບ</a></div>
+      <div class="row"><span>ຄະແນນ</span><span id="drvRev">-</span></div>
       <div id="callOpts" class="hidden" style="display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 4px;">
         <a id="btnCall" class="blue" style="width:auto;padding:12px 16px;text-decoration:none;display:inline-block" href="#">ໂທສາຍກົງ</a>
         <a id="btnWa" class="blue" style="width:auto;padding:12px 16px;text-decoration:none;display:inline-block;background:#25d366" href="#" target="_blank">WhatsApp</a>
@@ -147,6 +148,16 @@
       <div class="row"><span>ໄລຍະທາງ</span><span id="waitKm">-</span></div>
     </div>
     <button id="btnCancel" class="ghost hidden">ຍົກເລີກການເອີ້ນ</button>
+    <div id="revBox" class="card hidden">
+      <h2>ໃຫ້ຄະແນນຄົນຂັບ</h2>
+      <div class="row" style="gap:6px;justify-content:center">
+        <button class="starBtn" data-s="1" style="font-size:28px;background:none;border:0;cursor:pointer">☆</button><button class="starBtn" data-s="2" style="font-size:28px;background:none;border:0;cursor:pointer">☆</button><button class="starBtn" data-s="3" style="font-size:28px;background:none;border:0;cursor:pointer">☆</button><button class="starBtn" data-s="4" style="font-size:28px;background:none;border:0;cursor:pointer">☆</button><button class="starBtn" data-s="5" style="font-size:28px;background:none;border:0;cursor:pointer">☆</button>
+      </div>
+      <textarea id="rvComment" rows="3" maxlength="300" placeholder="ຂຽນຄວາມຄິດເຫັນ (ບໍ່ບັງຄັບ)" style="width:100%;margin-top:8px;box-sizing:border-box"></textarea>
+      <button id="btnRvSend" class="blue" style="width:100%;margin-top:8px">ສົ່ງຄະແນນ</button>
+      <div id="rvMsg" class="msg"></div>
+    </div>
+    <div id="revDone" class="card hidden muted" style="text-align:center">ຂອບໃຈທີ່ໃຫ້ຄະແນນ</div>
     <button id="btnNew" class="hidden">ເອີ້ນແທັກຊີ່ໃໝ່</button>
     <div id="waitMsg" class="msg"></div>
   </div>
@@ -555,7 +566,43 @@
     $("btnCancel").classList.toggle("hidden", st !== "pending");
     const done = st === "completed" || st.indexOf("cancel") === 0;
     $("btnNew").classList.toggle("hidden", !done);
-    if (done) { clearInterval(pollTimer); forget("llux_taxi_ride"); }
+    // ການໃຫ້ຄະແນນ: ຈຳ rideId ໄວ້ ແລະ ບໍ່ລຶບການເອີ້ນ ຈົນກວ່າຈະໃຫ້ຄະແນນແລ້ວ
+    revRideId = r.rideId || revRideId;
+    revOwner = r.driverName || revOwner;
+    const canRev = st === "completed" && !!r.reviewable && !r.reviewed;
+    $("revBox").classList.toggle("hidden", !canRev);
+    $("revDone").classList.toggle("hidden", !(st === "completed" && r.reviewed));
+    if (r.driverName && driverRevFor !== r.driverName) loadDriverRating(r.driverName);
+    if (done) { clearInterval(pollTimer); if (!canRev) forget("llux_taxi_ride"); }
+  }
+
+  // ===== ໃຫ້ຄະແນນ =====
+  let revRideId = "", revOwner = "", revStars = 0, driverRevFor = "";
+  function paintStars() { document.querySelectorAll("#revBox .starBtn").forEach(function (b) { b.textContent = Number(b.dataset.s) <= revStars ? "★" : "☆"; }); }
+  document.querySelectorAll("#revBox .starBtn").forEach(function (b) {
+    b.addEventListener("click", function () { revStars = Number(b.dataset.s); paintStars(); });
+  });
+  $("btnRvSend").addEventListener("click", async function () {
+    if (!contact || !revRideId) return;
+    if (!(revStars >= 1)) { $("rvMsg").textContent = "ກະລຸນາເລືອກດາວກ່ອນ"; return; }
+    $("btnRvSend").disabled = true; $("rvMsg").textContent = "ກຳລັງສົ່ງ...";
+    try {
+      const res = await post({ type: "reviewsave", serviceType: "taxi", ownerName: revOwner, orderId: revRideId,
+        phone: contact.phone, stars: revStars, comment: $("rvComment").value.trim() });
+      if (res && res.ok) { $("revBox").classList.add("hidden"); $("revDone").classList.remove("hidden"); forget("llux_taxi_ride"); }
+      else {
+        const m = { exists: "ການເອີ້ນນີ້ໃຫ້ຄະແນນແລ້ວ", notallowed: "ໃຫ້ຄະແນນໄດ້ເມື່ອເດີນທາງສຳເລັດແລ້ວ", stars: "ເລືອກດາວ 1–5" };
+        $("rvMsg").textContent = m[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+      }
+    } catch (e) { $("rvMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    $("btnRvSend").disabled = false;
+  });
+  async function loadDriverRating(name) {
+    driverRevFor = name;
+    try {
+      const res = await getJson(API + "?type=reviews&serviceType=taxi&ownerName=" + encodeURIComponent(name));
+      $("drvRev").textContent = res && res.count ? "⭐ " + res.avg + " / 5 (" + res.count + ")" : "ຍັງບໍ່ມີຄະແນນ";
+    } catch (e) {}
   }
 
   async function cancelRide() {
@@ -606,7 +653,7 @@
     if (ride) {
       try {
         const res = await getJson(API + "?type=taxiride&rideId=" + encodeURIComponent(ride.rideId) + "&phone=" + encodeURIComponent(ride.phone));
-        if (res && res.ok && res.status !== "completed" && String(res.status).indexOf("cancel") !== 0) { enterWait(); return; }
+        if (res && res.ok && String(res.status).indexOf("cancel") !== 0 && (res.status !== "completed" || (res.reviewable && !res.reviewed))) { enterWait(); return; }
       } catch (e) { enterWait(); return; }
       forget("llux_taxi_ride");
     }
