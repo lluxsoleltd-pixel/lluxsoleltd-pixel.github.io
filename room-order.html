@@ -58,7 +58,8 @@
 
   <!-- 1. ລາຍການ -->
   <div id="stepList" class="hidden">
-    <div class="card" id="myBookCard">
+    <button id="btnMyBooks" class="btnlink" style="width:100%;margin-bottom:12px">📋 ການຈອງຂອງຂ້ອຍ</button>
+    <div class="card hidden" id="myBookCard">
       <h2>ການຈອງຂອງຂ້ອຍ</h2>
       <div id="myBookList" class="muted">ກຳລັງໂຫລດ...</div>
     </div>
@@ -418,8 +419,14 @@
     $("billCard").classList.add("hidden");
     show("list");
     loadList();
+    $("myBookCard").classList.remove("hidden");
     loadMyBookings();
     $("myBookCard").scrollIntoView({ behavior: "smooth" });
+  });
+  $("btnMyBooks").addEventListener("click", () => {
+    const c = $("myBookCard");
+    const nowHidden = c.classList.toggle("hidden");
+    if (!nowHidden) { loadMyBookings(); c.scrollIntoView({ behavior: "smooth" }); }
   });
 
   // ===== ໜ້າຮ້ານເຈົ້າຂອງ =====
