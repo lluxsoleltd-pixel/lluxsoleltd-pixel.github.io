@@ -85,6 +85,15 @@
       <h2>ການຈອງຂອງຂ້ອຍ</h2>
       <div id="myBookList" class="muted">ກຳລັງໂຫລດ...</div>
     </div>
+    <div class="card hidden" id="reviewBox">
+      <h2>ໃຫ້ຄະແນນ ແລະ ຄວາມຄິດເຫັນ</h2>
+      <div class="row" id="rvStarRow" style="gap:6px">
+        <button class="ghost small starBtn" data-s="1">☆</button><button class="ghost small starBtn" data-s="2">☆</button><button class="ghost small starBtn" data-s="3">☆</button><button class="ghost small starBtn" data-s="4">☆</button><button class="ghost small starBtn" data-s="5">☆</button>
+      </div>
+      <textarea id="rvComment" rows="3" maxlength="300" placeholder="ຂຽນຄວາມຄິດເຫັນ, ຄຳຍ້ອງຍໍ ຫຼື ຕຳນິ (ບໍ່ບັງຄັບ)" style="width:100%;margin-top:8px;box-sizing:border-box"></textarea>
+      <div class="row" style="gap:8px;margin-top:8px"><button id="btnRvCancel" class="ghost small" style="flex:1">ຍົກເລີກ</button><button id="btnRvSend" class="blue" style="flex:1">ສົ່ງຄະແນນ</button></div>
+      <div id="rvMsg" class="muted" style="margin-top:6px"></div>
+    </div>
   </div>
   <div id="stepOwner" class="hidden">
     <button id="btnOwnerBack" class="ghost small" style="margin-bottom:10px">← ກັບ</button>
@@ -97,6 +106,11 @@
     <div class="card">
       <h2>ປ່ອງບໍລິການທັງໝົດ</h2>
       <div id="oList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+    <div class="card">
+      <h2>ຄະແນນ ແລະ ຄວາມຄິດເຫັນ</h2>
+      <div id="oRevSum" class="muted"></div>
+      <div id="oRevList" style="margin-top:8px"></div>
     </div>
   </div>
 
@@ -293,10 +307,70 @@
           '<div>ຄ່າເຊົ່າ <b>' + money(b.amount) + '</b> · ບໍລິການ ' + money(b.customerFee) + '</div>' +
           (b.ownerPhone ? '<div class="row"><a class="btnlink" style="flex:1;margin:0" href="' + telHref(b.ownerPhone) + '">ໂທຫາເຈົ້າຂອງ</a>' +
             '<a class="btnlink wa" style="flex:1;margin:0" href="' + waHref(b.ownerPhone) + '" target="_blank">WhatsApp</a></div>' : '') +
+          (b.canReview && !b.reviewed ? '<button class="small blue" style="margin-top:8px" data-review="' + esc(b.bookingId) + '" data-owner="' + esc(b.ownerName) + '">⭐ ໃຫ້ຄະແນນ</button>' : '') +
+          (b.reviewed ? '<div class="muted" style="margin-top:6px">ໃຫ້ຄະແນນແລ້ວ</div>' : '') +
           (b.canCancel ? '<button class="small" style="margin-top:8px;background:#dc2626;color:#fff" data-cancel="' + esc(b.bookingId) + '">ຍົກເລີກການຈອງ</button>' : '') +
         '</div>').join("") : '<div class="muted">ຍັງບໍ່ມີການຈອງ</div>';
     } catch (e) { $("myBookList").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
   }
+  // ===== ໃຫ້ຄະແນນ =====
+  let rvStars = 0, rvOrder = "", rvOwner = "";
+  function starsTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
+  function paintStars() {
+    document.querySelectorAll(".starBtn").forEach((b) => { b.textContent = Number(b.dataset.s) <= rvStars ? "★" : "☆"; });
+  }
+  $("myBookList").addEventListener("click", (ev) => {
+    const btn = ev.target.closest("button[data-review]");
+    if (!btn) return;
+    rvOrder = btn.dataset.review; rvOwner = btn.dataset.owner; rvStars = 0;
+    $("rvComment").value = ""; $("rvMsg").textContent = ""; paintStars();
+    $("reviewBox").classList.remove("hidden");
+    $("reviewBox").scrollIntoView({ behavior: "smooth" });
+  });
+  $("rvStarRow").addEventListener("click", (ev) => {
+    const b = ev.target.closest(".starBtn"); if (!b) return;
+    rvStars = Number(b.dataset.s); paintStars();
+  });
+  $("btnRvCancel").addEventListener("click", () => { $("reviewBox").classList.add("hidden"); });
+  $("btnRvSend").addEventListener("click", async () => {
+    if (!cust) return;
+    if (!(rvStars >= 1)) { $("rvMsg").textContent = "ກະລຸນາເລືອກດາວກ່ອນ"; return; }
+    $("btnRvSend").disabled = true; $("rvMsg").textContent = "ກຳລັງສົ່ງ...";
+    try {
+      const res = await post({ type: "reviewsave", serviceType: "room", ownerName: rvOwner, orderId: rvOrder,
+        phone: cust.phone, stars: rvStars, comment: $("rvComment").value.trim() });
+      if (res && res.ok) { $("reviewBox").classList.add("hidden"); loadMyBookings(); }
+      else {
+        const m = { exists: "ການຈອງນີ້ໃຫ້ຄະແນນແລ້ວ", notallowed: "ຈະໃຫ້ຄະແນນໄດ້ເມື່ອການຈອງເລີ່ມແລ້ວ", stars: "ເລືອກດາວ 1–5" };
+        $("rvMsg").textContent = m[res && res.reason] || "ບໍ່ສຳເລັດ, ລອງໃໝ່";
+      }
+    } catch (e) { $("rvMsg").textContent = "ເຊື່ອມຕໍ່ບໍ່ໄດ້"; }
+    $("btnRvSend").disabled = false;
+  });
+  let ownerNow = "";
+  async function loadOwnerReviews(name) {
+    try {
+      const res = await getJson(API + "?type=reviews&serviceType=room&ownerName=" + encodeURIComponent(name) + (cust ? "&phone=" + encodeURIComponent(cust.phone) : ""));
+      if (!res || !res.ok) return;
+      $("oRevSum").textContent = res.count
+        ? "⭐ " + res.avg + " / 5 · " + res.count + " ຄວາມຄິດເຫັນ · ການຈອງສຳເລັດ " + res.sales + " ຄັ້ງ"
+        : "ຍັງບໍ່ມີຄວາມຄິດເຫັນ · ການຈອງສຳເລັດ " + res.sales + " ຄັ້ງ";
+      $("oRevList").innerHTML = res.reviews.map((r) =>
+        '<div class="bk"><div class="row"><b>' + starsTxt(r.stars) + '</b><span class="muted">' + esc(r.customerDisplay) + ' · ' + esc(r.createdAt) + '</span></div>' +
+        (r.comment ? '<div>' + esc(r.comment) + '</div>' : '') +
+        (r.canDelete ? '<button class="small" style="margin-top:6px;background:#dc2626;color:#fff" data-rdel="' + esc(r.reviewId) + '">ລຶບຄວາມຄິດເຫັນຂອງຂ້ອຍ</button>' : '') +
+        '</div>').join("");
+    } catch (e) {}
+  }
+  $("oRevList").addEventListener("click", async (ev) => {
+    const btn = ev.target.closest("button[data-rdel]");
+    if (!btn || !cust) return;
+    if (!confirm("ລຶບຄວາມຄິດເຫັນນີ້?")) return;
+    const res = await post({ type: "reviewdelete", reviewId: btn.dataset.rdel, phone: cust.phone });
+    if (res && res.ok) loadOwnerReviews(ownerNow);
+    else alert(res && res.reason === "late" ? "ເກີນ 24 ຊົ່ວໂມງແລ້ວ ລຶບບໍ່ໄດ້" : "ລຶບບໍ່ສຳເລັດ");
+  });
+
   $("myBookList").addEventListener("click", async (ev) => {
     const btn = ev.target.closest("button[data-cancel]");
     if (!btn || !cust) return;
@@ -448,6 +522,8 @@
       else $("oMap").classList.add("hidden");
       if (p.phone) { $("oCall").href = telHref(p.phone); $("oWa").href = waHref(p.phone); }
       ownerListings = res.listings || [];
+      ownerNow = name;
+      loadOwnerReviews(name);
       $("oList").innerHTML = ownerListings.length ? ownerListings.map((l, i) =>
         '<div class="item" data-o="' + i + '">' +
           (l.photos && l.photos[0] ? '<img src="' + esc(l.photos[0]) + '" alt="">' : '<img alt="">') +
