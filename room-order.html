@@ -59,10 +59,6 @@
   <!-- 1. ລາຍການ -->
   <div id="stepList" class="hidden">
     <button id="btnMyBooks" class="btnlink" style="width:100%;margin-bottom:12px">📋 ການຈອງຂອງຂ້ອຍ</button>
-    <div class="card hidden" id="myBookCard">
-      <h2>ການຈອງຂອງຂ້ອຍ</h2>
-      <div id="myBookList" class="muted">ກຳລັງໂຫລດ...</div>
-    </div>
     <div class="card">
       <h2>ເລືອກປະເພດບໍລິການ</h2>
       <div class="chips" id="svcChips"></div>
@@ -83,6 +79,13 @@
   </div>
 
   <!-- 3. ໜ້າຮ້ານເຈົ້າຂອງ -->
+  <div id="stepBooks" class="hidden">
+    <button id="btnBooksBack" class="ghost small" style="margin-bottom:10px">← ກັບໄປລາຍການ</button>
+    <div class="card" id="myBookCard">
+      <h2>ການຈອງຂອງຂ້ອຍ</h2>
+      <div id="myBookList" class="muted">ກຳລັງໂຫລດ...</div>
+    </div>
+  </div>
   <div id="stepOwner" class="hidden">
     <button id="btnOwnerBack" class="ghost small" style="margin-bottom:10px">← ກັບ</button>
     <div class="card">
@@ -187,6 +190,7 @@
     $("stepList").classList.toggle("hidden", step !== "list");
     $("stepDetail").classList.toggle("hidden", step !== "detail");
     $("stepOwner").classList.toggle("hidden", step !== "owner");
+    $("stepBooks").classList.toggle("hidden", step !== "books");
   }
   function unitWord(u) {
     return String(u || "").replace("ກີບ/", "");
@@ -417,17 +421,16 @@
   $("billCard").addEventListener("click", (ev) => {
     if (!ev.target.closest("#btnBillBack")) return;
     $("billCard").classList.add("hidden");
-    show("list");
-    loadList();
-    $("myBookCard").classList.remove("hidden");
+    show("books");
     loadMyBookings();
-    $("myBookCard").scrollIntoView({ behavior: "smooth" });
+    window.scrollTo(0, 0);
   });
   $("btnMyBooks").addEventListener("click", () => {
-    const c = $("myBookCard");
-    const nowHidden = c.classList.toggle("hidden");
-    if (!nowHidden) { loadMyBookings(); c.scrollIntoView({ behavior: "smooth" }); }
+    show("books");
+    loadMyBookings();
+    window.scrollTo(0, 0);
   });
+  $("btnBooksBack").addEventListener("click", () => { show("list"); window.scrollTo(0, 0); });
 
   // ===== ໜ້າຮ້ານເຈົ້າຂອງ =====
   async function openOwner(name, from) {
