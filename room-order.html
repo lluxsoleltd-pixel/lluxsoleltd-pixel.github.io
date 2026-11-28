@@ -317,7 +317,7 @@
   let rvStars = 0, rvOrder = "", rvOwner = "";
   function starsTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
   function paintStars() {
-    document.querySelectorAll(".starBtn").forEach((b) => { b.textContent = Number(b.dataset.s) <= rvStars ? "★" : "☆"; });
+    document.querySelectorAll(".starBtn").forEach((b) => { const on = Number(b.dataset.s) <= rvStars; b.textContent = on ? "★" : "☆"; b.style.color = on ? "#facc15" : ""; });
   }
   $("myBookList").addEventListener("click", (ev) => {
     const btn = ev.target.closest("button[data-review]");

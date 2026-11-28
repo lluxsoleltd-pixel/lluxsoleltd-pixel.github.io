@@ -578,7 +578,7 @@
 
   // ===== ໃຫ້ຄະແນນ =====
   let revRideId = "", revOwner = "", revStars = 0, driverRevFor = "";
-  function paintStars() { document.querySelectorAll("#revBox .starBtn").forEach(function (b) { b.textContent = Number(b.dataset.s) <= revStars ? "★" : "☆"; }); }
+  function paintStars() { document.querySelectorAll("#revBox .starBtn").forEach(function (b) { const on = Number(b.dataset.s) <= revStars; b.textContent = on ? "★" : "☆"; b.style.color = on ? "#facc15" : ""; }); }
   document.querySelectorAll("#revBox .starBtn").forEach(function (b) {
     b.addEventListener("click", function () { revStars = Number(b.dataset.s); paintStars(); });
   });

@@ -237,7 +237,7 @@
   // ===== ໃຫ້ຄະແນນ / ຄະແນນເຈົ້າຂອງລົດ =====
   let rvOrder = "", rvOwner = "", rvStars = 0, ownerNow = "";
   function starsTxt(n) { return "★".repeat(n) + "☆".repeat(5 - n); }
-  function paintStars() { document.querySelectorAll(".starBtn").forEach((b) => { b.textContent = Number(b.dataset.s) <= rvStars ? "★" : "☆"; }); }
+  function paintStars() { document.querySelectorAll(".starBtn").forEach((b) => { const on = Number(b.dataset.s) <= rvStars; b.textContent = on ? "★" : "☆"; b.style.color = on ? "#facc15" : ""; }); }
   $("myBookList").addEventListener("click", (ev) => {
     const btn = ev.target.closest("button[data-review]");
     if (!btn) return;

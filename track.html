@@ -404,7 +404,7 @@
   // ===== ໃຫ້ຄະແນນ =====
   let revOwner = "", revType = "", revStars = 0, riderRevFor = "";
   function myPhone() { try { return JSON.parse(localStorage.getItem("llux_me") || "{}").phone || ""; } catch (e) { return ""; } }
-  function paintStars() { document.querySelectorAll(".starBtn").forEach(function (b) { b.textContent = Number(b.dataset.s) <= revStars ? "★" : "☆"; }); }
+  function paintStars() { document.querySelectorAll(".starBtn").forEach(function (b) { const on = Number(b.dataset.s) <= revStars; b.textContent = on ? "★" : "☆"; b.style.color = on ? "#facc15" : ""; }); }
   document.querySelectorAll(".starBtn").forEach(function (b) {
     b.addEventListener("click", function () { revStars = Number(b.dataset.s); paintStars(); });
   });
